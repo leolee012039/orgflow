@@ -25,9 +25,10 @@ from google.genai import types
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-# Most calls answer in 3-10 s; long real documents take 30-40 s and a few calls stall. After HEDGE_AFTER_S a second,
-# identical request starts and the first answer wins; CALL_TIMEOUT_S caps the pair.
-CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "60"))
+# Most calls answer in 3-10 s; long real documents take 30-60 s and a few calls stall. After HEDGE_AFTER_S a second,
+# identical request starts and the first answer wins; CALL_TIMEOUT_S caps the pair. 60 s cut off real university
+# documents (organization regulations of 14-18 pages) about half the time, so the cap is 90 s.
+CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "90"))
 HEDGE_AFTER_S = float(os.getenv("GEMINI_HEDGE_AFTER_S", "20"))
 
 # Low thinking keeps a call near 10 s; the default level often runs past the time budget.
