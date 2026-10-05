@@ -108,5 +108,6 @@
   "starts_from": "Procurement",
   "hands_to": null,
   "output": "Processed supplier payment",
-  "explanation": "This workflow executes supplier invoice matching and payment procedures as mandated by policy_2. It enforces matching by the Accountant, mandatory Finance Manager approval, and conditional CEO approval for amounts exceeding USD 10,000."
+  "explanation": "This workflow executes supplier invoice matching and payment procedures as mandated by policy_2. It enforces matching by the Accountant, mandatory Finance Manager approval, and conditional CEO approval for amounts exceeding USD 10,000.",
+  "upstream_id": "procurement_purchasing_and_order_placement"
 }

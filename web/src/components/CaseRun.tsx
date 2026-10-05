@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import { chainFrom, startPoints } from "@/lib/chain";
+import { chainFrom, orderedBuilt, startPoints } from "@/lib/chain";
 import { actorName, fieldLabel, fieldsOf, formatValue, ruleExpression, STEP_KIND, tryValues } from "@/lib/format";
 import type {
   BuiltWorkflow,
@@ -345,7 +345,7 @@ export function CaseRun({
   org: Organization;
 }) {
   const starts = useMemo(() => startPoints(plan, built), [plan, built]);
-  const builtList = useMemo(() => Object.values(built), [built]);
+  const builtList = useMemo(() => orderedBuilt(plan, built), [plan, built]);
   const [startId, setStartId] = useState<string | null>(null);
   const start = starts.find((s) => s.id === startId) ?? starts[0];
   const [trace, setTrace] = useState<ChainTrace | null>(null);

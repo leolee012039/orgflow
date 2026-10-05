@@ -137,5 +137,6 @@
   "starts_from": "Operations",
   "hands_to": "Finance",
   "output": "Placed purchase order and supplier invoice",
-  "explanation": "This workflow executes the Procurement Department's procedures as detailed in policy_2, obtaining the mandatory number of vendor quotes based on the estimated cost thresholds. The Procurement Manager reviews and approves every purchase order prior to order placement by the Procurement Specialist, after which the invoice is forwarded to Finance."
+  "explanation": "This workflow executes the Procurement Department's procedures as detailed in policy_2, obtaining the mandatory number of vendor quotes based on the estimated cost thresholds. The Procurement Manager reviews and approves every purchase order prior to order placement by the Procurement Specialist, after which the invoice is forwarded to Finance.",
+  "upstream_id": "operations_purchase_request_submission"
 }

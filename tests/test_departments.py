@@ -59,6 +59,23 @@ def test_map_rejects_unknown_departments_and_invented_quotes():
     assert any("same department" in p for p in problems)
 
 
+def test_map_uses_the_organizations_spelling():
+    data = fixture("department_map.json")
+    data["departments"][0]["name"] = data["departments"][0]["name"].lower()
+    data["handoffs"][0]["to"] = data["handoffs"][0]["to"].upper()
+    dmap, problems = validate_department_map(data, org(), DOC_TEXT)
+    assert problems == []
+    assert {d.name for d in dmap.departments} == {"Sales", "Operations", "Finance", "Procurement"}
+    assert all(h.to in {"Sales", "Operations", "Finance", "Procurement"} for h in dmap.handoffs)
+
+
+def test_map_rejects_a_handoff_to_a_department_without_a_profile():
+    data = fixture("department_map.json")
+    data["departments"] = [d for d in data["departments"] if d["name"] != "Procurement"]
+    _, problems = validate_department_map(data, org(), DOC_TEXT)
+    assert any("'Procurement', which has no profile" in p for p in problems)
+
+
 def test_map_rejects_a_department_with_no_work():
     data = fixture("department_map.json")
     data["departments"][0]["work"] = []
@@ -80,6 +97,30 @@ def test_plan_links_only_along_handoffs_on_the_map():
     sales["hands_to"] = "Procurement"  # the map has no Sales -> Procurement handoff
     _, problems = validate_workflow_plan(data, department_map(), DOC_TEXT)
     assert any("no handoff 'Sales' -> 'Procurement'" in p for p in problems)
+
+
+def test_plan_uses_the_maps_spelling():
+    data = fixture("workflow_plan.json")
+    for w in data["workflows"]:
+        w["department"] = w["department"].lower()
+        w["starts_from"] = w["starts_from"].upper() if w["starts_from"] else None
+    plan, problems = validate_workflow_plan(data, department_map(), DOC_TEXT)
+    assert problems == []
+    procurement = next(w for w in plan.workflows if w.id == PROCUREMENT)
+    assert (procurement.department, procurement.starts_from, procurement.hands_to) == ("Procurement", "Operations", "Finance")
+
+
+def test_plan_rejects_workflows_that_hand_cases_round_in_a_loop():
+    data = fixture("workflow_plan.json")
+    dmap = department_map()
+    dmap.handoffs.append(dmap.handoffs[0].model_copy(update={"from_dept": "Finance", "to": "Operations"}))
+    for w in data["workflows"]:
+        if w["id"] == OPERATIONS:
+            w["starts_from"] = "Finance"
+        if w["id"] == PAYMENT:
+            w["hands_to"] = "Operations"
+    _, problems = validate_workflow_plan(data, dmap, DOC_TEXT)
+    assert any("loop" in p for p in problems)
 
 
 def test_plan_needs_every_department_and_policy_quotes_for_policy_basis():
@@ -189,6 +230,33 @@ def test_build_falls_back_to_the_saved_workflow_for_the_sample(monkeypatch):
     result = asyncio.run(pipeline.build_workflow(DOCS, org(), planned(OPERATIONS)))
     assert result.origin == "fixture" and result.value.department == "Operations"
     assert result.extras["gaps"][0]["actor"] == "Director"
+    result = asyncio.run(pipeline.build_workflow(DOCS, org(), planned(PROCUREMENT), workflow(OPERATIONS)))
+    assert result.origin == "fixture" and result.value.upstream_id == OPERATIONS
+
+
+def test_a_saved_workflow_is_not_used_against_a_different_upstream(monkeypatch):
+    async def bad(*args):
+        return AgentResult({"workflow_name": 1}, None, 10)
+
+    monkeypatch.setattr(workflow_architect, "design", bad)
+    monkeypatch.setattr(workflow_architect, "repair", bad)
+    upstream = workflow(OPERATIONS)
+    upstream.fields[0].name = "item_name"  # built live with other field names than the saved Procurement expects
+    result = asyncio.run(pipeline.build_workflow(DOCS, org(), planned(PROCUREMENT), upstream))
+    assert result.origin == "unverified" and result.value is None
+
+
+def test_the_link_to_the_upstream_is_set_by_code_not_by_gemini(monkeypatch):
+    async def fake_design(docs, organization, planned_json, upstream_fields):
+        data = fixture(f"workflows/{PROCUREMENT}.json")
+        data["upstream_id"] = "something_gemini_made_up"
+        return AgentResult(data, None, 10)
+
+    monkeypatch.setattr(workflow_architect, "design", fake_design)
+    linked = asyncio.run(pipeline.build_workflow(DOCS, org(), planned(PROCUREMENT), workflow(OPERATIONS)))
+    assert linked.value.upstream_id == OPERATIONS
+    alone = asyncio.run(pipeline.build_workflow(DOCS, org(), planned(PROCUREMENT)))
+    assert alone.value.upstream_id is None
 
 
 # --- Chained runs ---------------------------------------------------------------------
@@ -226,9 +294,27 @@ def test_a_chain_waits_for_a_department_with_no_built_workflow():
 
 def test_a_chain_never_loops():
     loop = [workflow(OPERATIONS), workflow(PROCUREMENT)]
-    loop[1].hands_to, loop[0].starts_from = "Operations", "Procurement"
+    loop[1].hands_to, loop[0].upstream_id = "Operations", PROCUREMENT
     trace = run_chain(loop, org(), OPERATIONS, PURCHASE)
     assert [leg.workflow_id for leg in trace.legs] == [OPERATIONS, PROCUREMENT]
+
+
+def test_a_case_goes_only_to_the_workflow_built_against_its_workflow():
+    # A second Operations workflow also hands to Procurement, with fields Procurement never saw
+    other = workflow(OPERATIONS)
+    other.opportunity_id = "operations_equipment_request"
+    other.fields[0].name = "equipment"
+    workflows = [other, *all_workflows()]
+    assert next_workflow(other, workflows) is None  # Procurement was built against the purchase request
+    assert next_workflow(workflow(OPERATIONS), workflows).opportunity_id == PROCUREMENT
+    trace = run_chain(workflows, org(), OPERATIONS, PURCHASE)
+    assert [leg.department for leg in trace.legs] == ["Operations", "Procurement", "Finance"]
+
+
+def test_numbers_too_large_to_compare_are_refused():
+    body = {"workflows": [w.model_dump() for w in all_workflows()], "organization": fixture("organization.json"),
+            "start_id": OPERATIONS, "request": {**PURCHASE, "estimated_cost": 10**400}}
+    assert client.post("/api/run_chain", json=body).status_code == 422
 
 
 def test_exactly_ten_percent_discount_stops_before_any_approval():

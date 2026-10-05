@@ -67,11 +67,17 @@ export function Workspace({
   const { organization: org, departmentMap: map, plan } = workspace;
   const [states, setStates] = useState<Record<string, BuildState>>({});
   const [draft, setDraft] = useState<DraftDocuments>({ policies: [] });
-  // Builds that finish while others run must see each other's results before the next render
+  // The source of truth while builds run: parallel builds must see each other's results before any render.
+  // Only this component adds to it, and the page gives each company its own Workspace (a key).
   const builtRef = useRef(workspace.built);
+  // A build that finishes after the person has moved on to another company is dropped
+  const gone = useRef(false);
   useEffect(() => {
-    builtRef.current = workspace.built;
-  }, [workspace.built]);
+    gone.current = false;
+    return () => {
+      gone.current = true;
+    };
+  }, []);
   const built = workspace.built;
   const candidates = plan.workflows;
 
@@ -104,11 +110,13 @@ export function Workspace({
     setStates((s) => ({ ...s, [c.id]: { status: "building" } }));
     try {
       const result = await api.build(docs, org, c, upstream ? builtRef.current[upstream.id] ?? null : null);
+      if (gone.current) return false;
       builtRef.current = { ...builtRef.current, [c.id]: result };
       onBuilt(builtRef.current);
       setStates((s) => Object.fromEntries(Object.entries(s).filter(([key]) => key !== c.id)));
       return true;
     } catch (e) {
+      if (gone.current) return false;
       setStates((s) => ({
         ...s,
         [c.id]: { status: "error", message: (e as Error).message, problems: e instanceof ApiError ? e.problems : [] },
@@ -118,17 +126,22 @@ export function Workspace({
   }
 
   async function buildAll() {
-    // Upstream first; workflows whose upstream is ready are built side by side
+    // Upstream first: a workflow is built once its upstream is built, side by side with others that are ready
+    const upstreamBuilt = (c: WorkflowCandidate) => {
+      const up = upstreamOf(c, candidates, builtRef.current);
+      return !up || Boolean(builtRef.current[up.id]);
+    };
     let pending = buildOrder(candidates, builtRef.current);
-    while (pending.length) {
-      const ready = pending.filter((c) => {
-        const up = upstreamOf(c, candidates, builtRef.current);
-        return !up || builtRef.current[up.id] || !pending.includes(up);
-      });
+    while (pending.length && !gone.current) {
+      const ready = pending.filter(upstreamBuilt);
       if (!ready.length) break;
-      const results = await Promise.all(ready.map(build));
+      await Promise.all(ready.map(build));
       pending = pending.filter((c) => !ready.includes(c));
-      if (results.some((ok) => !ok)) pending = pending.filter((c) => !blockedBy(c));
+      // A workflow whose upstream failed can't be built against it; the rest carry on
+      pending = pending.filter((c) => {
+        const up = upstreamOf(c, candidates, builtRef.current);
+        return !up || builtRef.current[up.id] || pending.includes(up);
+      });
     }
   }
 

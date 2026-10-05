@@ -343,13 +343,11 @@ def run_workflow(
 
 
 def next_workflow(current: Workflow, workflows: list[Workflow]) -> Optional[Workflow]:
-    """The workflow that picks up this one's result: it belongs to the department this one
-    hands to, and it starts from this one's department."""
+    """The workflow built to pick up this one's result: the first, in the given order, whose
+    upstream_id is this workflow. Only that one was built against this workflow's fields."""
     if not current.hands_to:
         return None
-    return next((w for w in workflows
-                 if w.department.lower() == current.hands_to.lower()
-                 and (w.starts_from or "").lower() == current.department.lower()), None)
+    return next((w for w in workflows if w.upstream_id == current.opportunity_id), None)
 
 
 def run_chain(

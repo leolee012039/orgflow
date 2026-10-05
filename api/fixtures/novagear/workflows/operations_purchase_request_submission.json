@@ -125,5 +125,6 @@
   "starts_from": null,
   "hands_to": "Procurement",
   "output": "Approved purchase request",
-  "explanation": "This workflow follows the purchasing policy by validating all mandatory fields prior to routing through manager approval, finance validation, and director approval based on estimated cost tiers. Once approved, the request is formally handed to the Procurement department and a notification is sent to the requester."
+  "explanation": "This workflow follows the purchasing policy by validating all mandatory fields prior to routing through manager approval, finance validation, and director approval based on estimated cost tiers. Once approved, the request is formally handed to the Procurement department and a notification is sent to the requester.",
+  "upstream_id": null
 }

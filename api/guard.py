@@ -365,18 +365,49 @@ def validate_department_map(
             errors.append(f"Profile '{profile.name}' lists no work; leave out departments the documents give no work to")
         for item in profile.work:
             errors.extend(_check_quote(f"Work '{item.task}' of '{profile.name}'", item.evidence.quote, doc_text))
+    profiled = {p.name.lower() for p in dmap.departments}
     for h in dmap.handoffs:
         label = f"Handoff '{h.from_dept}' -> '{h.to}'"
-        if known is not None:
-            for end in (h.from_dept, h.to):
-                if end.lower() not in known:
-                    errors.append(f"{label} names '{end}', which is not a department in the organization JSON")
+        for end in (h.from_dept, h.to):
+            if known is not None and end.lower() not in known:
+                errors.append(f"{label} names '{end}', which is not a department in the organization JSON")
+            elif end.lower() not in profiled:
+                # No workflow could ever be planned there, so cases would wait for it forever
+                errors.append(f"{label} names '{end}', which has no profile; profile it or leave the handoff out")
         if h.from_dept.lower() == h.to.lower():
             errors.append(f"{label} starts and ends in the same department")
         errors.extend(_check_quote(label, h.evidence.quote, doc_text))
     if errors:
         return None, errors
+    # One spelling per department from here on: the organization's
+    if known is not None:
+        for profile in dmap.departments:
+            profile.name = known[profile.name.lower()]
+        for h in dmap.handoffs:
+            h.from_dept, h.to = known[h.from_dept.lower()], known[h.to.lower()]
     return dmap, []
+
+
+def _workflow_loop(plan: WorkflowPlan) -> Optional[list[str]]:
+    """Workflow ids that hand cases round in a circle, if any: such a case would never finish."""
+    def follows(w: WorkflowCandidate) -> list[WorkflowCandidate]:
+        return [d for d in plan.workflows
+                if w.hands_to and d.department == w.hands_to and d.starts_from == w.department]
+
+    def walk(w: WorkflowCandidate, path: list[str]) -> Optional[list[str]]:
+        if w.id in path:
+            return path[path.index(w.id):] + [w.id]
+        for d in follows(w):
+            loop = walk(d, path + [w.id])
+            if loop:
+                return loop
+        return None
+
+    for w in plan.workflows:
+        loop = walk(w, [])
+        if loop:
+            return loop
+    return None
 
 
 def validate_workflow_plan(
@@ -420,8 +451,19 @@ def validate_workflow_plan(
                           "quote the policy passage or set basis to org_chart")
         for ev in w.evidence:
             errors.extend(_check_quote(f"Workflow '{w.id}' evidence", ev.quote, doc_text))
+        if not re.fullmatch(r"[a-z0-9_]+", w.id):
+            errors.append(f"Workflow id '{w.id}' must be snake_case (a-z, 0-9, _)")
     if errors:
         return None, errors
+    # One spelling per department, the map's, so the web app can compare names exactly
+    for w in plan.workflows:
+        w.department = mapped[w.department.lower()]
+        w.starts_from = mapped.get(w.starts_from.lower(), w.starts_from) if w.starts_from else None
+        w.hands_to = mapped.get(w.hands_to.lower(), w.hands_to) if w.hands_to else None
+    loop = _workflow_loop(plan)
+    if loop:
+        return None, [f"Workflows {' -> '.join(loop)} hand cases round in a loop, so a case would never finish; "
+                      "break the loop by removing one starts_from or hands_to"]
     return plan, []
 
 
@@ -522,8 +564,10 @@ def validate_workflow_output(
 
     # Amounts that decide approvals must become rules. Only the passages this workflow
     # is built on count: another department's amounts don't apply to it.
+    # A form without a number field (one that arrives from upstream, say) can't hold such a rule.
     amount_text = " ".join(ev.quote for ev in planned.evidence) if planned is not None else doc_text
-    if amount_text and not wf.rules and sum(s.type == "approval" for s in wf.steps) >= 2:
+    has_number = any(f.type == "number" for f in wf.fields) if wf.fields else True
+    if amount_text and has_number and not wf.rules and sum(s.type == "approval" for s in wf.steps) >= 2:
         amounts = stated_amounts(amount_text)
         if amounts:
             errors.append(
@@ -546,4 +590,8 @@ def validate_workflow_output(
 
     if errors:
         return None, errors
+    if planned is not None:
+        # The plan's spelling, so the web app can compare names exactly
+        wf.department, wf.starts_from, wf.hands_to = planned.department, planned.starts_from, planned.hands_to
+    wf.upstream_id = None  # only the pipeline sets this, from the workflow it was actually built against
     return wf, []

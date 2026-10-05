@@ -56,6 +56,20 @@ Inputs, unchanged: NTU organization table (`ntuinfo.ntu.edu.tw/pdf/p1_2_0_strusy
 - Effect: during judging, a busy moment would freeze a stage for 60 s. Uploaded documents then show "couldn't verify"; the sample falls back to its fixture only after the wait.
 - Status: **fixed.** `_run` raises as soon as an error event arrives and closes the run. Every agent uses `gemini()`, which retries 429/5xx twice (about 2 s and 4 s later). Checked live with a model name that doesn't exist: the error came back in 1.6 s. Tests: `tests/test_runtime.py`.
 
+## 8. Review of the department workflows (793a48e, 2ea2b25)
+
+Found 2026-10-05 by an adversarial review; each case was reproduced with saved answers, no Gemini calls.
+
+1. **A case could reach a workflow that was built for a different upstream.** The runner and the page matched the next workflow by department pair. With two Operations workflows handing to Procurement, the case went to a Procurement workflow built against the other one's fields and came back RETURNED.
+2. **Some downstream workflows could never run.** The runner picked the first match in build order, while "Build all" and the start points used plan order.
+3. **Department names in different case.** The backend ignored case; the page compared exactly. A workflow for "procurement" appeared in no department section, and a lowercase starts_from skipped the upstream field check.
+4. **A plan in which two workflows hand to each other locked both**: each waited for the other, and "Build all" did nothing.
+5. **One failed build in "Build all" dropped workflows that could still build**, because it used the state from the render when the button was clicked.
+6. **Builds kept going after "Analyze another company"**, and could save company A's workflows into company B.
+7. **A number too large for a float (10^400) returned 500** from /api/run and /api/run_chain.
+- Also: a handoff to a department with no profile left cases waiting forever; a saved sample workflow could be used against an upstream it doesn't fit; a failed save looked saved.
+- Status: **fixed.** A built workflow records `upstream_id`, set by code to the workflow it was built against, and cases follow only that link (first in plan order, on both sides). Guards rewrite every department name to the organization's spelling, reject plans whose workflows hand cases round in a loop, reject handoffs to departments without a profile, and use a saved workflow only if it passes the checks against the actual upstream. "Build all" drops only the workflows whose upstream failed. Each company gets its own Workspace component and late builds are dropped. Request numbers must be below 10^15 (422 otherwise). A failed save is shown. Tests: `tests/test_departments.py`; page logic checked against the saved NovaGear answers.
+
 ## 4. Different job titles may be reported as missing roles
 
 - A policy may say "Director" while a real org chart says 協理 or "Head of Procurement". The workflow architect would list the approver as unresolved, which is a false gap.

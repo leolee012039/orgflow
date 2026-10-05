@@ -1,5 +1,5 @@
 from typing import Literal, Optional, Union
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Origin indicator for responses
 OriginType = Literal["live", "repaired", "fixture"]
@@ -137,10 +137,14 @@ class Workflow(BaseModel):
     hands_to: Optional[str] = None
     output: str = ""
     explanation: str
+    # Set by code, never by Gemini: the built workflow this one was built to receive cases from
+    upstream_id: Optional[str] = None
 
 # -----------------------------------------------------------------------------
 # 4. Request Form & Execution Trace Schemas
 # -----------------------------------------------------------------------------
+
+MAX_FORM_NUMBER = 1e15  # no real amount or percentage is larger; bigger ones break float comparisons
 
 class RequestForm(BaseModel):
     """What someone submits to start a workflow: who, from which department, plus the workflow's own fields."""
@@ -148,6 +152,14 @@ class RequestForm(BaseModel):
     request_id: str = "REQ-0001"
     requester: str = ""
     department: str = ""
+
+    @model_validator(mode="after")
+    def _numbers_are_finite(self):
+        for name, value in (self.model_extra or {}).items():
+            # "not <" also catches infinity and NaN
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and not abs(value) < MAX_FORM_NUMBER:
+                raise ValueError(f"{name} must be a number below {MAX_FORM_NUMBER:,.0f}")
+        return self
 
 STANDARD_FIELDS = {"requester", "department"}
 

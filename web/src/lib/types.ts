@@ -123,6 +123,8 @@ export interface Workflow {
   hands_to: string | null;
   output: string;
   explanation: string;
+  /** Set by code: the built workflow this one receives cases from */
+  upstream_id?: string | null;
 }
 
 /** An approver the policy requires that the organization does not provide. */

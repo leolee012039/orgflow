@@ -146,5 +146,6 @@
   "starts_from": null,
   "hands_to": "Finance",
   "output": "Approved customer quote",
-  "explanation": "This workflow validates required discount request fields and routes approval to the Sales Representative, Sales Manager, or CEO depending on the discount percentage thresholds specified in the Sales Discount Policy. After approval, the quote is sent to Finance as mandated prior to order confirmation."
+  "explanation": "This workflow validates required discount request fields and routes approval to the Sales Representative, Sales Manager, or CEO depending on the discount percentage thresholds specified in the Sales Discount Policy. After approval, the quote is sent to Finance as mandated prior to order confirmation.",
+  "upstream_id": null
 }

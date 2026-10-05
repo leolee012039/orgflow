@@ -2,7 +2,14 @@ import type { BuiltWorkflow, Handoff, WorkflowCandidate } from "./types";
 
 type Built = Record<string, BuiltWorkflow>;
 
-/** The planned workflow a candidate starts from: in its starts_from department, handing to its department. */
+/** Built workflows in plan order. The runner picks the next workflow in the order it is sent, so the page
+ * always sends this order and follows it itself. */
+export function orderedBuilt(plan: WorkflowCandidate[], built: Built): BuiltWorkflow[] {
+  return plan.filter((c) => built[c.id]).map((c) => built[c.id]);
+}
+
+/** The planned workflow a candidate starts from: in its starts_from department, handing to its department.
+ * A built one wins, so the candidate is built against something that exists. */
 export function upstreamOf(candidate: WorkflowCandidate, plan: WorkflowCandidate[], built: Built): WorkflowCandidate | null {
   if (!candidate.starts_from) return null;
   const options = plan.filter((w) => w.department === candidate.starts_from && w.hands_to === candidate.department);
@@ -34,33 +41,30 @@ export function buildOrder(plan: WorkflowCandidate[], built: Built): WorkflowCan
   return [...wanted.values()].filter((w) => !built[w.id]);
 }
 
-/** Where a case can start: built workflows that a person starts, or whose upstream isn't built. The start of
- * the longest chain comes first. */
-export function startPoints(plan: WorkflowCandidate[], built: Built): WorkflowCandidate[] {
-  const starts = plan.filter((c) => {
-    if (!built[c.id]) return false;
-    if (!c.starts_from) return true;
-    return !plan.some((w) => built[w.id] && w.department === c.starts_from && w.hands_to === c.department);
-  });
-  const length = (c: WorkflowCandidate) => chainFrom(built[c.id], Object.values(built)).length;
-  return starts.sort((a, b) => length(b) - length(a));
-}
-
-/** The built workflows a case started here passes through, following each handoff (as the runner does). */
-export function chainFrom(start: BuiltWorkflow, built: BuiltWorkflow[]): BuiltWorkflow[] {
+/** The built workflows a case started here passes through: each next one is the workflow built against the
+ * current one (its upstream_id), first in plan order, exactly as the runner picks it. */
+export function chainFrom(start: BuiltWorkflow, ordered: BuiltWorkflow[]): BuiltWorkflow[] {
   const path = [start];
   let current = start;
   while (current.hands_to) {
-    const next = built.find(
-      (w) =>
-        w.department.toLowerCase() === current.hands_to!.toLowerCase() &&
-        (w.starts_from ?? "").toLowerCase() === current.department.toLowerCase(),
-    );
+    const next = ordered.find((w) => w.upstream_id === current.opportunity_id);
     if (!next || path.includes(next)) break;
     path.push(next);
     current = next;
   }
   return path;
+}
+
+/** Where a case can start: built workflows that receive cases from no built workflow. The start of the longest
+ * chain comes first. */
+export function startPoints(plan: WorkflowCandidate[], built: Built): WorkflowCandidate[] {
+  const ordered = orderedBuilt(plan, built);
+  const starts = plan.filter((c) => {
+    const wf = built[c.id];
+    return wf && (!wf.upstream_id || !built[wf.upstream_id]);
+  });
+  const length = (c: WorkflowCandidate) => chainFrom(built[c.id], ordered).length;
+  return starts.sort((a, b) => length(b) - length(a));
 }
 
 /** The map drawn as lanes: every path of handoffs from a department that receives nothing, plus the rest. */

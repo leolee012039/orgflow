@@ -257,8 +257,13 @@ async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandida
             return None, [f"opportunity_id must be '{planned.id}', got '{wf.opportunity_id}'"]
         return wf, problems
 
-    # A fixture was built from the sample's own upstream, so it only fits when the upstream matches
-    fixture = _fixture(docs, f"workflows/{planned.id}.json", Workflow)
+    # A saved answer was built against the sample's own upstream: use it only if it passes the same
+    # checks against the upstream this build actually has
+    fixture = None
+    if re.fullmatch(r"[a-z0-9_]+", planned.id):
+        saved = _fixture(docs, f"workflows/{planned.id}.json", Workflow)
+        if saved is not None and validate(saved().model_dump())[0] is not None:
+            fixture = saved
     result = await run_guarded_stage(
         stage="workflow",
         first_call=lambda: workflow_architect.design(labelled, org_json, planned_json, upstream_json),
@@ -269,6 +274,8 @@ async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandida
     )
     if result.value is not None:
         wf = result.value
+        # The link the runner follows: this workflow receives cases from the one it was built against
+        wf.upstream_id = upstream.opportunity_id if upstream is not None else None
         result.extras["gaps"] = find_gaps(wf, await document_text(docs.org_chart))
         tiers, tier_problems = verified_amount_tiers(wf.amount_tiers, doc_text, form_fields(wf))
         if tier_problems:

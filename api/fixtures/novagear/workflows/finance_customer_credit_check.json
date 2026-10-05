@@ -73,5 +73,6 @@
   "starts_from": "Sales",
   "hands_to": null,
   "output": "Credit limit verification decision",
-  "explanation": "This workflow executes the customer credit verification by Finance upon receiving approved quotes from Sales, in accordance with Section 4 of Policy 3. Because the policy specifies Finance checks the customer's credit limit without requiring internal approvals or tiered limits within Finance, the departmental unit performs the credit check task directly."
+  "explanation": "This workflow executes the customer credit verification by Finance upon receiving approved quotes from Sales, in accordance with Section 4 of Policy 3. Because the policy specifies Finance checks the customer's credit limit without requiring internal approvals or tiered limits within Finance, the departmental unit performs the credit check task directly.",
+  "upstream_id": "sales_quote_discount_approval"
 }

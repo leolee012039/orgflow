@@ -135,7 +135,17 @@ function Home() {
   }
 
   function onBuilt(built: Record<string, BuiltWorkflow>) {
-    if (savedId) saveBuilt(savedId, built).catch(() => undefined);
+    if (savedId) {
+      saveBuilt(savedId, built).then(
+        () => setView((v) => (v.status === "ready" && v.saved?.id === savedId ? { ...v, saveError: undefined } : v)),
+        () =>
+          setView((v) =>
+            v.status === "ready" && v.saved?.id === savedId
+              ? { ...v, saveError: "The latest workflows aren't saved yet. They'll be saved with the next one you build." }
+              : v,
+          ),
+      );
+    }
     setView((v) =>
       v.status === "ready"
         ? { ...v, workspace: { ...v.workspace, built }, saved: v.saved ? { ...v.saved, built } : null }
@@ -155,6 +165,7 @@ function Home() {
           </p>
         )}
         <Workspace
+          key={view.saved?.id ?? view.workspace.analyzedAt}
           workspace={view.workspace}
           docs={docs}
           onDocs={setDocs}
