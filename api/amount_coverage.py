@@ -6,8 +6,13 @@ leaves exactly 100,000 in no tier (a gap); 「十萬元以下」 followed by 「
 in both (an overlap).
 
 A false finding on a real policy is worse than a missed one, so a finding needs the
-wording on both sides to say so and nothing near the amount to say otherwise: 「逾十萬元
-以上」, "at or above", 「（含）」 or 「（不含十萬元）」 all mean no finding.
+wording on both sides to say so and nothing near the amount to say otherwise: "at or
+above", 「（含）」 or 「（不含十萬元）」 all mean no gap. A note on the amount settles it
+whatever the main word says; 「（含稅）」 or "excluding VAT" is not such a note.
+
+Wording that says both at once, like 「逾十萬元以上」 ("over, and at or above"), is
+reported as unclear: the words can't tell which level owns the amount, so a person
+confirms it.
 """
 
 import re
@@ -47,50 +52,121 @@ _WORDING = [
 _RANGE = re.compile(rf"(?:(?<![\d.])({_NUMBER}){_FROM_AMOUNT}(?:[-–—~～至到]|\bto\b)"
                     rf"|\bbetween{_TO_AMOUNT}({_NUMBER}){_FROM_AMOUNT}and)"
                     rf"{_TO_AMOUNT}({_NUMBER})(?!\d|\.\d)", re.I)
-# Words next to the amount that say it is included, or excluded, whatever the main word says
+# Words next to the amount that say it is included, whatever the main word says
 _INCLUDED_BEFORE = re.compile(r"equal|\bat or\b|\bmeets? or\b|等於", re.I)
-_INCLUDED_AFTER = re.compile(r"inclusive|including|(?<![不未包])含|(?<![不未])包含|以上|以下|以內"
+_INCLUDED_AFTER = re.compile(r"以上|以下|以內"
                              r"|\bor (?:more|less|above|below|over|under)\b|\band (?:above|below|over|under)\b", re.I)
-_EXCLUDED_NEAR = re.compile(r"不含|不包括|不包含|exclusive|excluding|not including", re.I)
+
+
+def _prepared(source: str, amount: float) -> tuple[str, str]:
+    """The passage with amounts as plain digits, and a pattern for this amount in it."""
+    text = re.sub(r"\s+", " ", normalize_amounts(source))
+    text = re.sub(r"(\d)\.0+(?!\d)", r"\1", text)  # 5,000.00 is 5000
+    return text, rf"(?<![\d.]){re.escape(_format_amount(amount))}(?!\d|\.\d)"
+
+
+def _near(text: str, match: re.Match) -> tuple[str, str]:
+    """The words between this amount and its neighbours: in 「1萬元以上未滿10萬元」
+    the 以上 belongs to 1萬, not to 10萬."""
+    before = re.split(r"\d", text[max(0, match.start() - 30):match.start()])[-1]
+    after = re.split(r"\d", text[match.end():match.end() + 20])[0]
+    return before, after
+
+
+def _notes(number: str) -> list[tuple[str, re.Pattern]]:
+    """Notes that settle the amount on their own. Only a real note counts: 「（含稅）」,
+    "including tax" or "excluding VAT" say nothing about the amount."""
+    note = r"[(]\s*(不)?(?:含|包含|包括)\s*(?:本數)?\s*[)]"  # 「（含）」 「（不含）」 right after the amount
+    return [
+        ("chinese", re.compile(rf"{number}{_FROM_AMOUNT}{note}")),
+        # 「（不含十萬元）」: a note that names the amount
+        ("chinese", re.compile(rf"[(]\s*(不)?(?:含|包含|包括)\s*(?:本數)?{_TO_AMOUNT}{number}{_FROM_AMOUNT}[)]")),
+        # "Under $5,000 inclusive", "(exclusive)"
+        ("english", re.compile(rf"{number}{_FROM_AMOUNT}[(,]?\s*(inclusive|exclusive)\b(?!\s+of)", re.I)),
+        # "(including $5,000)", "(not including 5,000)"
+        ("english", re.compile(rf"[(]\s*(including|excluding|not including){_TO_AMOUNT}{number}{_FROM_AMOUNT}[)]", re.I)),
+    ]
+
+
+def noted_wording(source: str, amount: float) -> set[str]:
+    """What a note on the amount says, like 「（含）」, 「（不含十萬元）」 or "inclusive"."""
+    text, number = _prepared(source, amount)
+    found: set[str] = set()
+    for language, pattern in _notes(number):
+        for m in pattern.finditer(text):
+            word = (m.group(1) or "").lower()
+            if language == "chinese":
+                found.add("exclusive" if word == "不" else "inclusive")
+            else:
+                found.add("inclusive" if word in ("inclusive", "including") else "exclusive")
+    return found
+
+
+def _occurrences(source: str, amount: float, end: str) -> list[set[str]]:
+    """What the words around each occurrence of `amount` say about the tier's "upper" or
+    "lower" end. One occurrence can say both: 「逾十萬元以上」."""
+    text, number = _prepared(source, amount)
+    # Where a range starts or ends at this amount: 「二萬元至十萬元」
+    range_ends: set[int] = set()
+    for m in _RANGE.finditer(text):
+        low_group = 1 if m.group(1) else 2
+        low, high = float(m.group(low_group)), float(m.group(3))
+        if 100 <= low < high:  # not 「第3至5條」 or 2026-10
+            if end == "lower" and low == amount:
+                range_ends.add(m.start(low_group))
+            if end == "upper" and high == amount:
+                range_ends.add(m.start(3))
+    out = []
+    for m in re.finditer(number, text):
+        before, after = _near(text, m)
+        found: set[str] = set()
+        for tier_end, meaning, words_before, words_after in _WORDING:
+            if tier_end != end:
+                continue
+            if re.search(rf"(?:{words_before}){_TO_AMOUNT}$", before, re.I):
+                found.add(meaning)
+            if words_after and re.match(rf"{_FROM_AMOUNT}(?:{words_after})", after, re.I):
+                found.add(meaning)
+        if _INCLUDED_BEFORE.search(before) or _INCLUDED_AFTER.search(after):
+            found.add("inclusive")
+        # A range includes its ends, unless the word before it says otherwise: 「逾十萬元至一百萬元」
+        if m.start() in range_ends and "exclusive" not in found:
+            found.add("inclusive")
+        out.append(found)
+    return out
 
 
 def bound_wording(source: str, amount: float, end: str) -> set[str]:
     """What the passage says about `amount` as the tier's "upper" or "lower" end:
     {"exclusive"}, {"inclusive"}, both when it says both, or nothing it recognizes."""
-    text = re.sub(r"\s+", " ", normalize_amounts(source))
-    text = re.sub(r"(\d)\.0+(?!\d)", r"\1", text)  # 5,000.00 is 5000
-    number = rf"(?<![\d.]){re.escape(_format_amount(amount))}(?!\d|\.\d)"
-    found: set[str] = set()
-    for tier_end, meaning, before, after in _WORDING:
-        if tier_end != end:
-            continue
-        if re.search(rf"(?:{before}){_TO_AMOUNT}{number}", text, re.I):
-            found.add(meaning)
-        if after and re.search(rf"{number}{_FROM_AMOUNT}(?:{after})", text, re.I):
-            found.add(meaning)
-    for m in _RANGE.finditer(text):
-        low, high = float(m.group(1) or m.group(2)), float(m.group(3))
-        if 100 <= low < high and (low if end == "lower" else high) == amount:  # not 「第3至5條」 or 2026-10
-            found.add("inclusive")
-    for m in re.finditer(number, text):
-        # Only the words between this amount and its neighbours: in 「1萬元以上未滿10萬元」
-        # the 以上 belongs to 1萬, not to 10萬
-        before = re.split(r"\d", text[max(0, m.start() - 30):m.start()])[-1]
-        after = re.split(r"\d", text[m.end():m.end() + 20])[0]
-        if _INCLUDED_BEFORE.search(before) or _INCLUDED_AFTER.search(after):
-            found.add("inclusive")
-        if _EXCLUDED_NEAR.search(before + " " + after):
-            found.add("exclusive")
-    return found
+    return set().union(*_occurrences(source, amount, end))
+
+
+def _side(source: str, amount: float, end: str) -> tuple[set[str], bool]:
+    """What the passage says about this end of its tier, and whether a single mention
+    says both. A note on the amount settles it."""
+    noted = noted_wording(source, amount)
+    if len(noted) == 1:
+        return noted, False
+    occurrences = _occurrences(source, amount, end)
+    return set().union(*occurrences), any(len(o) == 2 for o in occurrences)
+
+
+def tier_end(source: str, amount: float, end: str) -> set[str]:
+    """What the passage says about this end of its tier, a note on the amount first."""
+    return _side(source, amount, end)[0]
 
 
 def find_amount_gaps(tiers: list[AmountTier]) -> list[dict]:
     """Amounts where one tier ends and the next begins, and the wording on both sides
-    leaves the amount in no tier ("gap") or in both ("overlap").
+    leaves the amount in no tier ("gap"), in both ("overlap"), or can't say ("unclear":
+    one mention of the amount says both, like 「逾十萬元以上」).
 
     Only an amount where exactly one tier ends and exactly one begins is checked: two
     tiers ending at the same amount usually come from different tables (approvals and
-    quotes, goods and services), and pairing across tables would invent findings.
+    quotes, goods and services), and pairing across tables would invent findings. A
+    passage that mentions the amount twice with different words (one sentence quoted
+    for both tiers) is not unclear: the words belong to different tiers.
     """
     findings = []
     for field in sorted({t.field for t in tiers}):  # an amount and a discount rate never meet
@@ -101,26 +177,36 @@ def find_amount_gaps(tiers: list[AmountTier]) -> list[dict]:
             if len(ending) != 1 or len(starting) != 1:
                 continue
             below, above = ending[0], starting[0]
-            ends = bound_wording(below.source, amount, "upper")
-            starts = bound_wording(above.source, amount, "lower")
+            ends, ends_both = _side(below.source, amount, "upper")
+            starts, starts_both = _side(above.source, amount, "lower")
+            finding = {"field": field, "amount": amount, "below": below.source, "above": above.source}
             if ends == starts == {"exclusive"}:
-                kind = "gap"
+                finding["kind"] = "gap"
             elif ends == starts == {"inclusive"}:
-                kind = "overlap"
+                finding["kind"] = "overlap"
+            elif ends and starts and (ends_both or starts_both):
+                finding["kind"] = "unclear"
+                finding["unclear_side"] = "above" if starts_both else "below"
             else:
-                continue
-            findings.append({"kind": kind, "field": field, "amount": amount,
-                             "below": below.source, "above": above.source})
+                continue  # covered once, or wording OrgFlow can't read either way
+            findings.append(finding)
     return findings
 
 
-def amount_finding(tiers: list[AmountTier], values: dict) -> Optional[dict]:
-    """The gap or overlap that this request's numbers fall on exactly, if the policy has one."""
+def amount_findings(tiers: list[AmountTier], values: dict) -> list[dict]:
+    """Every gap or overlap that this request's numbers fall on exactly."""
+    hits = []
     for finding in find_amount_gaps(tiers):
         value = values.get(finding["field"])
         try:
             if value is not None and float(value) == finding["amount"]:
-                return finding
+                hits.append(finding)
         except (TypeError, ValueError):
             continue
-    return None
+    return hits
+
+
+def amount_finding(tiers: list[AmountTier], values: dict) -> Optional[dict]:
+    """The gap or overlap that this request's numbers fall on exactly, if the policy has one."""
+    hits = amount_findings(tiers, values)
+    return hits[0] if hits else None

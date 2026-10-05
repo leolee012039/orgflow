@@ -36,8 +36,18 @@ that starts when another department hands work over. For each workflow:
 Connect departments: for every handoff in the department map, plan one workflow in
 the sending department with hands_to set to the receiver, and one in the receiving
 department with starts_from set to the sender, so that the first hands its result to
-the second. Rank these first in their departments. Write name, trigger, output and
-why in the language of the documents. Never
+the second. Rank these first in their departments.
+
+Approval levels: a policy that sets who approves by amount (one approver up to an
+amount, another above it) needs exactly one workflow that takes a request through
+those levels, citing the passages that state them. When one department sends such
+requests, that is its workflow. When any unit may send them, plan it in the
+department that handles them under the policy, ranked first there, ahead of the
+handoff workflows. Never plan the same approval levels in two departments. When a
+department reaches {MAX_PER_DEPARTMENT} workflows, keep both sides of every handoff and the
+approval-levels workflow, and drop the others.
+
+Write name, trigger, output and why in the language of the documents. Never
 assume software, integrations or rules that the documents do not mention. Return
 JSON only."""
 

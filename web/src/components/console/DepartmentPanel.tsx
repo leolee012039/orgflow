@@ -1,5 +1,6 @@
 "use client";
 
+import { openProblems, settledProblems, useDecisions } from "@/lib/decisions";
 import type { BuildState } from "@/lib/useBuilds";
 import type { BuiltWorkflow, DepartmentMap, Organization, WorkflowCandidate } from "@/lib/types";
 import { Quote } from "../Quote";
@@ -31,16 +32,18 @@ export function StatusText({
   state?: BuildState;
   blockedBy?: WorkflowCandidate;
 }) {
+  const { decisions } = useDecisions();
   const pill = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap";
   if (built) {
-    const problems = built.gaps.length + (built.amount_gaps?.length ?? 0);
+    const problems = openProblems(built, decisions);
+    const settled = settledProblems(built, decisions);
     return problems ? (
       <span className={`${pill} bg-alert-soft text-alert`}>
         <AlertIcon width="12" height="12" /> Built, {problems} {problems === 1 ? "problem" : "problems"}
       </span>
     ) : (
       <span className={`${pill} bg-ok-soft text-ok`}>
-        <CheckIcon width="12" height="12" /> Built
+        <CheckIcon width="12" height="12" /> Built{settled ? `, ${settled} decided` : ""}
       </span>
     );
   }

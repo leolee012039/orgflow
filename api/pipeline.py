@@ -19,7 +19,7 @@ import io
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Optional, Sequence, TypeVar
 
 from pypdf import PdfReader
 
@@ -48,6 +48,7 @@ from guard import (
 from runner import run_chain, run_workflow
 from schemas import (
     ChainTrace,
+    Decision,
     DepartmentMap,
     ExecutionTrace,
     FormField,
@@ -293,10 +294,11 @@ def _reviewer_for(workflow: Workflow):
 
 
 async def run_request(workflow: Workflow, org: Organization, form: RequestForm,
-                      manual_handoffs_before: int = 4, live_review: bool = True) -> ExecutionTrace:
+                      manual_handoffs_before: int = 4, live_review: bool = True,
+                      decisions: Sequence[Decision] = ()) -> ExecutionTrace:
     """Execute a request. The runner is plain code; only the ai_review step may call Gemini."""
     reviewer = _reviewer_for(workflow) if live_review else None
-    trace = await asyncio.to_thread(run_workflow, workflow, org, form, reviewer, manual_handoffs_before)
+    trace = await asyncio.to_thread(run_workflow, workflow, org, form, reviewer, manual_handoffs_before, decisions)
     log_event("run", request_id=trace.request_id, status=trace.status,
               steps=[f"{s.step_id}:{s.result}" for s in trace.steps])
     return trace
@@ -304,10 +306,11 @@ async def run_request(workflow: Workflow, org: Organization, form: RequestForm,
 
 async def run_chain_request(workflows: list[Workflow], org: Organization, start_id: str, form: RequestForm,
                             handoffs_before: Optional[dict[str, int]] = None,
-                            live_review: bool = True) -> ChainTrace:
+                            live_review: bool = True, decisions: Sequence[Decision] = ()) -> ChainTrace:
     """Run a case through the chain of built workflows that starts at start_id."""
     reviewer_for = _reviewer_for if live_review else None
-    trace = await asyncio.to_thread(run_chain, workflows, org, start_id, form, reviewer_for, handoffs_before)
+    trace = await asyncio.to_thread(run_chain, workflows, org, start_id, form, reviewer_for, handoffs_before,
+                                    decisions)
     log_event("run_chain", request_id=trace.request_id, status=trace.status,
               legs=[f"{leg.workflow_id}:{leg.trace.status}" for leg in trace.legs], waiting_for=trace.waiting_for)
     return trace

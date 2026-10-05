@@ -1,9 +1,10 @@
 "use client";
 
+import { openProblems, useDecisions } from "@/lib/decisions";
 import { Fragment, useLayoutEffect, useRef } from "react";
 import { flowLanes } from "@/lib/chain";
 import { AlertIcon } from "../Icons";
-import type { BuiltWorkflow, DepartmentMap, Handoff, Organization, WorkflowCandidate } from "@/lib/types";
+import type { BuiltWorkflow, Decision, DepartmentMap, Handoff, Organization, WorkflowCandidate } from "@/lib/types";
 
 /** Columns in the order work flows. Each department sits as far right as its handoffs allow, one column left of
  * the nearest department it hands to, so a short chain lines up under a long one instead of crossing it. */
@@ -40,10 +41,10 @@ export function layers(names: string[], handoffs: Handoff[]): { columns: string[
   return { columns: columns.filter(Boolean), alone: names.filter((n) => !connected.has(n)) };
 }
 
-function status(name: string, plan: WorkflowCandidate[], built: Record<string, BuiltWorkflow>) {
+function status(name: string, plan: WorkflowCandidate[], built: Record<string, BuiltWorkflow>, decisions: Decision[]) {
   const mine = plan.filter((w) => w.department === name);
   const done = mine.filter((w) => built[w.id]);
-  const problems = done.reduce((n, w) => n + built[w.id].gaps.length + (built[w.id].amount_gaps?.length ?? 0), 0);
+  const problems = done.reduce((n, w) => n + openProblems(built[w.id], decisions), 0);
   return { planned: mine.length, built: done.length, problems };
 }
 
@@ -75,6 +76,7 @@ export function DepartmentCanvas({
   selected: string | null;
   onSelect: (name: string) => void;
 }) {
+  const { decisions } = useDecisions();
   const names = map.departments.map((d) => d.name);
   const { columns, alone } = layers(names, map.handoffs);
   const box = useRef<HTMLDivElement>(null);
@@ -132,7 +134,7 @@ export function DepartmentCanvas({
   }, [handoffKey, map.handoffs]);
 
   const node = (name: string) => {
-    const s = status(name, plan, built);
+    const s = status(name, plan, built, decisions);
     const head = org.roles.find((r) => r.id === org.departments.find((d) => d.name === name)?.head_role_id);
     const isSelected = selected === name;
     return (
@@ -180,7 +182,7 @@ export function DepartmentCanvas({
   // Phones: each path of handoffs as one line of department chips
   const lanes = flowLanes(map.handoffs, names);
   const chip = (name: string) => {
-    const s = status(name, plan, built);
+    const s = status(name, plan, built, decisions);
     return (
       <button
         type="button"

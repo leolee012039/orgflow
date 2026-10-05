@@ -138,13 +138,16 @@ export interface Gap {
 
 /** A number where one level ends and the next begins, and the wording leaves it in no level or in both. */
 export interface AmountGap {
-  kind: "gap" | "overlap";
+  /** unclear: one side's wording says both, like 「逾150萬元以上」 */
+  kind: "gap" | "overlap" | "unclear";
   field: string;
   amount: number;
   /** passage of the level that ends at this number */
   below: string;
   /** passage of the level that starts at this number */
   above: string;
+  /** For "unclear": the passage that words the amount both ways */
+  unclear_side?: "below" | "above";
 }
 
 export type BuiltWorkflow = WithMeta<Workflow & { gaps: Gap[]; amount_gaps: AmountGap[] }>;
@@ -159,6 +162,8 @@ export interface StepTrace {
   reason: string;
   rule_id?: string | null;
   source?: string | null;
+  /** The approver the policy names, when a person chose this step's role to stand in for it */
+  stands_in_for?: string | null;
 }
 
 export type TraceStatus = "COMPLETED" | "RETURNED" | "NEEDS_HUMAN_REVIEW";
@@ -199,6 +204,27 @@ export interface CaseRecord {
   request: CaseRequest;
   trace: ChainTrace;
 }
+
+/** A person settles, once, what the documents leave open; every case after follows it. */
+export type Decision =
+  | {
+      kind: "approver";
+      workflow_id: string;
+      /** The approver the policy names, which the org chart doesn't have */
+      actor: string;
+      /** The role that approves instead, or "requester.manager" */
+      role_id: string;
+      decided_at: string;
+    }
+  | {
+      kind: "amount";
+      workflow_id: string;
+      field: string;
+      amount: number;
+      /** below: the level that ends at the amount owns it. above: the level that starts there. */
+      level: "below" | "above";
+      decided_at: string;
+    };
 
 export interface Documents {
   orgChart: File;

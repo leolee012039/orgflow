@@ -1,25 +1,38 @@
 "use client";
 
 import { useRef } from "react";
+import { amountDecision, approverDecision, standInName, useDecisions } from "@/lib/decisions";
 import { formatValue } from "@/lib/format";
 import type { BuildState } from "@/lib/useBuilds";
 import type { Workspace } from "@/lib/workspaces";
-import type { WorkflowCandidate } from "@/lib/types";
+import type { Decision, WorkflowCandidate } from "@/lib/types";
 import { AlertIcon, CheckIcon } from "../Icons";
 import { OriginNote, Tag } from "../Section";
 import { DepartmentCanvas } from "./DepartmentCanvas";
 import { DepartmentPanel } from "./DepartmentPanel";
 
-type Problem = { key: string; department: string; workflowId: string; workflow: string; text: string; confirm?: boolean };
+type Problem = {
+  key: string;
+  department: string;
+  workflowId: string;
+  workflow: string;
+  text: string;
+  confirm?: boolean;
+  /** What a person decided, in words, once they have */
+  decided?: string;
+};
 
-/** Every problem found in the built workflows, in plain words. */
-export function problemsOf(workspace: Workspace): Problem[] {
+/** Every problem found in the built workflows, in plain words: open ones first, then the decided. */
+export function problemsOf(workspace: Workspace, decisions: Decision[]): Problem[] {
   const out: Problem[] = [];
+  const org = workspace.organization;
   for (const c of workspace.plan.workflows) {
     const b = workspace.built[c.id];
     if (!b) continue;
     for (const g of b.gaps) {
+      const d = approverDecision(decisions, b.opportunity_id, g.actor);
       out.push({
+        decided: d && `${standInName(d.role_id, org)} approves in place of ${g.actor}`,
         key: `${c.id}-actor-${g.actor}`,
         department: c.department,
         workflowId: c.id,
@@ -33,16 +46,24 @@ export function problemsOf(workspace: Workspace): Problem[] {
     }
     for (const g of b.amount_gaps ?? []) {
       const value = formatValue(b, g.field, g.amount);
+      const d = amountDecision(decisions, b.opportunity_id, g);
       out.push({
+        decided: d && `Exactly ${value} goes to the level that ${d.level === "below" ? "ends" : "starts"} there`,
+        confirm: g.kind === "unclear",
         key: `${c.id}-amount-${g.field}-${g.amount}`,
         department: c.department,
         workflowId: c.id,
         workflow: c.name,
-        text: g.kind === "gap" ? `No approval level covers exactly ${value}` : `Two approval levels both cover exactly ${value}`,
+        text:
+          g.kind === "gap"
+            ? `No approval level covers exactly ${value}`
+            : g.kind === "overlap"
+              ? `Two approval levels both cover exactly ${value}`
+              : `The policy doesn't say which approval level covers exactly ${value}`,
       });
     }
   }
-  return out;
+  return [...out.filter((p) => !p.decided), ...out.filter((p) => p.decided)];
 }
 
 export function Overview({
@@ -67,7 +88,8 @@ export function Overview({
   onOpenWorkflow: (id: string) => void;
 }) {
   const { departmentMap: map, organization: org, plan, built } = workspace;
-  const problems = problemsOf(workspace);
+  const { decisions, decide } = useDecisions();
+  const problems = problemsOf(workspace, decisions);
   const panel = useRef<HTMLDivElement>(null);
   // When the panel sits below the map, bring it into view
   const select = (name: string) => {
@@ -131,12 +153,15 @@ export function Overview({
             {problems.map((p) => (
               <li key={p.key} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
                 <span
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${p.confirm ? "bg-rule-soft text-rule" : "bg-alert-soft text-alert"}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                    p.decided ? "bg-ok-soft text-ok" : p.confirm ? "bg-rule-soft text-rule" : "bg-alert-soft text-alert"
+                  }`}
                 >
-                  <AlertIcon />
+                  {p.decided ? <CheckIcon /> : <AlertIcon />}
                 </span>
                 <span className="flex min-w-0 flex-col">
-                  <span className="font-medium">{p.text}</span>
+                  <span className={`font-medium ${p.decided ? "text-muted line-through decoration-faint" : ""}`}>{p.text}</span>
+                  {p.decided && <span className="text-sm font-medium text-ok">Decided: {p.decided}</span>}
                   <span className="truncate text-sm text-muted">
                     {p.department}, {p.workflow}
                   </span>
@@ -146,7 +171,7 @@ export function Overview({
                   onClick={() => onOpenWorkflow(p.workflowId)}
                   className="col-start-2 w-fit text-sm font-medium text-ai hover:underline sm:col-start-auto"
                 >
-                  See the lines that prove it →
+                  {!decide ? "See the lines that prove it →" : p.decided ? "Change →" : "Review and decide →"}
                 </button>
               </li>
             ))}

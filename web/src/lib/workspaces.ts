@@ -15,7 +15,8 @@ import {
 } from "firebase/firestore";
 import type { Analysis } from "./api";
 import { db } from "./firebase";
-import type { BuiltWorkflow, CaseRecord } from "./types";
+import { openProblems } from "./decisions";
+import type { BuiltWorkflow, CaseRecord, Decision } from "./types";
 
 /** One company's analysis and the workflows built from it. The PDFs are not kept. */
 export interface Workspace extends Analysis {
@@ -25,6 +26,8 @@ export interface Workspace extends Analysis {
   built: Record<string, BuiltWorkflow>;
   /** Cases run across departments, newest first */
   cases?: CaseRecord[];
+  /** What people settled where the documents leave a case with no approver */
+  decisions?: Decision[];
   analyzedAt: string;
   sample: boolean;
 }
@@ -56,6 +59,9 @@ export const saveBuilt = (id: string, built: Record<string, BuiltWorkflow>) =>
 
 export const MAX_CASES = 30;
 
+export const saveDecisions = (id: string, decisions: Decision[]) =>
+  updateDoc(doc(db(), "workspaces", id), { decisions: plain(decisions), updatedAt: serverTimestamp() });
+
 export const saveCases = (id: string, cases: CaseRecord[]) =>
   updateDoc(doc(db(), "workspaces", id), { cases: plain(cases.slice(0, MAX_CASES)), updatedAt: serverTimestamp() });
 
@@ -81,11 +87,7 @@ export const setShared = (id: string, shared: boolean) =>
   updateDoc(doc(db(), "workspaces", id), { shared, updatedAt: serverTimestamp() });
 export const deleteWorkspace = (id: string) => deleteDoc(doc(db(), "workspaces", id));
 
-/** Problems found in the built workflows: approvers that don't exist and numbers no level covers. */
-export function findings(built: Record<string, BuiltWorkflow>) {
-  const all = Object.values(built);
-  const missing = all.flatMap((w) => w.gaps.filter((g) => g.status === "missing"));
-  const toConfirm = all.flatMap((w) => w.gaps.filter((g) => g.status === "possible_match"));
-  const amountGaps = all.flatMap((w) => w.amount_gaps ?? []);
-  return { missing, toConfirm, amountGaps, problems: missing.length + amountGaps.length };
+/** Places the built workflows still stop a case, after the decisions people made. */
+export function findings(built: Record<string, BuiltWorkflow>, decisions: Decision[] = []) {
+  return { problems: Object.values(built).reduce((n, w) => n + openProblems(w, decisions), 0) };
 }

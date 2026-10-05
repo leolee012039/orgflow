@@ -42,9 +42,17 @@ def test_english_wording():
     assert find_amount_gaps(no_more) == []
 
 
-def test_unclear_or_missing_wording_reports_nothing():
-    # 「逾…以上」 says both: OrgFlow does not claim a gap it can't prove from the words
-    assert find_amount_gaps(tiers((500000, 1000000, "逾新臺幣50萬元未達100萬元"), (1000000, None, "逾新臺幣 100 萬元以上"))) == []
+def test_wording_that_says_both_is_unclear_not_a_gap():
+    # 「逾…以上」 says "over" and "at or above" at once: OrgFlow can't prove a gap from the
+    # words, so it asks a person to confirm which level owns the amount
+    # (National Changhua University of Education's research purchasing rules, section 4)
+    findings = find_amount_gaps(tiers((500000, 1000000, "逾新臺幣50萬元未達100萬元"), (1000000, None, "逾新臺幣 100 萬元以上")))
+    assert [(f["kind"], f["amount"]) for f in findings] == [("unclear", 1000000)]
+    assert amount_finding(tiers((500000, 1000000, "逾新臺幣50萬元未達100萬元"), (1000000, None, "逾新臺幣100萬元以上")),
+                          {"estimated_cost": 1000000})["kind"] == "unclear"
+
+
+def test_missing_wording_reports_nothing():
     # Gemini says the tiers meet at 100000, but the passages never say how
     assert find_amount_gaps(tiers((None, 100000, "Tier A 100,000"), (100000, None, "Tier B 100,000"))) == []
 
@@ -96,10 +104,24 @@ UNCLEAR_PAIRS = [
 ]
 
 
-def test_no_finding_when_the_amount_is_covered_once_or_the_wording_is_unclear():
-    for below, above in PAIRS_COVERED_ONCE + UNCLEAR_PAIRS:
+def test_no_finding_when_the_amount_is_covered_once():
+    for below, above in PAIRS_COVERED_ONCE:
         amount = 5000 if "5,000" in below else 100000
         assert find_amount_gaps(tiers((None, amount, below), (amount, None, above))) == [], (below, above)
+
+
+def test_wording_that_says_both_is_reported_as_unclear():
+    for below, above in UNCLEAR_PAIRS:
+        amount = 5000 if "5,000" in below else 100000
+        findings = find_amount_gaps(tiers((None, amount, below), (amount, None, above)))
+        assert [f["kind"] for f in findings] == ["unclear"], (below, above)
+
+
+def test_a_note_in_brackets_settles_wording_that_says_both():
+    # 「（含）」 next to 「逾…以上」 says which reading is meant
+    assert find_amount_gaps(tiers((None, 100000, "未達新臺幣十萬元"), (100000, None, "逾新臺幣十萬元（含）以上"))) == []
+    findings = find_amount_gaps(tiers((None, 100000, "未達新臺幣十萬元"), (100000, None, "逾新臺幣十萬元（不含）以上")))
+    assert [f["kind"] for f in findings] == ["gap"]
 
 
 def test_levels_from_two_tables_are_not_paired():
@@ -199,3 +221,34 @@ def test_runner_stops_at_the_uncovered_amount():
 def test_runner_runs_amounts_the_tiers_cover():
     assert _run(60000).status == "COMPLETED"
     assert _run(20000).status == "COMPLETED"
+
+
+# Found in review: wording that is clear must not become a finding
+CLEAR_PAIRS = [
+    # tax notes say nothing about the amount
+    ("未達十萬元（含稅）", "十萬元以上（含稅）"),
+    ("未達十萬元（不含稅）", "十萬元以上（不含稅）"),
+    ("Up to $5,000 including tax", "Over $5,000 including tax"),
+    ("Under $5,000 excluding VAT", "$5,000 or more excluding VAT"),
+    # a range that starts with "over" excludes its first amount
+    ("十萬元以下", "逾十萬元至一百萬元"),
+    ("Up to $5,000", "Over $5,000 to $25,000"),
+]
+
+
+def test_clear_wording_found_in_review_reports_nothing():
+    for below, above in CLEAR_PAIRS:
+        amount = 5000 if "5,000" in below else 100000
+        assert find_amount_gaps(tiers((None, amount, below), (amount, None, above))) == [], (below, above)
+
+
+def test_one_sentence_quoted_for_both_levels_is_not_unclear():
+    sentence = "未達十萬元者由單位主管核定，十萬元以上者由校長核定"
+    assert find_amount_gaps(tiers((None, 100000, sentence), (100000, None, sentence))) == []
+
+
+def test_an_unclear_finding_names_the_side_that_says_both():
+    above = find_amount_gaps(tiers((None, 100000, "未達新臺幣十萬元"), (100000, None, "逾新臺幣十萬元以上")))
+    assert above[0]["unclear_side"] == "above"
+    below = find_amount_gaps(tiers((None, 100000, "逾一萬元未達十萬元以下"), (100000, None, "逾十萬元")))
+    assert below[0]["kind"] == "unclear" and below[0]["unclear_side"] == "below"

@@ -22,6 +22,7 @@ from guard import (
     load_fixture,
     validate_organization_output,
     validate_workflow_output,
+    verify_quote_in_text,
 )
 from runner import run_workflow
 from sample_docs import DOC_TEXT, DOCS, OPERATIONS, ORG_PDF, POLICY_PDFS, PURCHASING_PDF, planned, upload_files
@@ -214,3 +215,13 @@ def test_text_pdf_is_not_transcribed(monkeypatch):
 
     monkeypatch.setattr(document_reader, "transcribe", boom)
     assert "Purchasing Policy" in asyncio.run(pipeline.document_text(PURCHASING_PDF))
+
+
+def test_look_alike_characters_in_a_pdf_still_match_the_quote():
+    # A real university PDF stores 行 and 立 as CJK compatibility ideographs (U+F914, U+F9F7)
+    doc_text = "國\uf9f7彰化師範大學組織規程\n本大學設下列各\uf914政單位"
+    assert verify_quote_in_text("本大學設下列各行政單位", doc_text)
+    assert extract_numbers("預算金額新臺幣５０萬元以下") == ["500000"]
+    # List markers stay apart from the amount after them
+    assert extract_numbers("\u24605萬元以下") == ["50000"]
+    assert extract_numbers("\u24885萬元以下") == ["50000"]

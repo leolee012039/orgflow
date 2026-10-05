@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Annotated, Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Origin indicator for responses
@@ -172,6 +172,29 @@ class PurchaseRequestForm(RequestForm):
     estimated_cost: float = 2400.0
     business_justification: Optional[str] = None
 
+# -----------------------------------------------------------------------------
+# Decisions: a person settles what the documents leave open, once, and cases follow it
+# -----------------------------------------------------------------------------
+
+class ApproverDecision(BaseModel):
+    """A role in the organization approves in place of an approver the org chart doesn't have."""
+    kind: Literal["approver"] = "approver"
+    workflow_id: str
+    actor: str  # the approver the policy names, e.g. "Director"
+    role_id: str  # the organization's role that approves instead
+
+class AmountDecision(BaseModel):
+    """Which of two approval levels owns the exact amount where the policy leaves it in neither, or both."""
+    kind: Literal["amount"] = "amount"
+    workflow_id: str
+    field: str
+    amount: float
+    level: Literal["below", "above"]
+
+Decision = Annotated[Union[ApproverDecision, AmountDecision], Field(discriminator="kind")]
+
+MAX_DECISIONS = 50
+
 StepResultType = Literal["PASSED", "SKIPPED", "DONE", "RETURNED", "HUMAN_REVIEW"]
 
 class StepTrace(BaseModel):
@@ -182,6 +205,8 @@ class StepTrace(BaseModel):
     reason: str
     rule_id: Optional[str] = None
     source: Optional[str] = None
+    # The approver the policy names, when a person chose this step's role to stand in for it
+    stands_in_for: Optional[str] = None
 
 TraceStatusType = Literal["COMPLETED", "RETURNED", "NEEDS_HUMAN_REVIEW"]
 

@@ -8,6 +8,7 @@ Gemini model (about 8-12 calls per company). Real documents are downloaded once 
 
 import asyncio
 import io
+import json
 import os
 import sys
 import time
@@ -59,6 +60,12 @@ PAIRS = [
          "https://law.nttu.edu.tw/var/file/70/1070/img/1828/327627930.pdf",
          ["https://dga.nttu.edu.tw/var/file/8/1008/img/715/738540495.pdf"],
          "Organization regulations (18 pages) and procurement rules with amounts in Chinese numerals."),
+    Pair("National Changhua University of Education", "real, Traditional Chinese",
+         "https://personnelweb.ncue.edu.tw/var/file/1/1001/attach/73/pta_24345_9114766_02987.pdf",
+         ["https://generalweb.ncue.edu.tw/var/file/4/1004/img/131/838494933.pdf"],
+         "Organization regulations in force from 1 August 2026 (some characters stored as look-alike code "
+         "points) and research purchasing rules amended 2 April 2025, whose top approval level reads "
+         "「逾新臺幣150萬元以上」: \"over\" and \"at or above\" at once."),
 ]
 
 
@@ -124,6 +131,18 @@ EXAMPLES = {"business_justification": "Replacement equipment needed for daily op
             "reason": "Annual renewal for a key account that orders every quarter."}
 
 
+def save_answers(pair: Pair, row: dict) -> None:
+    """Keep what Gemini answered, so later code changes can be checked against it without new calls."""
+    def dump(result):
+        return None if result is None or result.value is None else result.value.model_dump(by_alias=True)
+
+    answers = {"org": dump(row.get("org")), "map": dump(row.get("map")), "plan": dump(row.get("plan")),
+               "built": {k: {"workflow": dump(r), **r.extras} for k, r in row["built"].items()}}
+    CACHE.mkdir(parents=True, exist_ok=True)
+    target = CACHE / f"answers-{pair.name.lower().replace(' ', '_').replace(',', '')}.json"
+    target.write_text(json.dumps(answers, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def case_values(wf, number: float) -> dict:
     values = {}
     for f in pipeline.fields_of(wf):
@@ -157,6 +176,7 @@ async def evaluate(pair: Pair) -> dict:
                         continue  # its upstream failed to build
                     row["built"][c.id] = await pipeline.build_workflow(docs, org.value, c, upstream)
     row["total_s"] = time.perf_counter() - t
+    save_answers(pair, row)
 
     # Cases: every start point, at amounts just below, at and above each threshold and gap (plain code only)
     built = {k: r.value for k, r in row["built"].items() if r.value is not None}

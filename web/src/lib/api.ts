@@ -3,6 +3,7 @@ import type {
   BuiltWorkflow,
   CaseRequest,
   ChainTrace,
+  Decision,
   DepartmentMap,
   Documents,
   Organization,
@@ -86,6 +87,7 @@ export const api = {
     startId: string,
     request: CaseRequest,
     handoffsBefore: Record<string, number>,
+    decisions: Decision[] = [],
   ) =>
     post<ChainTrace>("/api/run_chain", {
       workflows,
@@ -93,6 +95,7 @@ export const api = {
       start_id: startId,
       request,
       handoffs_before: handoffsBefore,
+      decisions,
     }),
 };
 

@@ -47,8 +47,10 @@ Fields:
      "human_review";
   2. one "approval" step per approval the documents require, in their order (none
      when the documents require no approval). Use
-     "requester.manager" only for the manager of the person who submitted the form,
-     and only in a workflow that a person starts with a form. When an approval
+     "requester.manager" for the head of the requester's own unit, however the
+     documents phrase it (their manager or supervisor, the head of the department,
+     office or college the requester belongs to), and only in a workflow that a
+     person starts with a form. When an approval
      applies only under a condition, set only_if to that rule's id;
   3. one "task" step for each piece of work the department carries out;
   4. a "notification" step to actor "requester".

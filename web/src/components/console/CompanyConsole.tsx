@@ -2,18 +2,19 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { buildOrder, upstreamOf } from "@/lib/chain";
+import { Decisions, openProblems, settledProblems, withDecision, withoutDecision } from "@/lib/decisions";
 import { layers } from "./DepartmentCanvas";
 import { useBuilds } from "@/lib/useBuilds";
-import type { BuiltWorkflow, CaseRecord, Documents, WorkflowCandidate } from "@/lib/types";
+import type { BuiltWorkflow, CaseRecord, Decision, Documents, WorkflowCandidate } from "@/lib/types";
 import { MAX_CASES, type Workspace } from "@/lib/workspaces";
 import { DepartmentSection } from "../DepartmentSection";
 import { DocumentNames } from "../Quote";
 import { PrintButton } from "../ReportActions";
 import { primaryClass } from "../Section";
-import { AlertIcon, BuildingIcon, FlowIcon, MapIcon } from "../Icons";
+import { AlertIcon, BuildingIcon, CheckIcon, FlowIcon, MapIcon } from "../Icons";
 import { CasesView } from "./CasesView";
 import { DocumentsView } from "./DocumentsView";
-import { Overview, problemsOf } from "./Overview";
+import { Overview } from "./Overview";
 import { SECTIONS, Shell, type Section } from "./Shell";
 import { WorkflowsView } from "./WorkflowsView";
 
@@ -60,6 +61,7 @@ export function CompanyConsole({
   editable,
   onBuilt,
   onCases,
+  onDecisions,
   onNew,
   notice,
   ownerActions,
@@ -70,6 +72,7 @@ export function CompanyConsole({
   editable: boolean;
   onBuilt: (built: Record<string, BuiltWorkflow>) => void;
   onCases: (cases: CaseRecord[]) => void;
+  onDecisions: (decisions: Decision[]) => void;
   onNew: () => void;
   notice?: ReactNode;
   ownerActions?: ReactNode;
@@ -80,10 +83,15 @@ export function CompanyConsole({
   const [selected, setSelected] = useState<string | null>(() => layers(map.departments.map((d) => d.name), map.handoffs).columns[0]?.[0] ?? map.departments[0]?.name ?? null);
   const [openWorkflow, setOpenWorkflow] = useState<string | null>(null);
   const [cases, setCases] = useState<CaseRecord[]>(workspace.cases ?? []);
+  const [decisions, setDecisions] = useState<Decision[]>(workspace.decisions ?? []);
   const { states, build, buildAll, busy } = useBuilds({ org, candidates, initial: built, docs, onBuilt });
   const canBuild = editable && docs !== null;
   const unbuilt = buildOrder(candidates, built).length;
-  const problems = problemsOf(workspace).filter((p) => !p.confirm).length;
+  const builtList = Object.values(built);
+  const problems = builtList.reduce((n, w) => n + openProblems(w, decisions), 0);
+  const settled = builtList.reduce((n, w) => n + settledProblems(w, decisions), 0);
+  const byHand = candidates.reduce((n, c) => n + c.manual_handoffs, 0);
+  const routed = candidates.filter((c) => built[c.id]).reduce((n, c) => n + c.manual_handoffs, 0);
 
   const setSection = (s: Section) => {
     setSectionState(s);
@@ -99,6 +107,16 @@ export function CompanyConsole({
     const upstream = upstreamOf(c, candidates, built);
     return upstream && !built[upstream.id] ? upstream : undefined;
   };
+  function changeDecisions(next: Decision[]) {
+    setDecisions(next);
+    onDecisions(next);
+  }
+  const decisionsValue = {
+    decisions,
+    decide: editable ? (d: Decision) => changeDecisions(withDecision(decisions, d)) : undefined,
+    undo: editable ? (d: Decision) => changeDecisions(withoutDecision(decisions, d)) : undefined,
+  };
+
   function addCase(record: CaseRecord) {
     const next = [record, ...cases].slice(0, MAX_CASES);
     setCases(next);
@@ -127,6 +145,7 @@ export function CompanyConsole({
 
   return (
     <DocumentNames.Provider value={workspace.documents}>
+      <Decisions.Provider value={decisionsValue}>
       <Shell
         company={workspace.company}
         section={section}
@@ -162,30 +181,60 @@ export function CompanyConsole({
               </div>
             </div>
             <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {(
-                [
-                  ["Departments", map.departments.length, BuildingIcon, "bg-ai-soft text-ai"],
-                  ["Handoffs", map.handoffs.length, MapIcon, "bg-ai-soft text-ai"],
-                  ["Workflows built", `${builtCount} of ${candidates.length}`, FlowIcon,
-                    builtCount ? "bg-ok-soft text-ok" : "bg-paper text-faint"],
-                  ["Problems found", problems, AlertIcon, problems ? "bg-alert-soft text-alert" : "bg-paper text-faint"],
-                ] as const
-              ).map(([label, value, Icon, tone]) => (
+              {[
+                {
+                  label: "Departments",
+                  value: map.departments.length,
+                  note: `${map.handoffs.length} ${map.handoffs.length === 1 ? "handoff" : "handoffs"} between them`,
+                  Icon: BuildingIcon,
+                  tone: "bg-ai-soft text-ai",
+                },
+                {
+                  label: "Hand-offs done by hand",
+                  value: byHand,
+                  note: `per case today, in ${candidates.length} ${candidates.length === 1 ? "process" : "processes"}`,
+                  Icon: MapIcon,
+                  tone: "bg-ai-soft text-ai",
+                },
+                {
+                  label: "Routed automatically",
+                  value: `${routed} of ${byHand}`,
+                  note: `${builtCount} of ${candidates.length} workflows built`,
+                  Icon: FlowIcon,
+                  tone: routed ? "bg-ok-soft text-ok" : "bg-paper text-faint",
+                },
+                {
+                  label: "Places a case stops",
+                  value: problems,
+                  note: problems
+                    ? `Each needs one decision${settled ? `, ${settled} made` : ""}`
+                    : settled
+                      ? `${settled} settled by your decisions`
+                      : builtCount
+                        ? "None found"
+                        : "Checked as workflows are built",
+                  Icon: !problems && settled ? CheckIcon : AlertIcon,
+                  tone: problems ? "bg-alert-soft text-alert" : settled ? "bg-ok-soft text-ok" : "bg-paper text-faint",
+                  alert: problems > 0,
+                },
+              ].map(({ label, value, note, Icon, tone, alert }) => (
                 <div key={label} className="card flex items-center gap-3 px-3.5 py-3 sm:gap-3.5 sm:px-4 sm:py-3.5">
                   <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${tone}`}>
                     <Icon width="19" height="19" />
                   </span>
                   <div className="flex min-w-0 flex-col">
                     <dt className="text-xs leading-tight text-muted sm:text-sm">{label}</dt>
-                    <dd
-                      className={`text-xl font-semibold tabular-nums ${label === "Problems found" && Number(value) > 0 ? "text-alert" : ""}`}
-                    >
-                      {value}
-                    </dd>
+                    <dd className={`text-xl font-semibold tabular-nums ${alert ? "text-alert" : ""}`}>{value}</dd>
+                    <dd className="text-xs leading-snug text-faint">{note}</dd>
                   </div>
                 </div>
               ))}
             </dl>
+            {byHand > 0 && (
+              <p className="-mt-2 text-xs text-faint">
+                Hand-offs are counted by Gemini from your documents: how many times one case changes hands today.
+              </p>
+            )}
             {editable && !docs && unbuilt > 0 && (
               <p className="text-sm text-muted print:hidden">
                 To build more workflows, add the documents again under{" "}
@@ -226,12 +275,18 @@ export function CompanyConsole({
                 onBuild={build}
               />
             )}
-            {section === "cases" && <CasesView plan={candidates} built={built} org={org} cases={cases} onCase={addCase} />}
+            {section === "cases" && (
+              <CasesView plan={candidates} built={built} org={org} cases={cases} onCase={addCase} onResolve={openInWorkflows} />
+            )}
             {section === "documents" && <DocumentsView workspace={workspace} docs={docs} editable={editable} onDocs={onDocs} />}
           </div>
-          <PrintReport workspace={workspace} />
+          {/* Paper can't change a decision: the printed report reads them only */}
+          <Decisions.Provider value={{ decisions }}>
+            <PrintReport workspace={workspace} />
+          </Decisions.Provider>
         </div>
       </Shell>
+      </Decisions.Provider>
     </DocumentNames.Provider>
   );
 }

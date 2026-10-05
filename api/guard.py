@@ -3,6 +3,7 @@ import io
 import json
 import re
 import logging
+import unicodedata
 from typing import Any, Optional, Union
 from pydantic import ValidationError
 from pypdf import PdfReader
@@ -31,6 +32,16 @@ def load_fixture(fixture_name: str) -> dict:
 # PDF Text Extraction and Quote Verification (Check 3)
 # -----------------------------------------------------------------------------
 
+# List markers such as ① and ⒈ would become digits under NFKC and run into the amount after them
+_LIST_MARKERS = re.compile("[\u2460-\u24ff\u2776-\u2793\u3251-\u325f\u32b1-\u32bf]")
+
+
+def normalize_text(text: str) -> str:
+    """One spelling for characters that look the same: CJK compatibility ideographs (行 stored
+    as U+F914), full-width digits and brackets. List markers become spaces first."""
+    return unicodedata.normalize("NFKC", _LIST_MARKERS.sub(" ", text))
+
+
 def extract_pdf_text(source: Union[str, bytes, io.BytesIO]) -> str:
     """Extract text server-side from PDF bytes, path, or file stream using pypdf."""
     try:
@@ -41,7 +52,9 @@ def extract_pdf_text(source: Union[str, bytes, io.BytesIO]) -> str:
         else:
             reader = PdfReader(source)
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
-        return text
+        # Some PDFs store look-alike code points (CJK compatibility ideographs, full-width digits):
+        # 行 stored as U+F914 never matches the 行 Gemini writes until both are normalized
+        return normalize_text(text)
     except Exception as e:
         logger.error("Failed to extract PDF text: %s", e)
         return ""
@@ -77,7 +90,9 @@ def normalize_amounts(text: str) -> str:
     """Write every amount as plain digits so English and Chinese policies compare the same way.
 
     '1,000' -> '1000', '30萬' -> '300000', '5 千萬' -> '50000000', '新臺幣五萬元' -> '新臺幣50000元'.
+    Look-alike characters are normalized first: '５０萬' is '50萬'.
     """
+    text = normalize_text(text)
     text = re.sub(r"(?<=\d),(?=\d{3})", "", text)
     multipliers = {"千萬": 10_000_000, "百萬": 1_000_000, "十萬": 100_000, "萬": 10_000, "万": 10_000,
                    "千": 1_000, "億": 100_000_000, "亿": 100_000_000}

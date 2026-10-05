@@ -10,11 +10,12 @@ import { ErrorNote, Tag, Working } from "@/components/Section";
 import { UploadStep, type DraftDocuments } from "@/components/UploadStep";
 import { AnalysisError, runAnalysis, type AnalysisStep } from "@/lib/api";
 import { accountsEnabled, signIn, signInMessage, useUser } from "@/lib/firebase";
-import type { BuiltWorkflow, CaseRecord, Documents } from "@/lib/types";
+import type { BuiltWorkflow, CaseRecord, Decision, Documents } from "@/lib/types";
 import {
   loadWorkspace,
   saveBuilt,
   saveCases,
+  saveDecisions,
   saveWorkspace,
   type SavedWorkspace,
   type Workspace as WorkspaceData,
@@ -61,8 +62,8 @@ const LOOKS_FOR = [
     text: "Build one per department and they chain: a purchase request in Operations can run on through Procurement and Finance.",
   },
   {
-    title: "Where the rules can't run",
-    text: "An approver the org chart doesn't have, or an amount no approval level covers, with the lines that prove it.",
+    title: "Where requests get stuck",
+    text: "An approver the org chart doesn't have, or an amount no approval level clearly covers, with the lines that prove it. Decide once, and every case after follows your decision.",
   },
 ];
 
@@ -166,6 +167,11 @@ function Home() {
     setView((v) => (v.status === "ready" ? { ...v, workspace: { ...v.workspace, cases } } : v));
   }
 
+  function onDecisions(decisions: Decision[]) {
+    if (savedId) saveDecisions(savedId, decisions).catch(() => undefined);
+    setView((v) => (v.status === "ready" ? { ...v, workspace: { ...v.workspace, decisions } } : v));
+  }
+
   function startOver() {
     setView({ status: "idle" });
     window.history.replaceState(null, "", "/");
@@ -183,6 +189,7 @@ function Home() {
         editable={editable}
         onBuilt={onBuilt}
         onCases={onCases}
+        onDecisions={onDecisions}
         onNew={startOver}
         notice={
           (!view.saved || view.saveError) && (
@@ -221,11 +228,12 @@ function Home() {
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-4">
             <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-              Turn your org chart into workflows that hand off to each other
+              Stop requests from getting stuck between departments
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted">
-              Upload an org chart and your policies. OrgFlow maps what each department does and where its work goes,
-              plans a workflow for each department, and builds them so a case runs from one department into the next.
+              Upload your org chart and policies. OrgFlow maps how work moves from department to department, finds where
+              your own rules leave a request with no one to approve it, and builds linked workflows that route the rest
+              on their own.
             </p>
           </div>
           {view.status === "analyzing" ? (

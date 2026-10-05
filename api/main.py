@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -10,7 +10,15 @@ load_dotenv()
 
 import auth  # noqa: E402
 import pipeline  # noqa: E402  (reads environment variables at import)
-from schemas import DepartmentMap, Organization, RequestForm, Workflow, WorkflowCandidate  # noqa: E402
+from schemas import (  # noqa: E402
+    MAX_DECISIONS,
+    Decision,
+    DepartmentMap,
+    Organization,
+    RequestForm,
+    Workflow,
+    WorkflowCandidate,
+)
 
 MAX_PDF_BYTES = 5 * 1024 * 1024
 
@@ -133,12 +141,14 @@ class RunBody(BaseModel):
     organization: Organization
     request: RequestForm
     manual_handoffs_before: Optional[int] = None
+    decisions: list[Decision] = Field(default_factory=list, max_length=MAX_DECISIONS)
 
 
 @app.post("/api/run")
 async def run(body: RunBody):
     handoffs = body.manual_handoffs_before if body.manual_handoffs_before is not None else 4
-    trace = await pipeline.run_request(body.workflow, body.organization, body.request, handoffs)
+    trace = await pipeline.run_request(body.workflow, body.organization, body.request, handoffs,
+                                       decisions=body.decisions)
     return trace.model_dump()
 
 
@@ -148,6 +158,8 @@ class ChainBody(BaseModel):
     start_id: str
     request: RequestForm
     handoffs_before: dict[str, int] = {}
+    # What a person settled: who approves in place of a missing approver, which level owns an exact amount
+    decisions: list[Decision] = Field(default_factory=list, max_length=MAX_DECISIONS)
 
 
 @app.post("/api/run_chain")
@@ -155,5 +167,5 @@ async def run_chain(body: ChainBody):
     if not any(w.opportunity_id == body.start_id for w in body.workflows):
         raise HTTPException(422, f"No built workflow '{body.start_id}' to start from.")
     trace = await pipeline.run_chain_request(body.workflows, body.organization, body.start_id, body.request,
-                                             body.handoffs_before)
+                                             body.handoffs_before, decisions=body.decisions)
     return trace.model_dump()

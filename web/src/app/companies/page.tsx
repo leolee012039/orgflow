@@ -11,7 +11,7 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "n
 
 function Status({ workspace }: { workspace: SavedWorkspace }) {
   const built = Object.keys(workspace.built ?? {}).length;
-  const { problems } = findings(workspace.built ?? {});
+  const { problems } = findings(workspace.built ?? {}, workspace.decisions ?? []);
   return (
     <span className="text-sm">
       {workspace.departmentMap.departments.length} departments, {built} of {workspace.plan.workflows.length} workflows

@@ -82,3 +82,30 @@ Found 2026-10-05 by an adversarial review; each case was reproduced with saved a
 - A policy may say "Director" while a real org chart says 協理 or "Head of Procurement". The workflow architect would list the approver as unresolved, which is a false gap.
 - Fix direction: a "possible match, please confirm" state instead of a definite gap.
 - Status: **partly fixed.** An approver that the org chart text mentions is reported as `possible_match` ("please confirm"), not as a gap. Synonyms that the org chart never spells out (機關首長 = 校長) are still reported as missing.
+
+## 10. A real university's purchasing rules: the approval levels were never checked
+
+Found 2026-10-05 running National Changhua University of Education's organization regulations (in force 1 Aug 2026) and research purchasing rules (amended 2 Apr 2025).
+
+1. **Look-alike characters.** The regulations PDF stores 44 characters such as 行, 立 and 理 as CJK compatibility ideographs (U+F9xx). A quote with the ordinary 行 never matched the document, and those characters were not even read as Chinese.
+2. **No workflow took a request through the approval levels.** The rules set who approves by amount (up to NT$1,000,000 the dean or unit head, then the 總務長, then the president), but any unit may send a request, so no handoff led there and the planner never planned that workflow. The amount levels were therefore never checked.
+3. **"The dean or head of the unit the requester belongs to" became a missing role.** 「隸屬院長或一級行政單位主管」 is the requester's own unit head, not a job title, but it was reported as an approver to confirm.
+4. **Wording that says both was never reported.** The top level reads 「逾新臺幣150萬元以上」, "over" and "at or above" at once, after a level that ends 「未達150萬元」. Whether exactly NT$1,500,000 goes to the 總務長 or the president can't be read from the words; OrgFlow deliberately reported nothing for such wording.
+- Status: **fixed.** Extracted text and quotes are NFKC-normalized before any comparison. The planner plans exactly one workflow per set of approval levels, in the sending department or, when any unit may send, in the department that handles the requests. The architect uses `requester.manager` for the requester's own unit head however the documents phrase it. Wording that says both is reported as **unclear** ("please confirm"), unless a note in brackets such as 「（含）」 settles it. After the fix the university's 11 workflows all passed on Gemini's first answer and the only finding is exactly NT$1,500,000. Tests: `tests/test_amount_coverage.py`, `tests/test_real_documents.py`.
+
+## 11. The sample's live answers vary between runs
+
+- Seen 2026-10-05 locally: one NovaGear run missed the Operations → Procurement handoff, and the first version of the approval-levels rule (issue 10) planned NovaGear's purchase approvals twice, in Operations and in Finance, so the missing Director was reported twice.
+- Effect: the sample, which judges try first, can show a different map from one run to the next.
+- Status: the duplicate is **fixed** by "never plan the same approval levels in two departments". The missed handoff is Gemini's variation between runs; watch it in the evaluation.
+
+## 12. Review of decisions and "unclear" wording
+
+Found 2026-10-05 by an adversarial review of the decisions change; each case was reproduced with code, no Gemini calls.
+
+1. **New false findings on clear wording.** Any 含 / including / excluding near the amount was read as a note, so 「未達十萬元（含稅）」 / 「十萬元以上（含稅）」 became an overlap and "excluding VAT" a gap. A range that starts with "over" (「逾十萬元至一百萬元」) read as both ways, and one sentence quoted for both levels made the lower level "unclear".
+2. **An amount decision changed a rule from another table.** With `<5000` Manager, `>5000` Director and `>=5000` three quotes, choosing "the level below" turned the quotes rule into `>5000`, so a 5,000 request skipped the quotes approval.
+3. **Old amount decisions applied after a rebuild**, when the policy no longer left the amount open.
+4. **A decision that changed no rule was still recorded as followed**, and the case completed with every approval skipped (a rule written for 5,001).
+5. Smaller: every saved decision was sent with every case, so more than 50 would make every run fail; ① and ⒈ became digits under NFKC and joined the amount after them; the stand-in list didn't say who already approves; "It followed N decisions" counted skipped steps; a shared read-only company showed "Change"; Firestore didn't check that decisions are a list.
+- Status: **fixed.** Only real notes settle an amount: 「（含）」, 「（不含十萬元）」, "inclusive", "(excluding 5,000)". Each mention of the amount is read on its own, and only a mention that says both ways is unclear (the finding names that side). A range's first amount isn't included when "over" comes before it. An amount decision changes only rules written from the two levels' passages, applies only while the policy leaves that amount open, and counts only when the chosen level then owns the amount; otherwise the case still stops for a person. The page sends only decisions that settle a current problem, list markers become spaces before NFKC, the stand-in list marks roles that already approve, and Firestore accepts at most 200 decisions as a list. Tests: `tests/test_amount_coverage.py`, `tests/test_decisions.py`, `tests/test_real_documents.py`.

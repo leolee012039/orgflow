@@ -1,8 +1,12 @@
 import logging
-from typing import Any, Callable, Optional, Union
-from amount_coverage import amount_finding
+from typing import Any, Callable, Optional, Sequence, Union
+from amount_coverage import amount_findings, find_amount_gaps
+from guard import _compact, extract_tokens, normalize_amounts
 from schemas import (
     AIReviewResponse,
+    AmountDecision,
+    ApproverDecision,
+    Decision,
     ChainLeg,
     ChainTrace,
     ExecutionTrace,
@@ -116,19 +120,111 @@ def plain_code_ai_review(form: RequestForm, required_fields: Optional[list[str]]
 
     return True, "Completeness verified by fallback check: required information is present and meaningful"
 
+REQUESTER_MANAGER = "requester.manager"
+
+
+def _from_level(rule_source: str, level_source: str) -> bool:
+    """Whether Gemini wrote this rule from this level's passage: one contains the other,
+    or most of the rule's words are the level's."""
+    rule_text, level_text = _compact(normalize_amounts(rule_source)), _compact(normalize_amounts(level_source))
+    if rule_text and level_text and (rule_text in level_text or level_text in rule_text):
+        return True
+    rule_tokens, level_tokens = set(extract_tokens(rule_source)), set(extract_tokens(level_source))
+    return bool(rule_tokens) and len(rule_tokens & level_tokens) / len(rule_tokens) >= 0.7
+
+
+def _settle_amount(rules: list, finding: dict, level: str) -> bool:
+    """Give the exact amount to one of the two levels by changing their rules' comparisons.
+    Returns whether the chosen level now owns the amount.
+
+    Only rules written from the two levels' passages lose the amount: a rule from
+    another table at the same number ("$5,000 or more needs three quotes") stays as it
+    is. When no rule of the chosen level can be matched to its passage, the rules that
+    end the gap on that side gain the amount, which can add an approval but never skip
+    one. When neither works (a rule written for 5,001), the decision doesn't take effect
+    and the case still stops for a person.
+    """
+    amount = float(finding["amount"])
+    at_amount = [r for r in rules if r.when.field == finding["field"]
+                 and isinstance(r.when.value, (int, float)) and not isinstance(r.when.value, bool)
+                 and float(r.when.value) == amount]
+    lower = [r for r in at_amount if r.when.op in ("<", "<=") and _from_level(r.source, finding["below"])]
+    upper = [r for r in at_amount if r.when.op in (">", ">=") and _from_level(r.source, finding["above"])]
+    if level == "above":
+        chosen, other, exclusive, inclusive, other_inclusive, other_exclusive = upper, lower, ">", ">=", "<=", "<"
+    else:
+        chosen, other, exclusive, inclusive, other_inclusive, other_exclusive = lower, upper, "<", "<=", ">=", ">"
+    for rule in other:
+        if rule.when.op == other_inclusive:
+            rule.when.op = other_exclusive
+    if not chosen:
+        gain = [r for r in at_amount if r.when.op == exclusive]
+        for rule in gain:
+            rule.when.op = inclusive
+        return bool(gain)
+    for rule in chosen:
+        if rule.when.op == exclusive:
+            rule.when.op = inclusive
+    return True
+
+
+def with_decisions(
+    workflow: Workflow, org: Organization, decisions: Sequence[Decision]
+) -> tuple[Workflow, dict[str, str], list[AmountDecision]]:
+    """The workflow as a person settled it.
+
+    An approver the org chart doesn't have is replaced by the role the person named, in
+    every step. An exact amount the policy leaves in no level (or in both, or can't say)
+    goes to the level the person chose: its rules include the amount, the other level's
+    exclude it. A decision changes nothing when it no longer fits: another workflow, a
+    role that doesn't exist, an approver that isn't missing, an amount the policy no
+    longer leaves open, or rules that don't stop at that amount.
+
+    Returns the settled workflow, the original approver by step id, and the amount
+    decisions that took effect.
+    """
+    mine = [d for d in decisions if d.workflow_id == workflow.opportunity_id]
+    if not mine:
+        return workflow, {}, []
+    wf = workflow.model_copy(deep=True)
+    stand_ins: dict[str, str] = {}
+    amounts: list[AmountDecision] = []
+    open_amounts = {(f["field"], float(f["amount"])): f for f in find_amount_gaps(wf.amount_tiers)}
+    for d in mine:
+        if isinstance(d, ApproverDecision):
+            missing = {u.lower() for u in wf.unresolved_actors}
+            # A role in the organization, or the head of the requester's own department
+            known = d.role_id == REQUESTER_MANAGER or any(r.id == d.role_id for r in org.roles)
+            if d.actor.lower() not in missing or not known:
+                continue
+            for step in wf.steps:
+                if step.actor.lower() == d.actor.lower():
+                    stand_ins[step.id] = step.actor
+                    step.actor = d.role_id
+            wf.unresolved_actors = [u for u in wf.unresolved_actors if u.lower() != d.actor.lower()]
+        else:
+            finding = open_amounts.pop((d.field, d.amount), None)  # the first decision for an amount wins
+            if finding is not None and _settle_amount(wf.rules, finding, d.level):
+                amounts.append(d)
+    return wf, stand_ins, amounts
+
+
 def run_workflow(
     workflow: Workflow,
     org: Organization,
     form_data: Union[dict, RequestForm],
     ai_reviewer: Optional[Callable[[RequestForm], AIReviewResponse]] = None,
     manual_handoffs_before: int = 4,
+    decisions: Sequence[Decision] = (),
 ) -> ExecutionTrace:
     """
     Deterministic Workflow Runner.
     Never hardcodes 1,000 or 5,000; all thresholds come from workflow.rules.
+    A person's decisions settle approvers and exact amounts the documents leave open.
     """
     form = RequestForm.model_validate(form_data) if isinstance(form_data, dict) else form_data
     form_dict = form.model_dump()
+    workflow, stand_ins, amount_decisions = with_decisions(workflow, org, decisions)
 
     trace_steps: list[StepTrace] = []
     rules_by_id = {r.id: r for r in workflow.rules}
@@ -167,17 +263,33 @@ def run_workflow(
     # 2. An amount the policy's tiers leave uncovered, or cover twice, has no
     #    defined approvals, so a person decides before anything runs
     # -------------------------------------------------------------------------
-    finding = amount_finding(workflow.amount_tiers, form_dict)
-    if finding:
+    for finding in amount_findings(workflow.amount_tiers, form_dict):
         amount = f"{finding['amount']:,.0f}" if float(finding["amount"]).is_integer() else f"{finding['amount']:,}"
-        reason = (f"No approval level in the policy covers exactly {amount} → human review"
-                  if finding["kind"] == "gap" else
-                  f"Two approval levels in the policy both cover exactly {amount} → human review")
+        decided = next((d for d in amount_decisions
+                        if d.field == finding["field"] and d.amount == float(finding["amount"])), None)
+        if decided:
+            trace_steps.append(
+                StepTrace(
+                    step_id=f"amount_decision_{finding['field']}",
+                    type="task",
+                    actor="system",
+                    result="DONE",
+                    reason=f"A person decided exactly {amount} goes to the level {decided.level} it",
+                    source=finding["below"] if decided.level == "below" else finding["above"],
+                )
+            )
+            continue
+        reason = {
+            "gap": f"No approval level in the policy covers exactly {amount} → human review",
+            "overlap": f"Two approval levels in the policy both cover exactly {amount} → human review",
+            "unclear": f"The policy's wording doesn't say which approval level covers exactly {amount} → human review",
+        }[finding["kind"]]
         logger.info("Runner: amount %s is a policy %s -> NEEDS_HUMAN_REVIEW", amount, finding["kind"])
         return ExecutionTrace(
             request_id=form.request_id,
             status="NEEDS_HUMAN_REVIEW",
             steps=[
+                *trace_steps,
                 StepTrace(
                     step_id="amount_check",
                     type="task",
@@ -185,7 +297,7 @@ def run_workflow(
                     result="HUMAN_REVIEW",
                     reason=reason,
                     source=f"{finding['below']} / {finding['above']}",
-                )
+                ),
             ],
             metrics=TraceMetrics(manual_handoffs_before=manual_handoffs_before, human_approvals=0, ai_checks=0),
         )
@@ -211,6 +323,7 @@ def run_workflow(
                     step_id=step.id,
                     type=step.type,
                     actor=step.actor,
+                    stands_in_for=stand_ins.get(step.id),
                     result="SKIPPED",
                     reason=f"{rule.id} not met: {val_display} {rule.when.op} {thresh_display} is false",
                     rule_id=rule.id,
@@ -227,6 +340,7 @@ def run_workflow(
                     step_id=step.id,
                     type=step.type,
                     actor=step.actor,
+                    stands_in_for=stand_ins.get(step.id),
                     result="HUMAN_REVIEW",
                     reason=actor_error or f"Actor '{step.actor}' unresolved",
                 )
@@ -250,8 +364,10 @@ def run_workflow(
                     step_id=step.id,
                     type="approval",
                     actor=step.actor,
+                    stands_in_for=stand_ins.get(step.id),
                     result="PASSED",
-                    reason=f"Approved by simulated {role_title}",
+                    reason=f"Approved by simulated {role_title}"
+                    + (f", in place of {stand_ins[step.id]}" if step.id in stand_ins else ""),
                 )
             )
 
@@ -283,6 +399,7 @@ def run_workflow(
                         step_id=step.id,
                         type="ai_review",
                         actor=step.actor,
+                        stands_in_for=stand_ins.get(step.id),
                         result="PASSED",
                         reason=review_reason,
                     )
@@ -293,6 +410,7 @@ def run_workflow(
                         step_id=step.id,
                         type="ai_review",
                         actor=step.actor,
+                        stands_in_for=stand_ins.get(step.id),
                         result="HUMAN_REVIEW",
                         reason=review_reason,
                     )
@@ -314,6 +432,7 @@ def run_workflow(
                     step_id=step.id,
                     type="task",
                     actor=step.actor,
+                    stands_in_for=stand_ins.get(step.id),
                     result="DONE",
                     reason=f"Task assigned to {role_title} (simulated)",
                 )
@@ -325,6 +444,7 @@ def run_workflow(
                     step_id=step.id,
                     type="notification",
                     actor=step.actor,
+                    stands_in_for=stand_ins.get(step.id),
                     result="DONE",
                     reason=f"{role_title} notified (simulated)",
                 )
@@ -357,6 +477,7 @@ def run_chain(
     form_data: Union[dict, RequestForm],
     reviewer_for: Optional[Callable[[Workflow], Optional[Callable[[RequestForm], AIReviewResponse]]]] = None,
     handoffs_before: Optional[dict[str, int]] = None,
+    decisions: Sequence[Decision] = (),
 ) -> ChainTrace:
     """Run a case through one department's workflow, then each workflow it hands to.
 
@@ -375,7 +496,8 @@ def run_chain(
     while current is not None and current.opportunity_id not in seen:
         seen.add(current.opportunity_id)
         reviewer = reviewer_for(current) if reviewer_for else None
-        trace = run_workflow(current, org, data, reviewer, (handoffs_before or {}).get(current.opportunity_id, 0))
+        trace = run_workflow(current, org, data, reviewer, (handoffs_before or {}).get(current.opportunity_id, 0),
+                             decisions)
         legs.append(ChainLeg(workflow_id=current.opportunity_id, workflow_name=current.workflow_name,
                              department=current.department, trace=trace))
         if trace.status != "COMPLETED":

@@ -15,12 +15,15 @@ export function CasesView({
   org,
   cases,
   onCase,
+  onResolve,
 }: {
   plan: WorkflowCandidate[];
   built: Record<string, BuiltWorkflow>;
   org: Organization;
   cases: CaseRecord[];
   onCase: (record: CaseRecord) => void;
+  /** Open the workflow where a stopped case needs a decision */
+  onResolve?: (workflowId: string) => void;
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const ordered = orderedBuilt(plan, built);
@@ -33,7 +36,7 @@ export function CasesView({
           Build a workflow first. Then you can submit a case here and watch it move from department to department.
         </div>
       ) : (
-        <CaseRun plan={plan} built={built} org={org} nextNumber={next} onCase={onCase} />
+        <CaseRun plan={plan} built={built} org={org} nextNumber={next} onCase={onCase} onResolve={onResolve} />
       )}
 
       <section className="flex flex-col gap-4">

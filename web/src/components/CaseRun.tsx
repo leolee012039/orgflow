@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { api } from "@/lib/api";
+import { activeDecisions, useDecisions } from "@/lib/decisions";
 import { chainFrom, orderedBuilt, startPoints } from "@/lib/chain";
 import { actorName, fieldLabel, fieldsOf, formatValue, ruleExpression, STEP_KIND, tryValues } from "@/lib/format";
 import type {
@@ -15,7 +16,7 @@ import type {
   Workflow,
   WorkflowCandidate,
 } from "@/lib/types";
-import { ErrorNote, PrimaryButton, Working } from "./Section";
+import { ErrorNote, PrimaryButton, primaryClass, Working } from "./Section";
 
 // Example answers for fields the NovaGear sample uses; other fields start empty
 const EXAMPLES: Record<string, string> = {
@@ -190,14 +191,22 @@ function explain(step: StepTrace, wf: BuiltWorkflow, request: CaseRequest): stri
     const value = formatValue(wf, hit.field, hit.amount);
     return hit.kind === "gap"
       ? `No approval level in the policy covers exactly ${value}.`
-      : `Two approval levels in the policy both cover exactly ${value}.`;
+      : hit.kind === "overlap"
+        ? `Two approval levels in the policy both cover exactly ${value}.`
+        : `The policy's wording doesn't say which approval level covers exactly ${value}.`;
+  }
+  if (step.step_id.startsWith("amount_decision")) {
+    const hit = (wf.amount_gaps ?? []).find((g) => Number(request[g.field]) === g.amount);
+    const value = hit ? formatValue(wf, hit.field, hit.amount) : "this amount";
+    return `By your decision, exactly ${value} goes to the level “${step.source ?? ""}”.`;
   }
   if (step.type === "approval" && step.result === "PASSED") {
     const wfStep = wf.steps.find((s) => s.id === step.step_id);
     const conditions = [wfStep?.only_if, wfStep?.also_if].map((id) => (id ? rules.get(id) : undefined)).filter(Boolean);
+    const standIn = step.stands_in_for ? `Approves in place of ${step.stands_in_for}, by your decision. ` : "";
     return conditions.length
-      ? `${conditions.map((r) => ruleExpression(r!, wf)).join(" and ")} is true. Simulated approval.`
-      : "Simulated approval.";
+      ? `${standIn}${conditions.map((r) => ruleExpression(r!, wf)).join(" and ")} is true. Simulated approval.`
+      : `${standIn}Simulated approval.`;
   }
   if (step.result === "HUMAN_REVIEW" && wf.unresolved_actors.includes(step.actor)) {
     return `The org chart has no ${step.actor}, so a person picks the approver.`;
@@ -224,12 +233,14 @@ export function ChainSlip({
   org,
   request,
   animate = true,
+  onResolve,
 }: {
   trace: ChainTrace;
   built: BuiltWorkflow[];
   org: Organization;
   request: CaseRequest;
   animate?: boolean;
+  onResolve?: (workflowId: string) => void;
 }) {
   const total = trace.legs.reduce((n, leg) => n + leg.trace.steps.length, 0);
   const [shown, setShown] = useState(() => (!animate || prefersReducedMotion() ? total : 0));
@@ -271,9 +282,21 @@ export function ChainSlip({
                       <li key={step.step_id} className="grid grid-cols-[1fr_auto] items-center gap-4 border-t border-line px-5 py-3">
                         <div className="flex flex-col gap-1">
                           <p>
-                            <span className="font-medium">{wfStep ? actorName(wfStep.actor, org) : "Rules engine"}</span>
+                            <span className="font-medium">
+                              {step.stands_in_for
+                                ? actorName(step.actor, org)
+                                : wfStep
+                                  ? actorName(wfStep.actor, org)
+                                  : "Rules engine"}
+                            </span>
                             <span className="ml-2 text-sm text-muted">
-                              {wfStep ? STEP_KIND[wfStep.type] : step.step_id === "amount_check" ? "Amount check" : "Submission check"}
+                              {wfStep
+                                ? STEP_KIND[wfStep.type]
+                                : step.step_id === "amount_check"
+                                  ? "Amount check"
+                                  : step.step_id.startsWith("amount_decision")
+                                    ? "Your decision"
+                                    : "Submission check"}
                             </span>
                           </p>
                           <p className="text-sm text-muted">{explain(step, wf, request)}</p>
@@ -290,7 +313,7 @@ export function ChainSlip({
           })}
         </ol>
       </div>
-      {done && <ChainOutcome trace={trace} built={built} org={org} request={request} />}
+      {done && <ChainOutcome trace={trace} built={built} org={org} request={request} onResolve={onResolve} />}
     </div>
   );
 }
@@ -305,13 +328,34 @@ export function caseResult(trace: ChainTrace, built: BuiltWorkflow[]): { ok: boo
   const step = last?.trace.steps[last.trace.steps.length - 1];
   const wf = built.find((w) => w.opportunity_id === last?.workflow_id);
   if (trace.status === "RETURNED") return { ok: false, text: `Returned in ${last.department}: information missing` };
-  if (step?.step_id === "amount_check") return { ok: false, text: `Stopped in ${last.department}: no rule for this exact amount` };
+  if (step?.step_id === "amount_check") return { ok: false, text: `Stopped in ${last.department}: the policy doesn't settle this exact amount` };
   if (wf?.unresolved_actors.includes(step?.actor ?? "")) return { ok: false, text: `Stopped in ${last.department}: no ${step.actor} in the org chart` };
   return { ok: false, text: `Stopped in ${last.department}: flagged for a person` };
 }
 
-function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built: BuiltWorkflow[]; org: Organization; request: CaseRequest }) {
+function ChainOutcome({
+  trace,
+  built,
+  org,
+  request,
+  onResolve,
+}: {
+  trace: ChainTrace;
+  built: BuiltWorkflow[];
+  org: Organization;
+  request: CaseRequest;
+  onResolve?: (workflowId: string) => void;
+}) {
+  const { decide } = useDecisions();
   const departments = trace.legs.map((l) => l.department);
+  const followed = trace.legs.reduce(
+    (n, l) =>
+      n +
+      l.trace.steps.filter(
+        (s) => (s.stands_in_for && (s.result === "PASSED" || s.result === "DONE")) || s.step_id.startsWith("amount_decision"),
+      ).length,
+    0,
+  );
   const approvals = trace.legs.reduce((n, l) => n + l.trace.metrics.human_approvals, 0);
   const checks = trace.legs.reduce((n, l) => n + l.trace.metrics.ai_checks, 0);
   const handoffs = trace.legs.reduce((n, l) => n + l.trace.metrics.manual_handoffs_before, 0);
@@ -329,12 +373,21 @@ function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built
           People gave {approvals} {approvals === 1 ? "approval" : "approvals"} and Gemini ran {checks} {checks === 1 ? "check" : "checks"}.
           {handoffs > 0 ? ` By hand, this work changes hands ${handoffs} times today.` : ""}
         </p>
+        {followed > 0 && (
+          <p className="text-muted">
+            It followed {followed === 1 ? "one of your decisions" : `${followed} of your decisions`} where the documents
+            leave the approver open.
+          </p>
+        )}
       </div>
     );
   }
   const last = trace.legs[trace.legs.length - 1];
   const lastStep = last.trace.steps[last.trace.steps.length - 1];
   const wf = built.find((w) => w.opportunity_id === last.workflow_id);
+  const needsDecision =
+    trace.status === "NEEDS_HUMAN_REVIEW" &&
+    (lastStep?.step_id === "amount_check" || Boolean(wf?.unresolved_actors.includes(lastStep?.actor ?? "")));
   const why =
     trace.status === "RETURNED"
       ? "Nothing was approved. The requester can add the missing information and submit again."
@@ -349,6 +402,14 @@ function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built
         {trace.status === "RETURNED" ? `Returned to ${request.requester}` : `Waiting for a person in ${last.department}`}
       </p>
       <p>{why}</p>
+      {needsDecision && decide && onResolve && (
+        <div className="pt-1">
+          <button type="button" onClick={() => onResolve(last.workflow_id)} className={primaryClass}>
+            Decide who approves
+          </button>
+          <p className="mt-2 text-sm text-muted">Decide once, and every case like this one runs through.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -360,6 +421,7 @@ export function CaseRun({
   org,
   nextNumber = 1,
   onCase,
+  onResolve,
 }: {
   plan: WorkflowCandidate[];
   built: Record<string, BuiltWorkflow>;
@@ -367,7 +429,9 @@ export function CaseRun({
   /** The number the next case gets: CASE-0001, CASE-0002 ... */
   nextNumber?: number;
   onCase?: (record: CaseRecord) => void;
+  onResolve?: (workflowId: string) => void;
 }) {
+  const { decisions } = useDecisions();
   const starts = useMemo(() => startPoints(plan, built), [plan, built]);
   const builtList = useMemo(() => orderedBuilt(plan, built), [plan, built]);
   const [startId, setStartId] = useState<string | null>(null);
@@ -391,7 +455,7 @@ export function CaseRun({
     setTrace(null); // the last case's slip would read as this one's answer
     setLastRequest(request);
     try {
-      const result = await api.runChain(builtList, org, start.id, request, handoffsBefore);
+      const result = await api.runChain(builtList, org, start.id, request, handoffsBefore, activeDecisions(decisions, builtList));
       setTrace(result);
       setRunKey((k) => k + 1);
       onCase?.({ id: request.request_id, at: new Date().toISOString(), startId: start.id, request, trace: result });
@@ -435,7 +499,7 @@ export function CaseRun({
           {error && <ErrorNote message={error} />}
           {busy && <Working label="Running the case" />}
           {trace && lastRequest ? (
-            <ChainSlip key={runKey} trace={trace} built={builtList} org={org} request={lastRequest} />
+            <ChainSlip key={runKey} trace={trace} built={builtList} org={org} request={lastRequest} onResolve={onResolve} />
           ) : (
             !busy && (
               <div className="rounded-xl border border-dashed border-faint/50 bg-sheet/60 px-5 py-10 text-muted">

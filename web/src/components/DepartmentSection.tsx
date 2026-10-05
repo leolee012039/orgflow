@@ -6,6 +6,7 @@ import { ErrorNote, OriginNote, PrimaryButton, Working } from "./Section";
 import { Findings, WorkflowView } from "./WorkflowView";
 
 import type { BuildState } from "@/lib/useBuilds";
+import { openProblems, settledProblems, useDecisions } from "@/lib/decisions";
 
 const departmentAnchor = (name: string) => `dept-${encodeURIComponent(name).replace(/%/g, "")}`;
 
@@ -37,7 +38,9 @@ function CandidateCard({
   canBuild: boolean;
   onBuild: () => void;
 }) {
-  const problems = built ? built.gaps.length + (built.amount_gaps?.length ?? 0) : 0;
+  const { decisions } = useDecisions();
+  const problems = built ? openProblems(built, decisions) : 0;
+  const settled = built ? settledProblems(built, decisions) : 0;
   return (
     <li className="flex flex-col gap-4 border-t border-line py-6 first:border-t-0 first:pt-0">
       <div className="flex flex-col gap-2">
@@ -72,9 +75,10 @@ function CandidateCard({
         <div className="flex flex-col gap-4">
           <p className={`font-medium ${problems ? "text-alert" : "text-ok"}`}>
             Built: {built.steps.length} steps, {built.rules.length} {built.rules.length === 1 ? "rule" : "rules"}
-            {problems ? `, ${problems} ${problems === 1 ? "problem" : "problems"} found` : ", no problems found"}.
+            {problems ? `, ${problems} ${problems === 1 ? "problem" : "problems"} found` : settled ? "" : ", no problems found"}
+            {settled ? `, ${settled} settled by a decision` : ""}.
           </p>
-          {problems > 0 && <Findings workflow={built} gaps={built.gaps} amountGaps={built.amount_gaps ?? []} org={org} />}
+          {problems + settled > 0 && <Findings workflow={built} gaps={built.gaps} amountGaps={built.amount_gaps ?? []} org={org} />}
           <details className="rounded-md border border-line bg-sheet p-4 open:pb-6">
             <summary className="cursor-pointer font-medium">See the workflow</summary>
             <div className="mt-6">
