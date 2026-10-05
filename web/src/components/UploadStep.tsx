@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { loadSampleDocuments, SAMPLE_FILES } from "@/lib/api";
 import type { Documents } from "@/lib/types";
-import { ErrorNote, PrimaryButton } from "./Section";
+import { BuildingIcon, FileIcon, SparkIcon, UploadIcon } from "./Icons";
+import { ErrorNote, primaryClass, secondaryClass } from "./Section";
 
 export const MAX_POLICIES = 5;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -30,8 +31,9 @@ function PickButton({ label, multiple, onFiles }: { label: string; multiple?: bo
       />
       <label
         htmlFor={id}
-        className="w-fit cursor-pointer rounded-md border border-line bg-paper px-3 py-1.5 text-sm hover:border-ink peer-focus-visible:outline-2 peer-focus-visible:outline-ai"
+        className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-sheet px-3 py-1.5 text-sm font-medium shadow-[0_1px_2px_rgb(22_26_35/0.05)] hover:border-faint peer-focus-visible:outline-2 peer-focus-visible:outline-ai"
       >
+        <UploadIcon width="15" height="15" className="text-muted" />
         {label}
       </label>
     </>
@@ -58,8 +60,13 @@ export function DocumentPicker({ docs, onDocs }: { docs: DraftDocuments; onDocs:
 
   return (
     <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-      <div className="flex flex-col gap-2 rounded-md border border-line bg-sheet p-4">
-        <span className="font-medium">Organization chart</span>
+      <div className="card flex flex-col gap-2.5 p-5">
+        <span className="flex items-center gap-2.5 font-semibold">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ai-soft text-ai">
+            <BuildingIcon />
+          </span>
+          Organization chart
+        </span>
         <p className="text-sm break-all text-muted">
           {docs.orgChart ? `${docs.orgChart.name}, ${size(docs.orgChart)}` : "Required. PDF, up to 5 MB."}
         </p>
@@ -68,8 +75,13 @@ export function DocumentPicker({ docs, onDocs }: { docs: DraftDocuments; onDocs:
           onFiles={([f]) => f && onDocs({ ...docs, orgChart: f })}
         />
       </div>
-      <div className="flex flex-col gap-2 rounded-md border border-line bg-sheet p-4">
-        <span className="font-medium">Policies</span>
+      <div className="card flex flex-col gap-2.5 p-5">
+        <span className="flex items-center gap-2.5 font-semibold">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-rule-soft text-rule">
+            <FileIcon />
+          </span>
+          Policies
+        </span>
         <p className="text-sm text-muted">
           Optional, up to {MAX_POLICIES}: purchasing, payment, leave, discounts. Departments with a policy get rules
           quoted from it.
@@ -131,24 +143,23 @@ export function UploadStep({
     <div className="flex flex-col gap-6">
       <DocumentPicker docs={docs} onDocs={onDocs} />
       <div className="flex flex-wrap items-center gap-4">
-        <PrimaryButton
-          disabled={!docs.orgChart || busy}
-          onClick={() => docs.orgChart && onRun({ orgChart: docs.orgChart, policies: docs.policies }, false)}
-        >
-          {needsSignIn ? "Sign in and analyze" : "Analyze the company"}
-        </PrimaryButton>
+        {/* Until a file is chosen, the sample is the thing to try */}
         <button
           type="button"
-          disabled={busy}
-          onClick={runSample}
-          className="rounded-md border border-ink px-5 py-2.5 font-medium hover:bg-sheet disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!docs.orgChart || busy}
+          onClick={() => docs.orgChart && onRun({ orgChart: docs.orgChart, policies: docs.policies }, false)}
+          className={docs.orgChart ? primaryClass : secondaryClass}
         >
+          {needsSignIn ? "Sign in and analyze" : "Analyze the company"}
+        </button>
+        <button type="button" disabled={busy} onClick={runSample} className={docs.orgChart ? secondaryClass : primaryClass}>
+          <SparkIcon />
           Try the NovaGear sample
         </button>
       </div>
       <p className="text-sm text-muted">
         The sample is a fictional company with an org chart and {SAMPLE_FILES.policies.length} policies (
-        <a href={`/demo/${SAMPLE_FILES.orgChart}`} target="_blank" rel="noreferrer" className="text-ai underline underline-offset-4">
+        <a href={`/demo/${SAMPLE_FILES.orgChart}`} target="_blank" rel="noreferrer" className="font-medium text-ai hover:underline">
           see the org chart
         </a>
         ). It works without an account. Analyzing your own documents needs a Google sign-in, so your work is saved to

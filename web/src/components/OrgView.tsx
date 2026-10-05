@@ -4,7 +4,7 @@ import { Quote } from "./Quote";
 function RoleBox({ role, lead }: { role: Role; lead?: boolean }) {
   return (
     <div
-      className={`rounded-md border px-3 py-2 ${lead ? "border-ink bg-sheet font-medium" : "border-line bg-sheet text-ink"}`}
+      className={`rounded-lg border px-3 py-2 shadow-[0_1px_2px_rgb(22_26_35/0.04)] ${lead ? "border-ai/40 bg-ai-soft font-medium text-ai" : "border-line bg-sheet text-ink"}`}
       title={role.responsibilities.join(" ")}
     >
       {role.title}
@@ -46,7 +46,7 @@ export function OrgView({ org }: { org: Organization }) {
               const head = org.roles.find((r) => r.id === dept.head_role_id);
               const team = org.roles.filter((r) => r.department === dept.name && r.id !== dept.head_role_id);
               return (
-                <li key={dept.name} className="flex flex-col gap-2 border-t-2 border-ink pt-3">
+                <li key={dept.name} className="flex flex-col gap-2 border-t-2 border-ai/30 pt-3">
                   <span className="text-sm text-muted">{dept.name}</span>
                   {head && <RoleBox role={head} lead />}
                   {team.map((r) => (

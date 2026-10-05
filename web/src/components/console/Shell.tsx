@@ -3,35 +3,39 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { accountsEnabled, signIn, signInMessage, signOut, useUser } from "@/lib/firebase";
+import { BuildingIcon, FileIcon, FlowIcon, Logo, MapIcon, PlayIcon, PlusIcon } from "../Icons";
 
 export type Section = "overview" | "workflows" | "cases" | "documents";
 
-export const SECTIONS: { id: Section; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "workflows", label: "Workflows" },
-  { id: "cases", label: "Cases" },
-  { id: "documents", label: "Documents" },
+export const SECTIONS: { id: Section; label: string; icon: typeof MapIcon }[] = [
+  { id: "overview", label: "Overview", icon: MapIcon },
+  { id: "workflows", label: "Workflows", icon: FlowIcon },
+  { id: "cases", label: "Cases", icon: PlayIcon },
+  { id: "documents", label: "Documents", icon: FileIcon },
 ];
 
 function NavItem({
   active,
   onClick,
   href,
+  icon: Icon,
   children,
   badge,
 }: {
   active?: boolean;
   onClick?: () => void;
   href?: string;
+  icon: typeof MapIcon;
   children: ReactNode;
   badge?: ReactNode;
 }) {
-  const className = `flex shrink-0 items-center justify-between gap-3 rounded-md px-3 py-2 text-left whitespace-nowrap ${
-    active ? "bg-ink font-medium text-sheet" : "text-ink hover:bg-line/50"
+  const className = `flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left whitespace-nowrap transition-colors ${
+    active ? "bg-ai-soft font-medium text-ai" : "text-muted hover:bg-line/60 hover:text-ink"
   }`;
   const inner = (
     <>
-      <span>{children}</span>
+      <Icon className={active ? "text-ai" : "text-faint"} />
+      <span className="flex-1">{children}</span>
       {badge}
     </>
   );
@@ -46,28 +50,37 @@ function NavItem({
   );
 }
 
-function Account() {
+function Account({ compact }: { compact?: boolean }) {
   const user = useUser();
   const [error, setError] = useState<string | null>(null);
   if (!accountsEnabled) return null;
+  if (user === undefined) return null;
+  const name = user?.displayName ?? user?.email ?? "";
   return (
     <div className="flex flex-col gap-2 text-sm">
       {user ? (
-        <>
-          <span className="truncate text-muted">{user.displayName ?? user.email}</span>
-          <button type="button" onClick={() => signOut()} className="w-fit underline-offset-4 hover:underline">
-            Sign out
-          </button>
-        </>
-      ) : user === null ? (
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ai-soft font-semibold text-ai">
+            {name.charAt(0).toUpperCase()}
+          </span>
+          {!compact && (
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate font-medium">{name}</span>
+              <button type="button" onClick={() => signOut()} className="w-fit text-xs text-muted hover:text-ink">
+                Sign out
+              </button>
+            </span>
+          )}
+        </div>
+      ) : (
         <button
           type="button"
           onClick={() => signIn().catch((e) => setError(signInMessage(e)))}
-          className="w-fit rounded-md border border-ink px-3 py-1.5 font-medium hover:bg-sheet"
+          className="w-fit rounded-lg border border-line bg-sheet px-3 py-1.5 font-medium shadow-[0_1px_2px_rgb(22_26_35/0.05)] hover:border-faint"
         >
           Sign in with Google
         </button>
-      ) : null}
+      )}
       {error && (
         <p role="alert" className="text-alert">
           {error}
@@ -99,53 +112,56 @@ export function Shell({
 }) {
   const user = useUser();
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="border-b border-ink bg-paper print:hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-r lg:border-b-0">
-        <div className="flex items-center justify-between gap-4 px-5 py-4 lg:py-6">
-          <Link href="/" className="text-xl font-semibold tracking-tight">
-            OrgFlow
+    <div className="min-h-screen lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
+      <aside className="border-b border-line bg-sheet print:hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-r lg:border-b-0">
+        <div className="flex items-center justify-between gap-4 px-5 py-4 lg:py-5">
+          <Link href="/" aria-label="OrgFlow home">
+            <Logo />
           </Link>
           <div className="lg:hidden">
-            <Account />
+            <Account compact />
           </div>
         </div>
-        <nav aria-label="Console" className="flex flex-col gap-4 px-3 pb-3 lg:flex-1 lg:overflow-y-auto lg:pb-6">
+        <nav aria-label="Console" className="flex flex-col gap-5 px-3 pb-3 lg:flex-1 lg:overflow-y-auto lg:pt-2 lg:pb-6">
           {company && section && onSection && (
             <div className="flex flex-col gap-1">
-              <p className="truncate px-3 pb-1 text-sm font-semibold" title={company}>
-                {company}
+              <p className="flex items-center gap-2 truncate px-2.5 pb-1.5 text-xs font-medium text-faint" title={company}>
+                <BuildingIcon width="14" height="14" />
+                <span className="truncate">{company}</span>
               </p>
               <div className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
                 {SECTIONS.map((s) => (
-                  <NavItem key={s.id} active={section === s.id} onClick={() => onSection(s.id)} badge={badges[s.id]}>
+                  <NavItem key={s.id} icon={s.icon} active={section === s.id} onClick={() => onSection(s.id)} badge={badges[s.id]}>
                     {s.label}
                   </NavItem>
                 ))}
               </div>
             </div>
           )}
-          <div className="flex gap-1 overflow-x-auto border-t border-line pt-3 lg:flex-col lg:overflow-visible">
+          <div className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible lg:border-t lg:border-line lg:pt-4">
             {onNew ? (
-              <NavItem active={current === "new"} onClick={onNew}>
+              <NavItem icon={PlusIcon} active={current === "new"} onClick={onNew}>
                 New analysis
               </NavItem>
             ) : (
-              <NavItem active={current === "new"} href="/">
+              <NavItem icon={PlusIcon} active={current === "new"} href="/">
                 New analysis
               </NavItem>
             )}
             {user && (
-              <NavItem active={current === "companies"} href="/companies">
+              <NavItem icon={BuildingIcon} active={current === "companies"} href="/companies">
                 My companies
               </NavItem>
             )}
           </div>
         </nav>
-        <div className="hidden border-t border-line px-5 py-5 lg:block">
+        <div className="hidden border-t border-line px-5 py-4 lg:block">
           <Account />
         </div>
       </aside>
-      <div className="min-w-0 px-5 py-8 sm:px-8 lg:px-10">{children}</div>
+      <div className="min-w-0 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+        <div className="mx-auto max-w-[84rem]">{children}</div>
+      </div>
     </div>
   );
 }

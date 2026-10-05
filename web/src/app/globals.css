@@ -1,29 +1,45 @@
 @import "tailwindcss";
 
 /*
-  OrgFlow tokens. Color says who produced a piece of the screen:
-  ai (blue) = Gemini understood or designed it; rule (amber) = deterministic code decided it.
+  OrgFlow tokens. A light console: white cards on a cool gray canvas, one indigo
+  accent. Color still says who produced a piece of the screen:
+  ai (indigo) = Gemini understood or designed it; rule (amber) = deterministic code decided it.
   Document quotes are set in a serif, so the company's own words read as a document.
 */
 @theme {
-  --color-paper: #f5f7f6;
+  --color-paper: #f5f6fa;
   --color-sheet: #ffffff;
-  --color-ink: #1a2124;
-  --color-muted: #59656a;
-  --color-line: #d5dcda;
-  --color-ai: #1d6a86;
-  --color-ai-soft: #e2eff4;
-  --color-rule: #93560a;
-  --color-rule-soft: #f6ead8;
-  --color-ok: #2a7a4b;
-  --color-alert: #b0281f;
-  --color-alert-soft: #fbe9e6;
+  --color-ink: #161a23;
+  --color-muted: #5d6475;
+  --color-faint: #8a90a0;
+  --color-line: #e3e6ee;
+  --color-ai: #4f46e5;
+  --color-ai-strong: #4338ca;
+  --color-ai-soft: #eef0ff;
+  --color-rule: #a2560c;
+  --color-rule-soft: #fdf3e2;
+  --color-ok: #15803d;
+  --color-ok-soft: #e7f6ec;
+  --color-alert: #d0312d;
+  --color-alert-soft: #fdecec;
+
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgb(22 26 35 / 0.04), 0 2px 8px rgb(22 26 35 / 0.04);
+  --shadow-raised: 0 2px 4px rgb(22 26 35 / 0.05), 0 8px 24px rgb(22 26 35 / 0.08);
 }
 
 @theme inline {
   --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-plex-mono), ui-monospace, Consolas, monospace;
+}
+
+/* A white card with a hairline border and a soft shadow */
+@utility card {
+  background: var(--color-sheet);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 html {
@@ -94,17 +110,18 @@ body {
 /* Department canvas connectors, drawn into an SVG from the boxes' positions */
 .canvas-edge {
   fill: none;
-  stroke: var(--color-rule);
+  stroke: #b8bdd0;
   stroke-width: 1.5;
 }
 .canvas-arrowhead {
-  fill: var(--color-rule);
+  fill: #9aa0b8;
 }
 .canvas-label {
-  font-size: 12px;
-  fill: var(--color-rule);
+  font-size: 11.5px;
+  font-weight: 500;
+  fill: var(--color-muted);
   paint-order: stroke;
   stroke: var(--color-sheet);
-  stroke-width: 5px;
+  stroke-width: 6px;
   stroke-linejoin: round;
 }

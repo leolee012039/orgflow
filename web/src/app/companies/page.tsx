@@ -54,14 +54,14 @@ function Companies() {
     return (
       <div className="flex flex-col gap-4">
         <p className="max-w-prose text-lg text-muted">You haven&apos;t analyzed a company yet.</p>
-        <Link href="/" className="w-fit font-medium text-ai underline underline-offset-4">
+        <Link href="/" className="w-fit font-medium text-ai hover:underline">
           Analyze your first company
         </Link>
       </div>
     );
 
   return (
-    <ul className="flex flex-col rounded-md border border-line bg-sheet">
+    <ul className="card flex flex-col overflow-hidden">
       {list.map((w) => (
         <li key={w.id} className="border-t border-line first:border-t-0">
           <Link
@@ -87,9 +87,9 @@ export default function CompaniesPage() {
   return (
     <Shell current="companies">
       <main className="flex max-w-5xl flex-col gap-8">
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink pb-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">My companies</h1>
-          <Link href="/" className="font-medium text-ai underline underline-offset-4">
+          <Link href="/" className="font-medium text-ai hover:underline">
             Analyze a company
           </Link>
         </div>

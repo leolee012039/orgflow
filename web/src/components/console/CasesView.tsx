@@ -29,7 +29,7 @@ export function CasesView({
   return (
     <div className="flex flex-col gap-12">
       {Object.keys(built).length === 0 ? (
-        <div className="rounded-md border border-dashed border-line px-5 py-10 text-muted">
+        <div className="card px-5 py-10 text-muted">
           Build a workflow first. Then you can submit a case here and watch it move from department to department.
         </div>
       ) : (
@@ -37,11 +37,11 @@ export function CasesView({
       )}
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Case history</h2>
+        <h2 className="text-lg font-semibold">Case history</h2>
         {cases.length === 0 ? (
           <p className="text-muted">No cases yet. Each case you run is listed here with where it went and how it ended.</p>
         ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-md border border-ink bg-sheet">
+          <ul className="card divide-y divide-line overflow-hidden">
             {cases.map((c) => {
               const result = caseResult(c.trace, ordered);
               const isOpen = open === c.id;

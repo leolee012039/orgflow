@@ -2,6 +2,7 @@
 
 import { Fragment, useLayoutEffect, useRef } from "react";
 import { flowLanes } from "@/lib/chain";
+import { AlertIcon } from "../Icons";
 import type { BuiltWorkflow, DepartmentMap, Handoff, Organization, WorkflowCandidate } from "@/lib/types";
 
 /** Columns in the order work flows. Each department sits as far right as its handoffs allow, one column left of
@@ -144,18 +145,30 @@ export function DepartmentCanvas({
         }}
         onClick={() => onSelect(name)}
         aria-pressed={isSelected}
-        className={`relative z-10 flex w-full min-w-0 flex-col items-start rounded-md border-2 bg-sheet px-3 py-2.5 text-left transition-colors sm:w-40 ${
-          isSelected ? "border-ai ring-4 ring-ai-soft" : s.built ? "border-ink hover:border-ai" : "border-dashed border-muted hover:border-ai"
+        className={`relative z-10 flex w-full min-w-0 flex-col items-start overflow-hidden rounded-xl border bg-sheet py-2.5 pr-3 pl-4 text-left transition-[box-shadow,border-color] sm:w-40 ${
+          isSelected
+            ? "border-ai shadow-[0_0_0_4px_rgb(79_70_229/0.14),var(--shadow-raised)]"
+            : s.built
+              ? "border-line shadow-[var(--shadow-card)] hover:border-ai/50 hover:shadow-[var(--shadow-raised)]"
+              : "border-dashed border-faint/60 hover:border-ai/50"
         }`}
       >
+        <span
+          aria-hidden
+          className={`absolute inset-y-0 left-0 w-1 ${s.problems ? "bg-alert" : s.built ? "bg-ok" : "bg-line"}`}
+        />
         <span className="font-semibold break-words">{name}</span>
         {head && <span className="w-full truncate text-xs text-muted">{head.title}</span>}
         <span className="mt-2 flex w-full items-center justify-between gap-2 text-xs tabular-nums">
-          <span className={s.built ? "text-ink" : "text-muted"}>
+          <span className={s.built ? "font-medium text-ok" : "text-faint"}>
             {s.built ? `${s.built} of ${s.planned} built` : `${s.planned} planned`}
           </span>
           {s.problems > 0 && (
-            <span className="rounded-full bg-alert px-1.5 py-0.5 font-semibold text-sheet" aria-label={`${s.problems} problems`}>
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full bg-alert-soft px-1.5 py-0.5 font-semibold text-alert"
+              aria-label={`${s.problems} ${s.problems === 1 ? "problem" : "problems"}`}
+            >
+              <AlertIcon width="11" height="11" strokeWidth="2" />
               {s.problems}
             </span>
           )}
@@ -173,12 +186,12 @@ export function DepartmentCanvas({
         type="button"
         onClick={() => onSelect(name)}
         aria-pressed={selected === name}
-        className={`inline-flex items-center gap-1.5 rounded-md border-2 bg-sheet px-2.5 py-1 font-medium ${
-          selected === name ? "border-ai" : s.built ? "border-ink" : "border-dashed border-muted"
+        className={`inline-flex items-center gap-1.5 rounded-lg border bg-sheet px-2.5 py-1 font-medium shadow-[var(--shadow-card)] ${
+          selected === name ? "border-ai text-ai" : s.built ? "border-line" : "border-dashed border-faint/60"
         }`}
       >
         {name}
-        {s.problems > 0 && <span className="rounded-full bg-alert px-1.5 text-xs font-semibold text-sheet">{s.problems}</span>}
+        {s.problems > 0 && <span className="rounded-full bg-alert-soft px-1.5 text-xs font-semibold text-alert">{s.problems}</span>}
       </button>
     );
   };
@@ -191,7 +204,7 @@ export function DepartmentCanvas({
             {chip(lane[0].from)}
             {lane.map((h) => (
               <Fragment key={`${h.from}-${h.to}-${h.what}`}>
-                <span className="text-xs text-rule">→ {h.what} →</span>
+                <span className="text-xs text-muted">→ {h.what} →</span>
                 {chip(h.to)}
               </Fragment>
             ))}
@@ -202,7 +215,7 @@ export function DepartmentCanvas({
         <svg ref={svg} className="pointer-events-none absolute inset-0 overflow-visible" aria-hidden />
         <ol
           aria-label="Departments in the order work flows"
-          className="relative flex flex-col gap-14 sm:flex-row sm:items-center sm:gap-24"
+          className="relative flex flex-col gap-14 sm:flex-row sm:items-center sm:gap-16"
         >
           {columns.map((column, i) => (
             <li key={i} className="flex flex-col gap-14 sm:gap-8">

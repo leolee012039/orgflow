@@ -27,7 +27,7 @@ function Detail({
   onBuild: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-6 border-t border-line bg-paper px-5 py-6">
+    <div className="flex flex-col gap-6 border-t border-line bg-paper/70 px-5 py-6">
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Why automate it</p>
@@ -49,7 +49,7 @@ function Detail({
           {built.gaps.length + (built.amount_gaps?.length ?? 0) > 0 && (
             <Findings workflow={built} gaps={built.gaps} amountGaps={built.amount_gaps ?? []} org={org} />
           )}
-          <div className="rounded-md border border-line bg-sheet p-5">
+          <div className="card p-5">
             <WorkflowView workflow={built} gaps={built.gaps} org={org} />
             <OriginNote origin={built.origin} latencyMs={built.latency_ms} />
           </div>
@@ -99,8 +99,8 @@ export function WorkflowsView({
   onBuild: (c: WorkflowCandidate) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-ink bg-sheet">
-      <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.1fr)] gap-4 border-b border-ink px-5 py-3 text-sm font-medium md:grid">
+    <div className="card overflow-hidden">
+      <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.1fr)] gap-4 border-b border-line bg-paper px-5 py-2.5 text-xs font-semibold text-faint md:grid">
         <span>Workflow</span>
         <span>Department</span>
         <span>Case flow</span>

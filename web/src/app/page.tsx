@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { CompanyConsole } from "@/components/console/CompanyConsole";
 import { Shell } from "@/components/console/Shell";
+import { AlertIcon, BuildingIcon, FlowIcon, MapIcon } from "@/components/Icons";
 import { OwnerActions } from "@/components/ReportActions";
 import { ErrorNote, Tag, Working } from "@/components/Section";
 import { UploadStep, type DraftDocuments } from "@/components/UploadStep";
@@ -28,12 +29,12 @@ const STEPS: { id: AnalysisStep; label: string }[] = [
 function Progress({ step }: { step: AnalysisStep }) {
   const current = STEPS.findIndex((s) => s.id === step);
   return (
-    <ol className="flex flex-col gap-4 rounded-md border border-line bg-sheet p-5">
+    <ol className="card flex flex-col gap-4 p-5">
       {STEPS.map((s, i) => (
         <li key={s.id} className="flex items-center gap-3">
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums ${
-              i < current ? "border-ink bg-ink text-sheet" : i === current ? "border-ai text-ai" : "border-line text-muted"
+              i < current ? "border-ok bg-ok text-sheet" : i === current ? "border-ai bg-ai-soft text-ai" : "border-line text-faint"
             }`}
           >
             {i < current ? "✓" : i + 1}
@@ -185,7 +186,7 @@ function Home() {
         onNew={startOver}
         notice={
           (!view.saved || view.saveError) && (
-            <p role="status" className="rounded-md border border-line bg-sheet px-4 py-3 text-sm print:hidden">
+            <p role="status" className="rounded-xl border border-ai/20 bg-ai-soft px-4 py-3 text-sm text-ai print:hidden">
               {view.saveError ??
                 (accountsEnabled ? "This isn't saved. Sign in before your next analysis to keep it and share it." : "This isn't saved.")}
             </p>
@@ -234,15 +235,27 @@ function Home() {
           )}
           {view.status === "error" && <ErrorNote message={view.message} problems={view.problems} onRetry={view.retry} />}
         </div>
-        <aside className="flex flex-col gap-6 lg:border-l lg:border-line lg:pl-10">
+        <aside className="card flex h-fit flex-col gap-6 p-6">
           <h2 className="text-lg font-semibold">What you get</h2>
           <ul className="flex flex-col gap-5">
-            {LOOKS_FOR.map((item) => (
-              <li key={item.title} className="flex flex-col gap-1">
-                <span className="font-medium">{item.title}</span>
-                <span className="text-muted">{item.text}</span>
-              </li>
-            ))}
+            {LOOKS_FOR.map((item, i) => {
+              const Icon = [BuildingIcon, MapIcon, FlowIcon, AlertIcon][i] ?? FlowIcon;
+              return (
+                <li key={item.title} className="flex gap-3">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                      i === 3 ? "bg-alert-soft text-alert" : "bg-ai-soft text-ai"
+                    }`}
+                  >
+                    <Icon />
+                  </span>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-medium">{item.title}</span>
+                    <span className="text-sm leading-relaxed text-muted">{item.text}</span>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           <div className="flex flex-col gap-2 border-t border-line pt-5 text-sm text-muted">
             <div className="flex gap-2">

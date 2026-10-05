@@ -8,7 +8,9 @@ import type { BuiltWorkflow, CaseRecord, Documents, WorkflowCandidate } from "@/
 import { MAX_CASES, type Workspace } from "@/lib/workspaces";
 import { DepartmentSection } from "../DepartmentSection";
 import { DocumentNames } from "../Quote";
-import { buttonClass, PrintButton } from "../ReportActions";
+import { PrintButton } from "../ReportActions";
+import { primaryClass } from "../Section";
+import { AlertIcon, BuildingIcon, FlowIcon, MapIcon } from "../Icons";
 import { CasesView } from "./CasesView";
 import { DocumentsView } from "./DocumentsView";
 import { Overview, problemsOf } from "./Overview";
@@ -121,7 +123,7 @@ export function CompanyConsole({
 
   const builtCount = Object.keys(built).length;
   const badge = (n: number, tone: string) =>
-    n > 0 ? <span className={`rounded-full px-1.5 text-xs font-semibold tabular-nums ${tone}`}>{n}</span> : undefined;
+    n > 0 ? <span className={`rounded-full px-1.5 py-px text-xs font-semibold tabular-nums ${tone}`}>{n}</span> : undefined;
 
   return (
     <DocumentNames.Provider value={workspace.documents}>
@@ -132,49 +134,62 @@ export function CompanyConsole({
         onNew={onNew}
         badges={{
           overview: badge(problems, "bg-alert text-sheet"),
-          workflows: badge(builtCount, "bg-line text-ink"),
-          cases: badge(cases.length, "bg-line text-ink"),
+          workflows: badge(builtCount, "bg-paper text-muted ring-1 ring-line"),
+          cases: badge(cases.length, "bg-paper text-muted ring-1 ring-line"),
         }}
       >
         <div className="flex flex-col gap-8">
           {notice}
-          <header className="flex flex-col gap-5 border-b border-ink pb-6">
+          <header className="flex flex-col gap-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="flex min-w-0 flex-col gap-1">
                 <p className="text-sm text-muted">
                   Analyzed {analyzedOn(workspace.analyzedAt)}
                   {workspace.sample ? ", a fictional sample company" : ""}
                 </p>
-                <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{workspace.company}</h1>
+                <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight text-balance sm:text-[2rem]">
+                  {workspace.company}
+                </h1>
               </div>
-              <div className="flex flex-wrap gap-3 print:hidden">
+              <div className="flex flex-wrap gap-2.5 print:hidden">
+                <PrintButton />
                 {canBuild && unbuilt > 0 && (
-                  <button type="button" onClick={buildAll} disabled={busy} className={`${buttonClass} border-ink bg-ink text-sheet hover:bg-ai`}>
+                  <button type="button" onClick={buildAll} disabled={busy} className={primaryClass}>
+                    <FlowIcon />
                     {busy ? "Building…" : `Build ${unbuilt} linked ${unbuilt === 1 ? "workflow" : "workflows"}`}
                   </button>
                 )}
-                <PrintButton />
               </div>
             </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-10">
-              {[
-                ["Departments", map.departments.length],
-                ["Handoffs", map.handoffs.length],
-                ["Workflows built", `${builtCount} of ${candidates.length}`],
-                ["Problems", problems],
-              ].map(([label, value]) => (
-                <div key={label} className="flex flex-col">
-                  <dt className="text-sm text-muted">{label}</dt>
-                  <dd className={`text-2xl font-semibold tabular-nums ${label === "Problems" && Number(value) > 0 ? "text-alert" : ""}`}>
-                    {value}
-                  </dd>
+            <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {(
+                [
+                  ["Departments", map.departments.length, BuildingIcon, "bg-ai-soft text-ai"],
+                  ["Handoffs", map.handoffs.length, MapIcon, "bg-ai-soft text-ai"],
+                  ["Workflows built", `${builtCount} of ${candidates.length}`, FlowIcon,
+                    builtCount ? "bg-ok-soft text-ok" : "bg-paper text-faint"],
+                  ["Problems found", problems, AlertIcon, problems ? "bg-alert-soft text-alert" : "bg-paper text-faint"],
+                ] as const
+              ).map(([label, value, Icon, tone]) => (
+                <div key={label} className="card flex items-center gap-3 px-3.5 py-3 sm:gap-3.5 sm:px-4 sm:py-3.5">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${tone}`}>
+                    <Icon width="19" height="19" />
+                  </span>
+                  <div className="flex min-w-0 flex-col">
+                    <dt className="text-xs leading-tight text-muted sm:text-sm">{label}</dt>
+                    <dd
+                      className={`text-xl font-semibold tabular-nums ${label === "Problems found" && Number(value) > 0 ? "text-alert" : ""}`}
+                    >
+                      {value}
+                    </dd>
+                  </div>
                 </div>
               ))}
             </dl>
             {editable && !docs && unbuilt > 0 && (
               <p className="text-sm text-muted print:hidden">
                 To build more workflows, add the documents again under{" "}
-                <button type="button" onClick={() => setSection("documents")} className="text-ai underline underline-offset-4">
+                <button type="button" onClick={() => setSection("documents")} className="font-medium text-ai hover:underline">
                   Documents
                 </button>
                 . OrgFlow doesn&apos;t keep your PDFs.

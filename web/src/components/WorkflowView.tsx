@@ -7,7 +7,7 @@ function GapCard({ gap, org, rule, workflow }: { gap: Gap; org: Organization; ru
   const missing = gap.status === "missing";
   const titles = org.roles.map((r) => r.title);
   return (
-    <div className={`flex break-inside-avoid flex-col gap-4 rounded-md border-l-4 bg-sheet p-5 ${missing ? "border-alert" : "border-rule"}`}>
+    <div className={`card flex break-inside-avoid flex-col gap-4 border-l-4 p-5 ${missing ? "border-l-alert" : "border-l-rule"}`}>
       <div className="flex flex-col gap-1">
         <p className={`text-sm font-medium ${missing ? "text-alert" : "text-rule"}`}>
           {missing ? "This workflow can't run as written" : "Please confirm"}
@@ -47,7 +47,7 @@ function AmountGapCard({ finding, workflow }: { finding: AmountGap; workflow: Wo
   const amount = formatValue(workflow, finding.field, finding.amount);
   const gap = finding.kind === "gap";
   return (
-    <div className="flex break-inside-avoid flex-col gap-4 rounded-md border-l-4 border-alert bg-sheet p-5">
+    <div className="card flex break-inside-avoid flex-col gap-4 border-l-4 border-l-alert p-5">
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-alert">This workflow can&apos;t run as written</p>
         <h3 className="text-xl font-semibold text-balance">
@@ -132,7 +132,7 @@ export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps
           <ul className="flex flex-col gap-5">
             {workflow.rules.map((rule) => (
               <li key={rule.id} className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-start">
-                <code className="w-fit rounded bg-rule-soft px-2 py-1 font-mono text-sm text-rule">
+                <code className="w-fit rounded-md bg-rule-soft px-2 py-1 font-mono text-sm text-rule">
                   {ruleExpression(rule, workflow)}
                 </code>
                 <Quote text={rule.source} doc="policy" />

@@ -5,6 +5,7 @@ import { formatValue } from "@/lib/format";
 import type { BuildState } from "@/lib/useBuilds";
 import type { Workspace } from "@/lib/workspaces";
 import type { WorkflowCandidate } from "@/lib/types";
+import { AlertIcon, CheckIcon } from "../Icons";
 import { OriginNote, Tag } from "../Section";
 import { DepartmentCanvas } from "./DepartmentCanvas";
 import { DepartmentPanel } from "./DepartmentPanel";
@@ -79,16 +80,17 @@ export function Overview({
   return (
     <div className="flex flex-col gap-10">
       <div className="grid items-start gap-6 min-[1400px]:grid-cols-[minmax(0,1fr)_22rem]">
-        <section className="flex min-w-0 flex-col gap-4 rounded-md border border-ink bg-sheet p-5 sm:p-8">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h2 className="text-xl font-semibold">How work moves between departments</h2>
-            <Tag kind="gemini" />
+        <section className="card flex min-w-0 flex-col gap-5 p-5 sm:p-7">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <h2 className="text-lg font-semibold">How work moves between departments</h2>
+              <Tag kind="gemini" />
+            </div>
+            <p className="max-w-prose text-sm text-muted">
+              Each box is a department, each arrow a handoff written in the documents. Click a department to open it.
+            </p>
           </div>
-          <p className="max-w-prose text-muted">
-            Each box is a department, each arrow a handoff written in the documents. Solid boxes have built workflows;
-            the red number counts their problems.
-          </p>
-          <div className="overflow-x-auto py-4">
+          <div className="overflow-x-auto rounded-xl bg-[radial-gradient(circle,#e3e6ee_1px,transparent_1px)] [background-size:18px_18px] px-4 py-8 sm:px-6">
             <DepartmentCanvas map={map} org={org} plan={plan.workflows} built={built} selected={selected} onSelect={select} />
           </div>
           <OriginNote origin={map.origin} latencyMs={map.latency_ms} />
@@ -112,31 +114,39 @@ export function Overview({
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h2 className="text-xl font-semibold">Needs attention</h2>
+          <h2 className="text-lg font-semibold">Needs attention</h2>
           <Tag kind="rules" />
         </div>
         {builtCount === 0 ? (
-          <p className="text-muted">
+          <p className="card px-5 py-4 text-muted">
             Nothing is checked yet. Build workflows, and plain code checks each one against the org chart and the
             policy&apos;s amount levels.
           </p>
         ) : problems.length === 0 ? (
-          <p className="text-ok">No problems in the {builtCount} built workflows.</p>
+          <p className="card flex items-center gap-2 px-5 py-4 text-ok">
+            <CheckIcon /> No problems in the {builtCount} built workflows.
+          </p>
         ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-md border border-ink bg-sheet">
+          <ul className="card divide-y divide-line overflow-hidden">
             {problems.map((p) => (
-              <li key={p.key} className="grid gap-x-4 gap-y-1 px-5 py-3 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
-                <span className="text-sm font-medium">{p.department}</span>
+              <li key={p.key} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                <span
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${p.confirm ? "bg-rule-soft text-rule" : "bg-alert-soft text-alert"}`}
+                >
+                  <AlertIcon />
+                </span>
                 <span className="flex min-w-0 flex-col">
-                  <span className={p.confirm ? "text-rule" : "text-alert"}>{p.text}</span>
-                  <span className="truncate text-sm text-muted">{p.workflow}</span>
+                  <span className="font-medium">{p.text}</span>
+                  <span className="truncate text-sm text-muted">
+                    {p.department}, {p.workflow}
+                  </span>
                 </span>
                 <button
                   type="button"
                   onClick={() => onOpenWorkflow(p.workflowId)}
-                  className="w-fit text-sm text-ai underline underline-offset-4"
+                  className="col-start-2 w-fit text-sm font-medium text-ai hover:underline sm:col-start-auto"
                 >
-                  See the lines that prove it
+                  See the lines that prove it →
                 </button>
               </li>
             ))}

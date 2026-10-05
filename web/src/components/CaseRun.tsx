@@ -27,7 +27,7 @@ const EXAMPLES: Record<string, string> = {
   reason: "Annual renewal for a key account that orders every quarter.",
 };
 
-const inputClass = "w-full rounded-md border border-line bg-sheet px-3 py-2 text-ink";
+const inputClass = "w-full rounded-lg border border-line bg-sheet px-3 py-2 text-ink shadow-[0_1px_2px_rgb(22_26_35/0.04)] focus:border-ai focus:ring-4 focus:ring-ai/15 focus:outline-none";
 
 function Field({ label, children }: { label: string; children: (id: string) => ReactNode }) {
   const id = useId();
@@ -113,7 +113,7 @@ function CaseForm({
                         type="button"
                         onClick={() => set(f.name, n)}
                         aria-pressed={values[f.name] === n}
-                        className="rounded-full border border-line bg-sheet px-3 py-1 tabular-nums aria-pressed:border-ink"
+                        className="rounded-full border border-line bg-sheet px-3 py-1 tabular-nums hover:border-faint aria-pressed:border-ai aria-pressed:bg-ai-soft aria-pressed:text-ai"
                       >
                         {formatValue(wf, f.name, n)}
                       </button>
@@ -244,8 +244,8 @@ export function ChainSlip({
   const offsets = trace.legs.map((_, i) => trace.legs.slice(0, i).reduce((n, l) => n + l.trace.steps.length, 0));
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-md border border-ink bg-sheet">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink px-5 py-3">
+      <div className="card overflow-hidden">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-5 py-3">
           <h3 className="font-semibold">Routing slip</h3>
           <p className="text-sm text-muted tabular-nums">
             {trace.request_id}, {trace.legs.map((l) => l.department).join(" → ")}
@@ -258,8 +258,8 @@ export function ChainSlip({
             const visible = leg.trace.steps.slice(0, Math.max(0, shown - offsets[i]));
             if (visible.length === 0) return null;
             return (
-              <li key={leg.workflow_id} className="border-b border-ink last:border-b-0">
-                <p className="bg-paper px-5 py-2 text-sm">
+              <li key={leg.workflow_id} className="border-b border-line last:border-b-0">
+                <p className="flex items-center gap-2 bg-paper px-5 py-2 text-sm">
                   <span className="font-semibold">{leg.department}</span>
                   <span className="ml-2 text-muted">{leg.workflow_name}</span>
                 </p>
@@ -317,7 +317,7 @@ function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built
   const handoffs = trace.legs.reduce((n, l) => n + l.trace.metrics.manual_handoffs_before, 0);
   if (trace.status === "COMPLETED") {
     return (
-      <div className="flex flex-col gap-2 border-l-4 border-ok pl-4">
+      <div className="flex flex-col gap-2 rounded-xl border border-ok/20 bg-ok-soft px-5 py-4">
         <p className="text-lg font-semibold text-ok">
           Completed in {departments.length} {departments.length === 1 ? "department" : "departments"}
         </p>
@@ -344,7 +344,7 @@ function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built
           ? `The policy requires ${lastStep.actor} approval, and ${org.company}'s org chart has no ${lastStep.actor}. OrgFlow stopped instead of guessing.`
           : "Gemini flagged the request details, so a person decides before anyone approves it.";
   return (
-    <div className="flex flex-col gap-2 border-l-4 border-alert pl-4">
+    <div className="flex flex-col gap-2 rounded-xl border border-alert/20 bg-alert-soft px-5 py-4">
       <p className="text-lg font-semibold text-alert">
         {trace.status === "RETURNED" ? `Returned to ${request.requester}` : `Waiting for a person in ${last.department}`}
       </p>
@@ -415,7 +415,7 @@ export function CaseRun({
                 setStartId(s.id);
                 setTrace(null);
               }}
-              className="rounded-md border border-line bg-sheet px-3 py-2 text-left text-sm aria-pressed:border-ink aria-pressed:font-medium"
+              className="rounded-lg border border-line bg-sheet px-3 py-2 text-left text-sm shadow-[0_1px_2px_rgb(22_26_35/0.04)] hover:border-faint aria-pressed:border-ai aria-pressed:bg-ai-soft aria-pressed:font-medium aria-pressed:text-ai"
             >
               {s.department}: {s.name}
             </button>
@@ -438,7 +438,7 @@ export function CaseRun({
             <ChainSlip key={runKey} trace={trace} built={builtList} org={org} request={lastRequest} />
           ) : (
             !busy && (
-              <div className="rounded-md border border-dashed border-line px-5 py-10 text-muted">
+              <div className="rounded-xl border border-dashed border-faint/50 bg-sheet/60 px-5 py-10 text-muted">
                 The routing slip appears here. Each department stamps its steps as the case moves through.
               </div>
             )

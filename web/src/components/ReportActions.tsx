@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { deleteWorkspace, setShared, type SavedWorkspace } from "@/lib/workspaces";
+import { PrintIcon } from "./Icons";
+import { secondaryClass } from "./Section";
 
-export const buttonClass = "rounded-md border border-line px-4 py-2 font-medium hover:border-ink disabled:opacity-50";
+export const buttonClass = secondaryClass;
 
 /** The browser's print dialog, where "Save as PDF" is one of the printers. */
 export function PrintButton() {
   return (
     <button type="button" onClick={() => window.print()} className={buttonClass}>
+      <PrintIcon className="text-muted" />
       Save as PDF
     </button>
   );

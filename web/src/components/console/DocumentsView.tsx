@@ -28,8 +28,8 @@ export function DocumentsView({
   return (
     <div className="flex flex-col gap-12">
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Files</h2>
-        <ul className="divide-y divide-line rounded-md border border-ink bg-sheet">
+        <h2 className="text-lg font-semibold">Files</h2>
+        <ul className="card divide-y divide-line overflow-hidden">
           {files.map((f) => (
             <li key={f.label} className="grid gap-1 px-5 py-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
               <span className="text-sm text-muted">{f.label}</span>
@@ -43,14 +43,14 @@ export function DocumentsView({
             : "OrgFlow doesn't save PDFs. To build more workflows, add the same documents again."}
         </p>
         {editable && !docs && (
-          <div className="flex flex-col gap-3 rounded-md border border-line bg-sheet p-4">
+          <div className="card flex flex-col gap-3 p-4">
             <DocumentPicker docs={draft} onDocs={setDraft} />
             <div>
               <button
                 type="button"
                 disabled={!draft.orgChart}
                 onClick={() => draft.orgChart && onDocs({ orgChart: draft.orgChart, policies: draft.policies })}
-                className="rounded-md border border-ink px-4 py-2 font-medium hover:bg-paper disabled:opacity-50"
+                className="rounded-lg bg-ai px-4 py-2 font-medium text-sheet hover:bg-ai-strong disabled:bg-line disabled:text-faint"
               >
                 Use these documents
               </button>
@@ -60,14 +60,14 @@ export function DocumentsView({
       </section>
 
       <section className="flex flex-col gap-6">
-        <h2 className="text-xl font-semibold">The organization as OrgFlow read it</h2>
+        <h2 className="text-lg font-semibold">The organization as OrgFlow read it</h2>
         <OrgView org={workspace.organization} />
         <OriginNote origin={workspace.organization.origin} latencyMs={workspace.organization.latency_ms} />
       </section>
 
       {workspace.departmentMap.handoffs.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold">Where each handoff is written</h2>
+          <h2 className="text-lg font-semibold">Where each handoff is written</h2>
           <ul className="flex flex-col gap-5">
             {workspace.departmentMap.handoffs.map((h) => (
               <li key={`${h.from}-${h.to}-${h.what}`} className="flex flex-col gap-2">
