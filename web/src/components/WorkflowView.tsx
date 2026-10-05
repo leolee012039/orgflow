@@ -7,7 +7,7 @@ function GapCard({ gap, org, rule }: { gap: Gap; org: Organization; rule?: Rule 
   const missing = gap.status === "missing";
   const titles = org.roles.map((r) => r.title);
   return (
-    <div className={`flex flex-col gap-4 rounded-md border-l-4 bg-sheet p-5 ${missing ? "border-alert" : "border-rule"}`}>
+    <div className={`flex break-inside-avoid flex-col gap-4 rounded-md border-l-4 bg-sheet p-5 ${missing ? "border-alert" : "border-rule"}`}>
       <div className="flex flex-col gap-1">
         <p className={`text-sm font-medium ${missing ? "text-alert" : "text-rule"}`}>
           {missing ? "Your policy can't run as written" : "Please confirm"}
@@ -47,7 +47,7 @@ function AmountGapCard({ finding, currency }: { finding: AmountGap; currency: st
   const amount = money(finding.amount, currency);
   const gap = finding.kind === "gap";
   return (
-    <div className="flex flex-col gap-4 rounded-md border-l-4 border-alert bg-sheet p-5">
+    <div className="flex break-inside-avoid flex-col gap-4 rounded-md border-l-4 border-alert bg-sheet p-5">
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-alert">Your policy can&apos;t run as written</p>
         <h3 className="text-xl font-semibold text-balance">
@@ -74,7 +74,8 @@ function AmountGapCard({ finding, currency }: { finding: AmountGap; currency: st
   );
 }
 
-export function WorkflowView({
+/** Every place the policy can't run as written: approvers that don't exist, amounts no level covers. */
+export function Findings({
   workflow,
   gaps,
   amountGaps,
@@ -86,26 +87,32 @@ export function WorkflowView({
   org: Organization;
 }) {
   const rules = new Map(workflow.rules.map((r) => [r.id, r]));
-  const gapFor = new Map(gaps.map((g) => [g.actor, g]));
-  const currency = currencyOf(workflow.rules);
   const ruleOf = (stepId: string | null) => {
     const ruleId = workflow.steps.find((s) => s.id === stepId)?.only_if;
     return ruleId ? rules.get(ruleId) : undefined;
   };
+  return (
+    <div className="flex flex-col gap-4">
+      {gaps.map((gap) => (
+        <GapCard key={gap.actor} gap={gap} org={org} rule={ruleOf(gap.step_id)} />
+      ))}
+      {amountGaps.map((finding) => (
+        <AmountGapCard
+          key={`${finding.kind}-${finding.amount}`}
+          finding={finding}
+          currency={currencyOf(workflow.rules)}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps: Gap[]; org: Organization }) {
+  const rules = new Map(workflow.rules.map((r) => [r.id, r]));
+  const gapFor = new Map(gaps.map((g) => [g.actor, g]));
 
   return (
     <div className="flex flex-col gap-10">
-      {gaps.length + amountGaps.length > 0 && (
-        <div className="flex flex-col gap-4">
-          {gaps.map((gap) => (
-            <GapCard key={gap.actor} gap={gap} org={org} rule={ruleOf(gap.step_id)} />
-          ))}
-          {amountGaps.map((finding) => (
-            <AmountGapCard key={`${finding.kind}-${finding.amount}`} finding={finding} currency={currency} />
-          ))}
-        </div>
-      )}
-
       <p className="max-w-prose text-lg leading-relaxed">{workflow.explanation}</p>
 
       <div className="flex flex-col gap-4">

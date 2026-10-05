@@ -80,3 +80,13 @@ body {
     scroll-behavior: auto;
   }
 }
+
+/* Save as PDF: a white page, and cards that don't split across pages */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+  body {
+    background: #fff;
+  }
+}

@@ -16,6 +16,8 @@ export function OrgView({ org }: { org: Organization }) {
   const top = org.roles.filter((r) => !r.reports_to);
   const departmentRoles = org.roles.filter((r) => r.department);
   const executive = top.length === 1 ? "1 chief executive" : `${top.length} top roles`;
+  // Real organizations can have dozens of units: wrap them instead of one column each
+  const wide = org.departments.length > 6;
 
   return (
     <div className="flex flex-col gap-8">
@@ -24,15 +26,22 @@ export function OrgView({ org }: { org: Organization }) {
         roles.
       </p>
 
-      <div className="overflow-x-auto">
-        <div className="flex min-w-[36rem] flex-col items-center gap-4">
-          <div className="flex gap-3">
+      <div className={wide ? "" : "overflow-x-auto"}>
+        <div className={`flex flex-col items-center gap-4 ${wide ? "" : "min-w-[36rem]"}`}>
+          <div className="flex flex-wrap justify-center gap-3">
             {top.map((r) => (
               <RoleBox key={r.id} role={r} lead />
             ))}
           </div>
           <div aria-hidden className="h-4 w-px bg-ink" />
-          <ul className="grid w-full gap-3" style={{ gridTemplateColumns: `repeat(${org.departments.length}, minmax(0, 1fr))` }}>
+          <ul
+            className="grid w-full gap-x-3 gap-y-6"
+            style={{
+              gridTemplateColumns: wide
+                ? "repeat(auto-fill, minmax(10rem, 1fr))"
+                : `repeat(${org.departments.length}, minmax(0, 1fr))`,
+            }}
+          >
             {org.departments.map((dept) => {
               const head = org.roles.find((r) => r.id === dept.head_role_id);
               const team = org.roles.filter((r) => r.department === dept.name && r.id !== dept.head_role_id);

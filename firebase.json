@@ -1,6 +1,10 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": "web/out",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",

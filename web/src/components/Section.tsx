@@ -1,39 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode, type Ref } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { seconds } from "@/lib/format";
 import type { Origin } from "@/lib/types";
-
-export function Section({
-  id,
-  step,
-  title,
-  tags,
-  sectionRef,
-  children,
-}: {
-  id: string;
-  step: number;
-  title: string;
-  tags?: ReactNode;
-  sectionRef?: Ref<HTMLElement>;
-  children: ReactNode;
-}) {
-  return (
-    <section id={id} ref={sectionRef} aria-labelledby={`${id}-title`} className="scroll-mt-8 border-t border-line py-12 first:border-t-0 first:pt-4">
-      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-ink text-sm font-medium tabular-nums">
-          {step}
-        </span>
-        <h2 id={`${id}-title`} className="text-2xl font-semibold tracking-tight text-balance">
-          {title}
-        </h2>
-        {tags && <div className="flex flex-wrap gap-2">{tags}</div>}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 /** Who produced this part of the screen. */
 export function Tag({ kind }: { kind: "gemini" | "rules" }) {

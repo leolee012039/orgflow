@@ -8,7 +8,7 @@ const sourceSerif = Source_Serif_4({ variable: "--font-source-serif", subsets: [
 
 export const metadata: Metadata = {
   title: "OrgFlow",
-  description: "Turn company documents into a workflow that runs.",
+  description: "Find where your policy can't run in your organization, with the lines that prove it.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

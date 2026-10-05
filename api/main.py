@@ -1,13 +1,14 @@
 ﻿import os
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
 
+import auth  # noqa: E402
 import pipeline  # noqa: E402  (reads environment variables at import)
 from schemas import Opportunity, Organization, PurchaseRequestForm, Workflow  # noqa: E402
 
@@ -67,10 +68,18 @@ def stage_response(result, stage: str, by_alias: bool = False) -> dict:
             "origin": result.origin, "latency_ms": result.latency_ms}
 
 
-@app.post("/api/analyze")
-async def analyze(org_chart: UploadFile = File(...), policy: UploadFile = File(...)):
+async def read_documents(request: Request, org_chart: UploadFile, policy: UploadFile) -> tuple[bytes, bytes, Optional[str]]:
+    """Both PDFs and the signed-in user (sign-in is needed for anything but the sample)."""
     org_pdf = await read_pdf(org_chart, "org_chart")
     policy_pdf = await read_pdf(policy, "policy")
+    uid = auth.require_user(request, pipeline.is_sample(org_pdf, policy_pdf))
+    return org_pdf, policy_pdf, uid
+
+
+@app.post("/api/analyze")
+async def analyze(request: Request, org_chart: UploadFile = File(...), policy: UploadFile = File(...)):
+    org_pdf, policy_pdf, uid = await read_documents(request, org_chart, policy)
+    auth.count_health_check(uid)  # a health check starts here
     result = await pipeline.analyze_organization(org_pdf, policy_pdf)
     return stage_response(result, "organization", by_alias=True)
 
@@ -83,24 +92,22 @@ def parse_json_field(model, raw: str, field: str):
 
 
 @app.post("/api/opportunities")
-async def opportunities(org_chart: UploadFile = File(...), policy: UploadFile = File(...),
+async def opportunities(request: Request, org_chart: UploadFile = File(...), policy: UploadFile = File(...),
                         organization: str = Form(...)):
     org = parse_json_field(Organization, organization, "organization")
-    org_pdf = await read_pdf(org_chart, "org_chart")
-    policy_pdf = await read_pdf(policy, "policy")
+    org_pdf, policy_pdf, _ = await read_documents(request, org_chart, policy)
     result = await pipeline.discover_opportunities(org_pdf, policy_pdf, org)
     return stage_response(result, "opportunities")
 
 
 @app.post("/api/workflow")
-async def workflow(org_chart: UploadFile = File(...), policy: UploadFile = File(...),
+async def workflow(request: Request, org_chart: UploadFile = File(...), policy: UploadFile = File(...),
                    organization: str = Form(...), opportunity: str = Form(...)):
     org = parse_json_field(Organization, organization, "organization")
     opp = parse_json_field(Opportunity, opportunity, "opportunity")
     if not opp.executable:
         raise HTTPException(400, f"'{opp.name}' is a blueprint only and cannot be generated yet.")
-    org_pdf = await read_pdf(org_chart, "org_chart")
-    policy_pdf = await read_pdf(policy, "policy")
+    org_pdf, policy_pdf, _ = await read_documents(request, org_chart, policy)
     result = await pipeline.design_workflow(org_pdf, policy_pdf, org, opp)
     return stage_response(result, "workflow")
 

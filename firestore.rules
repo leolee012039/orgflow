@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// A health check belongs to the person who ran it. They can share it read-only
+// (shared == true) and unshare or delete it. Nobody else can change it.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /audits/{auditId} {
+      function signedIn() {
+        return request.auth != null;
+      }
+      function isOwner() {
+        return signedIn() && request.auth.uid == resource.data.owner;
+      }
+
+      allow read: if resource.data.shared == true || isOwner();
+      allow create: if signedIn()
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.shared == false;
+      allow update: if isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shared'])
+        && request.resource.data.shared is bool;
+      allow delete: if isOwner();
+    }
+  }
+}

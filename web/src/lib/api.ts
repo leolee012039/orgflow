@@ -1,3 +1,5 @@
+import type { HealthCheck } from "./audits";
+import { idToken } from "./firebase";
 import type { Documents, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow, WorkflowResult } from "./types";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000").replace(/\/$/, "");
@@ -14,12 +16,15 @@ export class ApiError extends Error {
 
 async function post<T>(path: string, body: FormData | object): Promise<T> {
   const isForm = body instanceof FormData;
+  const headers: Record<string, string> = isForm ? {} : { "Content-Type": "application/json" };
+  const token = await idToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       method: "POST",
       body: isForm ? body : JSON.stringify(body),
-      headers: isForm ? undefined : { "Content-Type": "application/json" },
+      headers,
     });
   } catch {
     throw new ApiError("Can't reach the OrgFlow service. Check your connection and try again.");
@@ -61,6 +66,47 @@ export const api = {
   run: (workflow: Workflow, organization: Organization, request: PurchaseRequest, manualHandoffs: number) =>
     post<Trace>("/api/run", { workflow, organization, request, manual_handoffs_before: manualHandoffs }),
 };
+
+export type CheckStep = "organization" | "opportunities" | "workflow";
+
+/** A failed health check, with the step it stopped at. */
+export class CheckError extends ApiError {
+  constructor(
+    readonly step: CheckStep,
+    cause: unknown,
+  ) {
+    super((cause as Error).message, cause instanceof ApiError ? cause.problems : []);
+  }
+}
+
+/** The three Gemini stages in a row: organization, opportunities, then the top opportunity's workflow. */
+export async function runHealthCheck(
+  docs: Documents,
+  sample: boolean,
+  onStep: (step: CheckStep) => void,
+): Promise<HealthCheck> {
+  let step: CheckStep = "organization";
+  try {
+    onStep(step);
+    const organization = await api.analyze(docs);
+    onStep((step = "opportunities"));
+    const opportunities = await api.opportunities(docs, organization);
+    const top = opportunities.opportunities.find((o) => o.executable) ?? opportunities.opportunities[0];
+    onStep((step = "workflow"));
+    const workflow = await api.workflow(docs, organization, top);
+    return {
+      company: organization.company,
+      documents: { orgChart: docs.orgChart.name, policy: docs.policy.name },
+      organization,
+      opportunities,
+      workflow,
+      checkedAt: new Date().toISOString(),
+      sample,
+    };
+  } catch (e) {
+    throw new CheckError(step, e);
+  }
+}
 
 export async function loadSampleDocuments(): Promise<Documents> {
   const fetchPdf = async (name: string) => {

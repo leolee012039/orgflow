@@ -7,11 +7,12 @@ const IMPACT: Record<Opportunity["impact"], string> = { HIGH: "High impact", MED
 export function OpportunityList({
   opportunities,
   onBuild,
-  busy,
+  busy = false,
 }: {
   opportunities: Opportunity[];
-  onBuild: (o: Opportunity) => void;
-  busy: boolean;
+  /** Without it the list is read-only, as in a saved report. */
+  onBuild?: (o: Opportunity) => void;
+  busy?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -39,12 +40,14 @@ export function OpportunityList({
                 <Quote key={j} text={ev.quote} doc={ev.doc} />
               ))}
               <div className="pt-1">
-                {opp.executable ? (
+                {opp.executable && onBuild ? (
                   <PrimaryButton disabled={busy} onClick={() => onBuild(opp)}>
                     Build this workflow
                   </PrimaryButton>
                 ) : (
-                  <p className="text-sm text-muted">Blueprint only for this demo.</p>
+                  <p className="text-sm text-muted">
+                    {opp.executable ? "Built below as a workflow you can run." : "Not built yet: OrgFlow builds the top-ranked one."}
+                  </p>
                 )}
               </div>
             </div>
