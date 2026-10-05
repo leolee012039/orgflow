@@ -10,7 +10,7 @@ from google.adk import Agent
 from google.genai import types
 
 from agents.runtime import LOW_THINKING, gemini, json_part, run_agent
-from schemas import AIReviewResponse, PurchaseRequestForm
+from schemas import AIReviewResponse, RequestForm
 
 INSTRUCTION = """You are the Request Reviewer for OrgFlow.
 
@@ -19,7 +19,7 @@ request. Check only that: every required field is present and meaningful. A
 meaningful value is a real description, not a placeholder such as "N/A", "TBD",
 "-", "none" or "test", and not a single vague word.
 
-Do not judge the price, the vendor, or whether the purchase is a good idea. You
+Do not judge prices, vendors, or whether the request is a good idea. You
 never reject a request.
 
 Return decision "PASS" when the check is satisfied, otherwise
@@ -31,7 +31,7 @@ def build_agent() -> Agent:
                  output_schema=AIReviewResponse, generate_content_config=LOW_THINKING)
 
 
-async def review(check: str, required_fields: list[str], form: PurchaseRequestForm) -> AIReviewResponse:
+async def review(check: str, required_fields: list[str], form: RequestForm) -> AIReviewResponse:
     parts = [
         json_part("Check", check),
         json_part("Required fields", required_fields),
@@ -50,6 +50,6 @@ def make_reviewer(check: str, required_fields: list[str]):
     Call the runner in a worker thread (asyncio.to_thread): each review then runs
     in that thread's own event loop.
     """
-    def reviewer(form: PurchaseRequestForm) -> AIReviewResponse:
+    def reviewer(form: RequestForm) -> AIReviewResponse:
         return asyncio.run(review(check, required_fields, form))
     return reviewer

@@ -2,13 +2,15 @@ import logging
 from typing import Any, Callable, Optional, Union
 from amount_coverage import amount_finding
 from schemas import (
-    Workflow,
-    Organization,
-    PurchaseRequestForm,
+    AIReviewResponse,
+    ChainLeg,
+    ChainTrace,
     ExecutionTrace,
+    Organization,
+    RequestForm,
     StepTrace,
     TraceMetrics,
-    AIReviewResponse,
+    Workflow,
 )
 
 logger = logging.getLogger("orgflow.runner")
@@ -35,7 +37,7 @@ def evaluate_condition(field_val: Any, op: str, target_val: Any) -> bool:
         return False
     return False
 
-def resolve_actor(actor_name: str, form: PurchaseRequestForm, org: Organization, workflow: Workflow) -> tuple[bool, Optional[str], Optional[str]]:
+def resolve_actor(actor_name: str, form: RequestForm, org: Organization, workflow: Workflow) -> tuple[bool, Optional[str], Optional[str]]:
     """
     Resolves an actor against the organization.
     Returns: (is_resolved, display_title, error_reason)
@@ -90,42 +92,43 @@ def resolve_actor(actor_name: str, form: PurchaseRequestForm, org: Organization,
     # Not found in organization
     return False, None, f"Role '{actor_name}' is missing from the org chart → human review"
 
-def plain_code_ai_review(form: PurchaseRequestForm) -> tuple[bool, str]:
+def plain_code_ai_review(form: RequestForm, required_fields: Optional[list[str]] = None) -> tuple[bool, str]:
     """
     Fallback plain-code completeness review.
-    Checks required information is present, not a placeholder, and at least 3 words.
+    Required text is not a placeholder, and a business justification has at least 3 words.
     """
-    justification = form.business_justification
-    if not justification or not justification.strip():
-        return False, "fallback check: business justification is missing"
+    values = form.model_dump()
+    for field in required_fields or []:
+        value = values.get(field)
+        if isinstance(value, str) and value.strip().lower() in PLACEHOLDER_JUSTIFICATIONS:
+            return False, f"fallback check: {field.replace('_', ' ')} is a placeholder ('{value.strip()}')"
 
-    stripped = justification.strip()
-    if stripped.lower() in PLACEHOLDER_JUSTIFICATIONS:
-        return False, f"fallback check: business justification is a placeholder ('{stripped}')"
-
-    words = stripped.split()
-    if len(words) < 3:
-        return False, f"fallback check: business justification too short ({len(words)} words, minimum 3 required)"
+    if "business_justification" in values:
+        justification = values["business_justification"]
+        if not justification or not str(justification).strip():
+            return False, "fallback check: business justification is missing"
+        stripped = str(justification).strip()
+        if stripped.lower() in PLACEHOLDER_JUSTIFICATIONS:
+            return False, f"fallback check: business justification is a placeholder ('{stripped}')"
+        words = stripped.split()
+        if len(words) < 3:
+            return False, f"fallback check: business justification too short ({len(words)} words, minimum 3 required)"
 
     return True, "Completeness verified by fallback check: required information is present and meaningful"
 
 def run_workflow(
     workflow: Workflow,
     org: Organization,
-    form_data: Union[dict, PurchaseRequestForm],
-    ai_reviewer: Optional[Callable[[PurchaseRequestForm], AIReviewResponse]] = None,
+    form_data: Union[dict, RequestForm],
+    ai_reviewer: Optional[Callable[[RequestForm], AIReviewResponse]] = None,
     manual_handoffs_before: int = 4,
 ) -> ExecutionTrace:
     """
     Deterministic Workflow Runner.
     Never hardcodes 1,000 or 5,000; all thresholds come from workflow.rules.
     """
-    if isinstance(form_data, dict):
-        form = PurchaseRequestForm.model_validate(form_data)
-        form_dict = form_data
-    else:
-        form = form_data
-        form_dict = form.model_dump()
+    form = RequestForm.model_validate(form_data) if isinstance(form_data, dict) else form_data
+    form_dict = form.model_dump()
 
     trace_steps: list[StepTrace] = []
     rules_by_id = {r.id: r for r in workflow.rules}
@@ -164,9 +167,9 @@ def run_workflow(
     # 2. An amount the policy's tiers leave uncovered, or cover twice, has no
     #    defined approvals, so a person decides before anything runs
     # -------------------------------------------------------------------------
-    finding = amount_finding(workflow.amount_tiers, form.estimated_cost)
+    finding = amount_finding(workflow.amount_tiers, form_dict)
     if finding:
-        amount = f"{form.estimated_cost:,.0f}"
+        amount = f"{finding['amount']:,.0f}" if float(finding["amount"]).is_integer() else f"{finding['amount']:,}"
         reason = (f"No approval level in the policy covers exactly {amount} → human review"
                   if finding["kind"] == "gap" else
                   f"Two approval levels in the policy both cover exactly {amount} → human review")
@@ -191,27 +194,30 @@ def run_workflow(
     # 3. Walk the steps in order
     # -------------------------------------------------------------------------
     for step in workflow.steps:
-        # Check 'only_if' condition
-        if step.only_if:
-            rule = rules_by_id.get(step.only_if)
-            if rule:
-                field_val = form_dict.get(rule.when.field)
-                cond_met = evaluate_condition(field_val, rule.when.op, rule.when.value)
-                if not cond_met:
-                    val_display = int(field_val) if isinstance(field_val, (int, float)) and float(field_val).is_integer() else field_val
-                    thresh_display = int(rule.when.value) if isinstance(rule.when.value, (int, float)) and float(rule.when.value).is_integer() else rule.when.value
-                    trace_steps.append(
-                        StepTrace(
-                            step_id=step.id,
-                            type=step.type,
-                            actor=step.actor,
-                            result="SKIPPED",
-                            reason=f"{rule.id} not met: {val_display} {rule.when.op} {thresh_display} is false",
-                            rule_id=rule.id,
-                            source=rule.source,
-                        )
-                    )
-                    continue
+        # Check 'only_if' and 'also_if': a step for a range of amounts needs both
+        unmet = None
+        for rule_id in (step.only_if, step.also_if):
+            rule = rules_by_id.get(rule_id) if rule_id else None
+            if rule and not evaluate_condition(form_dict.get(rule.when.field), rule.when.op, rule.when.value):
+                unmet = rule
+                break
+        if unmet is not None:
+            rule = unmet
+            field_val = form_dict.get(rule.when.field)
+            val_display = int(field_val) if isinstance(field_val, (int, float)) and float(field_val).is_integer() else field_val
+            thresh_display = int(rule.when.value) if isinstance(rule.when.value, (int, float)) and float(rule.when.value).is_integer() else rule.when.value
+            trace_steps.append(
+                StepTrace(
+                    step_id=step.id,
+                    type=step.type,
+                    actor=step.actor,
+                    result="SKIPPED",
+                    reason=f"{rule.id} not met: {val_display} {rule.when.op} {thresh_display} is false",
+                    rule_id=rule.id,
+                    source=rule.source,
+                )
+            )
+            continue
 
         # Resolve actor against organization
         resolved, role_title, actor_error = resolve_actor(step.actor, form, org, workflow)
@@ -266,10 +272,10 @@ def run_workflow(
                         review_reason = f"Gemini review requested human review: {', '.join(res.reasons)}"
                 except Exception as e:
                     logger.warning("AI Reviewer failed (%s); using fallback check", e)
-                    decision_pass, review_reason = plain_code_ai_review(form)
+                    decision_pass, review_reason = plain_code_ai_review(form, workflow.required_fields)
             else:
                 # Use pure code fallback
-                decision_pass, review_reason = plain_code_ai_review(form)
+                decision_pass, review_reason = plain_code_ai_review(form, workflow.required_fields)
 
             if decision_pass:
                 trace_steps.append(
@@ -334,3 +340,51 @@ def run_workflow(
             ai_checks=ai_checks,
         ),
     )
+
+
+def next_workflow(current: Workflow, workflows: list[Workflow]) -> Optional[Workflow]:
+    """The workflow that picks up this one's result: it belongs to the department this one
+    hands to, and it starts from this one's department."""
+    if not current.hands_to:
+        return None
+    return next((w for w in workflows
+                 if w.department.lower() == current.hands_to.lower()
+                 and (w.starts_from or "").lower() == current.department.lower()), None)
+
+
+def run_chain(
+    workflows: list[Workflow],
+    org: Organization,
+    start_id: str,
+    form_data: Union[dict, RequestForm],
+    reviewer_for: Optional[Callable[[Workflow], Optional[Callable[[RequestForm], AIReviewResponse]]]] = None,
+    handoffs_before: Optional[dict[str, int]] = None,
+) -> ChainTrace:
+    """Run a case through one department's workflow, then each workflow it hands to.
+
+    The case keeps its data as it moves on, so the next department's form is already
+    filled in. The chain stops at the first workflow that doesn't complete, and never
+    visits a workflow twice.
+    """
+    by_id = {w.opportunity_id: w for w in workflows}
+    if start_id not in by_id:
+        raise KeyError(f"No built workflow '{start_id}'")
+    form = RequestForm.model_validate(form_data) if isinstance(form_data, dict) else form_data
+    data = form.model_dump()
+    legs: list[ChainLeg] = []
+    current: Optional[Workflow] = by_id[start_id]
+    seen: set[str] = set()
+    while current is not None and current.opportunity_id not in seen:
+        seen.add(current.opportunity_id)
+        reviewer = reviewer_for(current) if reviewer_for else None
+        trace = run_workflow(current, org, data, reviewer, (handoffs_before or {}).get(current.opportunity_id, 0))
+        legs.append(ChainLeg(workflow_id=current.opportunity_id, workflow_name=current.workflow_name,
+                             department=current.department, trace=trace))
+        if trace.status != "COMPLETED":
+            return ChainTrace(request_id=form.request_id, status=trace.status, legs=legs)
+        following = next_workflow(current, workflows)
+        if following is None:
+            return ChainTrace(request_id=form.request_id, status="COMPLETED", legs=legs,
+                              waiting_for=current.hands_to or None)
+        current = following
+    return ChainTrace(request_id=form.request_id, status="COMPLETED", legs=legs)

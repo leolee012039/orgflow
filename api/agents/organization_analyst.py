@@ -3,7 +3,7 @@
 from google.adk import Agent
 from google.genai import types
 
-from agents.runtime import LOW_THINKING, gemini, AgentResult, pdf_part, problems_part, run_agent
+from agents.runtime import LOW_THINKING, AgentResult, document_parts, gemini, problems_part, run_agent
 from schemas import Organization
 
 INSTRUCTION = """You are the Organization Analyst for OrgFlow.
@@ -35,16 +35,11 @@ def build_agent(name: str = "organization_analyst") -> Agent:
                  output_schema=Organization, generate_content_config=LOW_THINKING)
 
 
-def _documents(org_pdf: bytes, policy_pdf: bytes) -> list[types.Part]:
-    return [*pdf_part("org_chart", org_pdf), *pdf_part("policy", policy_pdf)]
-
-
-async def analyze(org_pdf: bytes, policy_pdf: bytes) -> AgentResult:
-    parts = _documents(org_pdf, policy_pdf)
-    parts.append(types.Part.from_text(text="Extract the organization."))
+async def analyze(docs: list[tuple[str, bytes]]) -> AgentResult:
+    parts = [*document_parts(docs), types.Part.from_text(text="Extract the organization.")]
     return await run_agent(build_agent(), parts)
 
 
-async def repair(org_pdf: bytes, policy_pdf: bytes, previous: dict | None, problems: list[str]) -> AgentResult:
-    parts = [*_documents(org_pdf, policy_pdf), problems_part(previous, problems)]
+async def repair(docs: list[tuple[str, bytes]], previous: dict | None, problems: list[str]) -> AgentResult:
+    parts = [*document_parts(docs), problems_part(previous, problems)]
     return await run_agent(build_agent("organization_analyst_repair"), parts)

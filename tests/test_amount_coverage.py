@@ -118,9 +118,9 @@ def test_a_full_stop_ends_a_number():
 
 
 def test_amount_finding_only_matches_the_boundary():
-    assert amount_finding(GYM_TIERS, 100000)["kind"] == "gap"
-    assert amount_finding(GYM_TIERS, 99999) is None
-    assert amount_finding(GYM_TIERS, 20000) is None
+    assert amount_finding(GYM_TIERS, {"estimated_cost": 100000})["kind"] == "gap"
+    assert amount_finding(GYM_TIERS, {"estimated_cost": 99999}) is None
+    assert amount_finding(GYM_TIERS, {"estimated_cost": 20000}) is None
 
 
 # --- Guard ---------------------------------------------------------------------
@@ -168,9 +168,9 @@ def test_tiers_never_fail_the_workflow():
 
 
 def test_novagear_fixture_still_passes_the_whole_guard():
-    from test_phase2 import DOC_TEXT
+    from sample_docs import DOC_TEXT
 
-    org = Organization.model_validate(load_fixture("organization_fixture.json"))
+    org = Organization.model_validate(load_fixture("novagear/organization.json"))
     wf, problems = validate_workflow_output(load_fixture("workflow_fixture.json"), org, DOC_TEXT)
     assert wf is not None, problems
 

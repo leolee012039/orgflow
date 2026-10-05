@@ -3,17 +3,20 @@ import io
 import json
 import re
 import logging
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 from pydantic import ValidationError
 from pypdf import PdfReader
 
 from schemas import (
+    STANDARD_FIELDS,
     AmountTier,
+    DepartmentMap,
+    FormField,
     Organization,
-    Opportunities,
     PurchaseRequestForm,
     Workflow,
-    OriginType,
+    WorkflowCandidate,
+    WorkflowPlan,
 )
 
 logger = logging.getLogger("orgflow.guard")
@@ -235,10 +238,13 @@ def check_rule_numbers(workflow: Workflow) -> list[str]:
     return errors
 
 
-def amount_tier_problems(tiers: list[AmountTier], doc_text: Optional[str] = None) -> list[str]:
+def amount_tier_problems(tiers: list[AmountTier], doc_text: Optional[str] = None,
+                         fields: Optional[set[str]] = None) -> list[str]:
     """Each tier's ends must be amounts its own passage states, and the passage must be in the documents."""
     errors: list[str] = []
     for i, tier in enumerate(tiers, 1):
+        if fields is not None and tier.field not in fields:
+            errors.append(f"Amount tier {i} applies to '{tier.field}', which is not a form field")
         if tier.min is None and tier.max is None:
             errors.append(f"Amount tier {i} has neither min nor max")
         elif tier.min is not None and tier.max is not None and tier.min >= tier.max:
@@ -252,13 +258,14 @@ def amount_tier_problems(tiers: list[AmountTier], doc_text: Optional[str] = None
     return errors
 
 
-def verified_amount_tiers(tiers: list[AmountTier], doc_text: Optional[str] = None) -> tuple[list[AmountTier], list[str]]:
+def verified_amount_tiers(tiers: list[AmountTier], doc_text: Optional[str] = None,
+                          fields: Optional[set[str]] = None) -> tuple[list[AmountTier], list[str]]:
     """All tiers, or none if any fails a check.
 
     The tiers only feed the coverage check, so a bad tier never fails the workflow. It
     drops them all instead of one: a missing tier could pair two others that don't meet.
     """
-    problems = amount_tier_problems(tiers, doc_text)
+    problems = amount_tier_problems(tiers, doc_text, fields)
     return ([], problems) if problems else (tiers, [])
 
 # -----------------------------------------------------------------------------
@@ -321,49 +328,113 @@ def validate_organization_output(
         return None, errors
     return org, []
 
-def validate_opportunities_output(
+def _department_names(org: Optional[Organization]) -> Optional[dict[str, str]]:
+    """Lower-cased name -> name as written, for matching department names."""
+    return {d.name.lower(): d.name for d in org.departments} if org else None
+
+
+def _check_quote(label: str, quote: str, doc_text: Optional[str]) -> list[str]:
+    if doc_text and not verify_quote_in_text(quote, doc_text):
+        return [f"{label} quote does not ground in uploaded documents: '{quote}'"]
+    return []
+
+
+def validate_department_map(
     data: Any,
     org: Optional[Organization] = None,
     doc_text: Optional[str] = None,
-) -> tuple[Optional[Opportunities], list[str]]:
-    valid, opps, errors = check_schema(data, Opportunities)
+    max_departments: int = 10,
+) -> tuple[Optional[DepartmentMap], list[str]]:
+    """Every profile is a real department with quoted work; every handoff joins two real departments."""
+    valid, dmap, errors = check_schema(data, DepartmentMap)
     if not valid:
         return None, errors
-    assert opps is not None
-    if len(opps.opportunities) != 3:
-        errors.append(f"Expected exactly 3 opportunities, got {len(opps.opportunities)}")
-        return None, errors
-
-    executable = [o.id for o in opps.opportunities if o.executable]
-    if executable != [opps.opportunities[0].id]:
-        errors.append(f"Only the top-ranked opportunity must be executable; executable now: {executable}")
-    if len({o.id for o in opps.opportunities}) != 3:
-        errors.append("Opportunity ids must be unique")
-    known_departments = {d.name.lower() for d in org.departments} if org else None
-    for opp in opps.opportunities:
-        if not opp.evidence:
-            errors.append(f"Opportunity '{opp.id}' has no evidence quote")
-        if known_departments is not None:
-            for dept in opp.departments:
-                if dept.lower() not in known_departments:
-                    errors.append(f"Opportunity '{opp.id}' names unknown department '{dept}'")
-
-    # Check 3 on opportunity evidence quotes
-    if doc_text and opps is not None:
-        for opp in opps.opportunities:
-            for ev in opp.evidence:
-                if not verify_quote_in_text(ev.quote, doc_text):
-                    errors.append(
-                        f"Opportunity '{opp.id}' evidence quote does not ground in uploaded documents: '{ev.quote}'"
-                    )
-
+    assert dmap is not None
+    known = _department_names(org)
+    if not dmap.departments:
+        errors.append("No department profiles")
+    if len(dmap.departments) > max_departments:
+        errors.append(f"At most {max_departments} department profiles, got {len(dmap.departments)}")
+    names = [p.name.lower() for p in dmap.departments]
+    if len(set(names)) != len(names):
+        errors.append("Each department may have only one profile")
+    for profile in dmap.departments:
+        if known is not None and profile.name.lower() not in known:
+            errors.append(f"Profile '{profile.name}' is not a department in the organization JSON")
+        if not profile.work:
+            errors.append(f"Profile '{profile.name}' lists no work; leave out departments the documents give no work to")
+        for item in profile.work:
+            errors.extend(_check_quote(f"Work '{item.task}' of '{profile.name}'", item.evidence.quote, doc_text))
+    for h in dmap.handoffs:
+        label = f"Handoff '{h.from_dept}' -> '{h.to}'"
+        if known is not None:
+            for end in (h.from_dept, h.to):
+                if end.lower() not in known:
+                    errors.append(f"{label} names '{end}', which is not a department in the organization JSON")
+        if h.from_dept.lower() == h.to.lower():
+            errors.append(f"{label} starts and ends in the same department")
+        errors.extend(_check_quote(label, h.evidence.quote, doc_text))
     if errors:
         return None, errors
-    return opps, []
+    return dmap, []
 
-FORM_FIELDS = set(PurchaseRequestForm.model_fields) - {"request_id"}
+
+def validate_workflow_plan(
+    data: Any,
+    dmap: DepartmentMap,
+    doc_text: Optional[str] = None,
+    max_per_department: int = 3,
+) -> tuple[Optional[WorkflowPlan], list[str]]:
+    """Each mapped department gets 1-3 workflows, linked only along handoffs on the map."""
+    valid, plan, errors = check_schema(data, WorkflowPlan)
+    if not valid:
+        return None, errors
+    assert plan is not None
+    mapped = {p.name.lower(): p.name for p in dmap.departments}
+    handoffs = {(h.from_dept.lower(), h.to.lower()) for h in dmap.handoffs}
+    ids = [w.id for w in plan.workflows]
+    if len(set(ids)) != len(ids):
+        errors.append("Workflow ids must be unique")
+    for dept_key, dept in mapped.items():
+        count = sum(w.department.lower() == dept_key for w in plan.workflows)
+        if count == 0:
+            errors.append(f"Department '{dept}' has no planned workflow")
+        elif count > max_per_department:
+            errors.append(f"Department '{dept}' has {count} planned workflows; plan at most {max_per_department}")
+    for w in plan.workflows:
+        own = w.department.lower()
+        if own not in mapped:
+            errors.append(f"Workflow '{w.id}' belongs to '{w.department}', which is not in the department map")
+        if w.starts_from and (w.starts_from.lower(), own) not in handoffs:
+            errors.append(f"Workflow '{w.id}' starts from '{w.starts_from}', but the map has no handoff "
+                          f"'{w.starts_from}' -> '{w.department}'")
+        if w.hands_to and (own, w.hands_to.lower()) not in handoffs:
+            errors.append(f"Workflow '{w.id}' hands to '{w.hands_to}', but the map has no handoff "
+                          f"'{w.department}' -> '{w.hands_to}'")
+        if w.manual_handoffs < 0:
+            errors.append(f"Workflow '{w.id}' has a negative manual_handoffs")
+        if not w.evidence:
+            errors.append(f"Workflow '{w.id}' has no evidence quote")
+        if w.basis == "policy" and not any(ev.doc.startswith("policy") for ev in w.evidence):
+            errors.append(f"Workflow '{w.id}' is based on a policy but quotes no policy document; "
+                          "quote the policy passage or set basis to org_chart")
+        for ev in w.evidence:
+            errors.extend(_check_quote(f"Workflow '{w.id}' evidence", ev.quote, doc_text))
+    if errors:
+        return None, errors
+    return plan, []
+
+
+# The original NovaGear purchase request form, for workflows built without their own fields
+LEGACY_FORM_FIELDS = set(PurchaseRequestForm.model_fields) - {"request_id"}
 
 _CURRENCY_AMOUNT = re.compile(r"(?:USD|US\$|NT\$|NTD|TWD|新[臺台]幣|\$)\s*(\d{3,})|(\d{3,})\s*(?:元|dollars?)", re.I)
+_FIELD_NAME = re.compile(r"[a-z][a-z0-9_]*")
+
+
+def form_fields(wf: Workflow) -> set[str]:
+    """The fields a request for this workflow carries."""
+    return {f.name for f in wf.fields} | STANDARD_FIELDS if wf.fields else set(LEGACY_FORM_FIELDS)
 
 
 def stated_amounts(text: str) -> list[int]:
@@ -375,22 +446,59 @@ def stated_amounts(text: str) -> list[int]:
 def check_workflow_structure(wf: Workflow) -> list[str]:
     """The runner can only execute what it can resolve: known fields, rule ids and unique steps."""
     errors: list[str] = []
+    fields = form_fields(wf)
     rule_ids = {r.id for r in wf.rules}
     if len(rule_ids) != len(wf.rules):
         errors.append("Rule ids must be unique")
     if len({s.id for s in wf.steps}) != len(wf.steps):
         errors.append("Step ids must be unique")
-    if not any(s.type == "approval" for s in wf.steps):
-        errors.append("Workflow has no approval step")
+    if not any(s.type in ("approval", "task") for s in wf.steps):
+        errors.append("Workflow has no approval or task step: nothing in it does any work")
+    names = [f.name for f in wf.fields]
+    if len(set(names)) != len(names):
+        errors.append("Form field names must be unique")
+    for f in wf.fields:
+        if not _FIELD_NAME.fullmatch(f.name):
+            errors.append(f"Form field '{f.name}' must be snake_case")
+        if f.name in STANDARD_FIELDS:
+            errors.append(f"Form field '{f.name}' is on every form already; leave it out of fields")
+        if f.type == "choice" and not f.options:
+            errors.append(f"Choice field '{f.name}' has no options")
     for field in wf.required_fields:
-        if field not in FORM_FIELDS:
-            errors.append(f"Required field '{field}' is not a request form field ({', '.join(sorted(FORM_FIELDS))})")
+        if field not in fields:
+            errors.append(f"Required field '{field}' is not a form field ({', '.join(sorted(fields))})")
     for rule in wf.rules:
-        if rule.when.field not in FORM_FIELDS:
-            errors.append(f"Rule '{rule.id}' uses '{rule.when.field}', which is not a request form field")
+        if rule.when.field not in fields:
+            errors.append(f"Rule '{rule.id}' uses '{rule.when.field}', which is not a form field")
     for step in wf.steps:
-        if step.only_if and step.only_if not in rule_ids:
-            errors.append(f"Step '{step.id}' only_if '{step.only_if}' is not a rule id")
+        for key in ("only_if", "also_if"):
+            rule_id = getattr(step, key)
+            if rule_id and rule_id not in rule_ids:
+                errors.append(f"Step '{step.id}' {key} '{rule_id}' is not a rule id")
+        if step.also_if and not step.only_if:
+            errors.append(f"Step '{step.id}' has also_if without only_if")
+    return errors
+
+
+def check_against_plan(wf: Workflow, planned: WorkflowCandidate, upstream_fields: Optional[list[FormField]]) -> list[str]:
+    """The built workflow keeps the plan's place in the chain and uses the data that arrives with the case."""
+    errors: list[str] = []
+    if wf.department.lower() != planned.department.lower():
+        errors.append(f"department must be '{planned.department}', got '{wf.department}'")
+    for key in ("starts_from", "hands_to"):
+        want, got = getattr(planned, key), getattr(wf, key)
+        if (want or "").lower() != (got or "").lower():
+            errors.append(f"{key} must be {want!r}, as planned, got {got!r}")
+    if planned.starts_from:
+        for step in wf.steps:
+            if step.actor == "requester.manager":
+                errors.append(f"Step '{step.id}' uses requester.manager, but this workflow starts from "
+                              f"{planned.starts_from}'s handoff; use a role of {planned.department}")
+    if upstream_fields is not None:
+        upstream = {f.name for f in upstream_fields} | STANDARD_FIELDS
+        for name in sorted(form_fields(wf) - upstream):
+            errors.append(f"Form field '{name}' does not arrive from the upstream workflow; "
+                          f"use only these: {', '.join(sorted(upstream))}")
     return errors
 
 
@@ -398,6 +506,8 @@ def validate_workflow_output(
     data: Any,
     org: Optional[Organization] = None,
     doc_text: Optional[str] = None,
+    planned: Optional[WorkflowCandidate] = None,
+    upstream_fields: Optional[list[FormField]] = None,
 ) -> tuple[Optional[Workflow], list[str]]:
     valid, wf, errors = check_schema(data, Workflow)
     if not valid:
@@ -405,12 +515,16 @@ def validate_workflow_output(
     assert wf is not None
 
     # Check 2: actors
-    actor_errors = check_step_actors(wf, org)
-    errors.extend(actor_errors)
-
+    errors.extend(check_step_actors(wf, org))
     errors.extend(check_workflow_structure(wf))
-    if doc_text and not wf.rules and sum(s.type == "approval" for s in wf.steps) >= 2:
-        amounts = stated_amounts(doc_text)
+    if planned is not None:
+        errors.extend(check_against_plan(wf, planned, upstream_fields))
+
+    # Amounts that decide approvals must become rules. Only the passages this workflow
+    # is built on count: another department's amounts don't apply to it.
+    amount_text = " ".join(ev.quote for ev in planned.evidence) if planned is not None else doc_text
+    if amount_text and not wf.rules and sum(s.type == "approval" for s in wf.steps) >= 2:
+        amounts = stated_amounts(amount_text)
         if amounts:
             errors.append(
                 f"The documents state amount limits (for example {amounts[0]:,}) but the workflow has no rules. "
@@ -422,101 +536,14 @@ def validate_workflow_output(
                 errors.append(f"Unresolved actor '{name}' does not appear in the uploaded documents")
 
     # Check 4: rule threshold numbers in source
-    rule_errors = check_rule_numbers(wf)
-    errors.extend(rule_errors)
+    errors.extend(check_rule_numbers(wf))
 
     # Check 3: source quotes in doc_text
-    if doc_text and wf is not None:
+    if doc_text:
         for rule in wf.rules:
             if not verify_quote_in_text(rule.source, doc_text):
-                errors.append(
-                    f"Rule '{rule.id}' source does not ground in uploaded documents: '{rule.source}'"
-                )
+                errors.append(f"Rule '{rule.id}' source does not ground in uploaded documents: '{rule.source}'")
 
     if errors:
         return None, errors
     return wf, []
-
-# -----------------------------------------------------------------------------
-# Guard Orchestrators (Schema -> Repair once -> Fixture fallback)
-# -----------------------------------------------------------------------------
-
-def guard_organization(
-    data: Any,
-    doc_text: Optional[str] = None,
-    repair_func: Optional[Callable[[list[str]], Any]] = None,
-) -> tuple[Organization, OriginType]:
-    org, errors = validate_organization_output(data, doc_text)
-    if org is not None:
-        logger.info("Guard: Organization validated successfully (origin: live)")
-        return org, "live"
-
-    logger.warning("Guard: Organization validation failed: %s", errors)
-    if repair_func is not None:
-        try:
-            repaired_data = repair_func(errors)
-            repaired_org, r_errors = validate_organization_output(repaired_data, doc_text)
-            if repaired_org is not None:
-                logger.info("Guard: Organization repaired successfully (origin: repaired)")
-                return repaired_org, "repaired"
-            logger.warning("Guard: Organization repair failed: %s", r_errors)
-        except Exception as e:
-            logger.error("Guard: Repair attempt raised exception: %s", e)
-
-    logger.info("Guard: Falling back to organization_fixture.json (origin: fixture)")
-    fixture = load_fixture("organization_fixture.json")
-    return Organization.model_validate(fixture), "fixture"
-
-def guard_opportunities(
-    data: Any,
-    org: Optional[Organization] = None,
-    doc_text: Optional[str] = None,
-    repair_func: Optional[Callable[[list[str]], Any]] = None,
-) -> tuple[Opportunities, OriginType]:
-    opps, errors = validate_opportunities_output(data, org, doc_text)
-    if opps is not None:
-        logger.info("Guard: Opportunities validated successfully (origin: live)")
-        return opps, "live"
-
-    logger.warning("Guard: Opportunities validation failed: %s", errors)
-    if repair_func is not None:
-        try:
-            repaired_data = repair_func(errors)
-            repaired_opps, r_errors = validate_opportunities_output(repaired_data, org, doc_text)
-            if repaired_opps is not None:
-                logger.info("Guard: Opportunities repaired successfully (origin: repaired)")
-                return repaired_opps, "repaired"
-            logger.warning("Guard: Opportunities repair failed: %s", r_errors)
-        except Exception as e:
-            logger.error("Guard: Repair attempt raised exception: %s", e)
-
-    logger.info("Guard: Falling back to opportunities_fixture.json (origin: fixture)")
-    fixture = load_fixture("opportunities_fixture.json")
-    return Opportunities.model_validate(fixture), "fixture"
-
-def guard_workflow(
-    data: Any,
-    org: Optional[Organization] = None,
-    doc_text: Optional[str] = None,
-    repair_func: Optional[Callable[[list[str]], Any]] = None,
-) -> tuple[Workflow, OriginType]:
-    wf, errors = validate_workflow_output(data, org, doc_text)
-    if wf is not None:
-        logger.info("Guard: Workflow validated successfully (origin: live)")
-        return wf, "live"
-
-    logger.warning("Guard: Workflow validation failed: %s", errors)
-    if repair_func is not None:
-        try:
-            repaired_data = repair_func(errors)
-            repaired_wf, r_errors = validate_workflow_output(repaired_data, org, doc_text)
-            if repaired_wf is not None:
-                logger.info("Guard: Workflow repaired successfully (origin: repaired)")
-                return repaired_wf, "repaired"
-            logger.warning("Guard: Workflow repair failed: %s", r_errors)
-        except Exception as e:
-            logger.error("Guard: Repair attempt raised exception: %s", e)
-
-    logger.info("Guard: Falling back to workflow_fixture.json (origin: fixture)")
-    fixture = load_fixture("workflow_fixture.json")
-    return Workflow.model_validate(fixture), "fixture"

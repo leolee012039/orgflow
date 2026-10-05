@@ -22,7 +22,7 @@ dev = [
 
 [tool.pyrefly]
 # The API imports its modules from api/ (as in the Docker image), not as a package
-search-path = ["api"]
+search-path = ["api", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

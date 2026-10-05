@@ -48,19 +48,37 @@ DEPARTMENTS = [
 RESPONSIBILITIES = [
     ("Chief Executive Officer (CEO)", "Sets company strategy and leads the management team."),
     ("Sales Manager", "Leads the sales team and key customer accounts."),
-    ("Sales Representative", "Sells products and manages customer relationships."),
+    ("Sales Representative", "Prepares customer quotes and manages customer relationships."),
     ("Operations Manager", "Approves departmental purchase needs and business necessity."),
     ("Operations Specialist", "Submits operational purchase requests."),
     ("Finance Manager", "Validates amounts, policy rules, and required approvals."),
-    ("Accountant", "Validates amounts, policy rules, and required approvals."),
-    ("Procurement Manager", "Selects vendors and executes approved purchases."),
-    ("Procurement Specialist", "Selects vendors and executes approved purchases."),
+    ("Accountant", "Matches supplier invoices to purchase orders and processes payments."),
+    ("Procurement Manager", "Selects vendors and approves purchase orders."),
+    ("Procurement Specialist", "Requests vendor quotes and places purchase orders."),
 ]
 
 APPROVAL_RULES = [
     ("Below USD 1,000", "Manager approval"),
     ("USD 1,000 - USD 5,000", "Manager approval + Finance validation"),
     ("Above USD 5,000", "Manager approval + Finance validation + Director approval"),
+]
+
+QUOTE_RULES = [
+    ("Below USD 1,000", "One vendor quote"),
+    ("USD 1,000 - USD 5,000", "Two vendor quotes"),
+    ("Above USD 5,000", "Three vendor quotes"),
+]
+
+PAYMENT_RULES = [
+    ("Up to USD 10,000", "Finance Manager approval"),
+    ("Above USD 10,000", "Finance Manager approval + CEO approval"),
+]
+
+# "Below 10%" and "Above 10%" leave a discount of exactly 10% with no approver.
+DISCOUNT_RULES = [
+    ("Below 10%", "Sales Representative approval"),
+    ("Above 10% up to 20%", "Sales Manager approval"),
+    ("Above 20%", "Sales Manager approval + CEO approval"),
 ]
 
 
@@ -167,25 +185,78 @@ def build_policy(path: Path) -> None:
                       author="NovaGear Inc.").build(story)
 
 
+def build_document(path: Path, subtitle: str, sections: list) -> None:
+    story = [Paragraph("NovaGear Inc.", TITLE), Paragraph(subtitle, SUBTITLE), Spacer(1, 10)]
+    for heading, body in sections:
+        story.append(Paragraph(heading, H2))
+        story.extend(body if isinstance(body, list) else [body])
+    story += [Spacer(1, 18), Paragraph(FOOTNOTE, FOOT)]
+    SimpleDocTemplate(str(path), pagesize=A4, leftMargin=50, rightMargin=50, topMargin=48, bottomMargin=48,
+                      title=f"NovaGear {subtitle}", author="NovaGear Inc.").build(story)
+
+
+def build_procurement_payment(path: Path) -> None:
+    """What happens after a purchase request is approved: Procurement, then Finance."""
+    build_document(path, "Procurement and Payment Procedures", [
+        ("1. Purpose", Paragraph(
+            "These procedures cover the steps after a purchase request is approved: vendor quotes, purchase "
+            "orders, and supplier payment.", BODY)),
+        ("2. Vendor Quotes", [
+            Paragraph("Procurement obtains vendor quotes for every approved purchase request before placing an "
+                      "order. The number of quotes depends on the estimated cost.", BODY),
+            Spacer(1, 6),
+            grid_table([["Estimated Cost", "Vendor Quotes Required"], *map(list, QUOTE_RULES)], [150, 345]),
+        ]),
+        ("3. Purchase Orders", Paragraph(
+            "The Procurement Manager approves every purchase order before it is sent to the vendor. Once the "
+            "order is placed, Procurement sends the supplier invoice to Finance for payment.", BODY)),
+        ("4. Supplier Payment", [
+            Paragraph("The Accountant matches each supplier invoice to its purchase order before payment.", BODY),
+            Spacer(1, 6),
+            grid_table([["Payment Amount", "Required Approval"], *map(list, PAYMENT_RULES)], [150, 345]),
+        ]),
+    ])
+
+
+def build_discount_policy(path: Path) -> None:
+    """Sales discounts, then a credit check in Finance."""
+    build_document(path, "Sales Discount Policy", [
+        ("1. Purpose", Paragraph("This policy sets who approves a discount on a customer quote.", BODY)),
+        ("2. Required Information", Paragraph(
+            "Every discount request must include: Customer, Product, List Price, Discount Percentage, and "
+            "Reason. Requests missing required information must not proceed to approval.", BODY)),
+        ("3. Discount Approval",
+         grid_table([["Discount", "Required Approval"], *map(list, DISCOUNT_RULES)], [150, 345])),
+        ("4. Credit Check", Paragraph(
+            "Approved quotes are sent to Finance, which checks the customer's credit limit before the order "
+            "is confirmed.", BODY)),
+    ])
+
+
+# The order matters: the API labels the policies policy_1, policy_2, policy_3 in this order.
+POLICIES = {
+    "NovaGear_Purchasing_Policy.pdf": build_policy,
+    "NovaGear_Procurement_Payment_Procedures.pdf": build_procurement_payment,
+    "NovaGear_Sales_Discount_Policy.pdf": build_discount_policy,
+}
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     WEB_DIR.mkdir(parents=True, exist_ok=True)
-    targets = {
-        "NovaGear_Organization_Chart.pdf": build_org_chart,
-        "NovaGear_Purchasing_Policy.pdf": build_policy,
-    }
+    targets = {"NovaGear_Organization_Chart.pdf": build_org_chart, **POLICIES}
     for name, build in targets.items():
         out = OUT_DIR / name
         build(out)
         shutil.copyfile(out, WEB_DIR / name)
         print(f"wrote {out.relative_to(ROOT)} and web/public/demo/{name}")
 
-    # The API falls back to the NovaGear fixtures only for these exact files.
-    hashes = {
-        "org_chart": hashlib.sha256((OUT_DIR / "NovaGear_Organization_Chart.pdf").read_bytes()).hexdigest(),
-        "policy": hashlib.sha256((OUT_DIR / "NovaGear_Purchasing_Policy.pdf").read_bytes()).hexdigest(),
-    }
-    (ROOT / "api" / "fixtures" / "sample_documents.json").write_text(json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
+    # The API falls back to the NovaGear fixtures only for these exact files, in this order.
+    digest = lambda name: hashlib.sha256((OUT_DIR / name).read_bytes()).hexdigest()  # noqa: E731
+    samples = {"novagear": {"org_chart": digest("NovaGear_Organization_Chart.pdf"),
+                            "policies": [digest(name) for name in POLICIES]}}
+    (ROOT / "api" / "fixtures" / "sample_documents.json").write_text(json.dumps(samples, indent=2) + "\n",
+                                                                     encoding="utf-8")
     print("wrote api/fixtures/sample_documents.json")
 
 

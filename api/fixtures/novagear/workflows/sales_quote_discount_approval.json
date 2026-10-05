@@ -1,0 +1,150 @@
+{
+  "workflow_name": "Customer Quote and Discount Approval",
+  "opportunity_id": "sales_quote_discount_approval",
+  "department": "Sales",
+  "fields": [
+    {
+      "name": "customer",
+      "label": "Customer",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "product",
+      "label": "Product",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "list_price",
+      "label": "List Price",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "discount_percentage",
+      "label": "Discount Percentage",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "Reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "customer",
+    "product",
+    "list_price",
+    "discount_percentage",
+    "reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_discount_below_10",
+      "when": {
+        "field": "discount_percentage",
+        "op": "<",
+        "value": 10
+      },
+      "source": "Below 10% Sales Representative approval"
+    },
+    {
+      "id": "rule_discount_above_10",
+      "when": {
+        "field": "discount_percentage",
+        "op": ">",
+        "value": 10
+      },
+      "source": "Above 10% up to 20% Sales Manager approval"
+    },
+    {
+      "id": "rule_discount_above_20",
+      "when": {
+        "field": "discount_percentage",
+        "op": ">",
+        "value": 20
+      },
+      "source": "Above 20% Sales Manager approval + CEO approval"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "check": "Verify Customer, Product, List Price, Discount Percentage, and Reason are present",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_sales_representative_approval",
+      "type": "approval",
+      "actor": "sales_representative",
+      "only_if": "rule_discount_below_10",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_sales_manager_approval",
+      "type": "approval",
+      "actor": "sales_manager",
+      "only_if": "rule_discount_above_10",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_ceo_approval",
+      "type": "approval",
+      "actor": "chief_executive_officer",
+      "only_if": "rule_discount_above_20",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_send_quote_to_finance",
+      "type": "task",
+      "actor": "sales_representative",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "discount_percentage",
+      "min": null,
+      "max": 10.0,
+      "source": "Below 10% Sales Representative approval"
+    },
+    {
+      "field": "discount_percentage",
+      "min": 10.0,
+      "max": 20.0,
+      "source": "Above 10% up to 20% Sales Manager approval"
+    },
+    {
+      "field": "discount_percentage",
+      "min": 20.0,
+      "max": null,
+      "source": "Above 20% Sales Manager approval + CEO approval"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Finance",
+  "output": "Approved customer quote",
+  "explanation": "This workflow validates required discount request fields and routes approval to the Sales Representative, Sales Manager, or CEO depending on the discount percentage thresholds specified in the Sales Discount Policy. After approval, the quote is sent to Finance as mandated prior to order confirmation."
+}

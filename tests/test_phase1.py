@@ -8,7 +8,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 from schemas import (
     Organization,
-    Opportunities,
     Workflow,
     PurchaseRequestForm,
     ExecutionTrace,
@@ -20,29 +19,22 @@ from guard import (
     check_schema,
     check_step_actors,
     check_rule_numbers,
-    guard_workflow,
-    guard_organization,
-    guard_opportunities,
     validate_workflow_output,
 )
 
 @pytest.fixture
 def org_data():
-    return Organization.model_validate(load_fixture("organization_fixture.json"))
+    return Organization.model_validate(load_fixture("novagear/organization.json"))
 
 @pytest.fixture
 def workflow_data():
     return Workflow.model_validate(load_fixture("workflow_fixture.json"))
 
-@pytest.fixture
-def opportunities_data():
-    return Opportunities.model_validate(load_fixture("opportunities_fixture.json"))
-
 # -----------------------------------------------------------------------------
 # 1. Fixture Schema Validation Tests
 # -----------------------------------------------------------------------------
 
-def test_fixtures_validate_against_schemas(org_data, workflow_data, opportunities_data):
+def test_fixtures_validate_against_schemas(org_data, workflow_data):
     assert org_data.company == "NovaGear Inc."
     assert len(org_data.departments) == 4
     # CEO + 8 department roles = 9 roles
@@ -52,11 +44,6 @@ def test_fixtures_validate_against_schemas(org_data, workflow_data, opportunitie
     assert len(workflow_data.steps) == 6
     assert "Director" in workflow_data.unresolved_actors
 
-    assert len(opportunities_data.opportunities) == 3
-    # Exactly one is executable
-    executables = [op for op in opportunities_data.opportunities if op.executable]
-    assert len(executables) == 1
-    assert executables[0].id == "purchase_request_approval"
 
 # -----------------------------------------------------------------------------
 # 2. Runner Threshold & Flow Tests (Section 13)
@@ -251,25 +238,3 @@ def test_guard_check_4_rule_numbers(org_data, workflow_data):
     wf, errors = validate_workflow_output(wf_dict, org_data)
     assert wf is None
     assert any("9999" in err for err in errors)
-
-def test_guard_fallback_on_error(org_data):
-    """Guard returns fixture with origin: 'fixture' when input cannot be validated or repaired"""
-    malformed_output = {"garbage": True}
-    wf, origin = guard_workflow(malformed_output, org_data)
-    assert origin == "fixture"
-    assert wf.workflow_name == "Purchase Request Approval"
-
-def test_guard_repair_success(org_data, workflow_data):
-    """Guard returns repaired workflow with origin: 'repaired' when repair function fixes error"""
-    bad_data = workflow_data.model_dump()
-    bad_data["rules"][0]["when"]["value"] = 9999  # breaks check 4
-
-    def mock_repair(errors):
-        # Fix the bad value back to 1000
-        repaired = dict(bad_data)
-        repaired["rules"][0]["when"]["value"] = 1000
-        return repaired
-
-    wf, origin = guard_workflow(bad_data, org_data, repair_func=mock_repair)
-    assert origin == "repaired"
-    assert wf.rules[0].when.value == 1000

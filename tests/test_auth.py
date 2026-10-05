@@ -9,17 +9,13 @@ import auth
 import main
 import pipeline
 from guard import load_fixture
+from sample_docs import upload_files
 from schemas import Organization
 
 ROOT = Path(__file__).resolve().parent.parent
-SAMPLE = {
-    "org_chart": (ROOT / "demo_assets" / "en" / "NovaGear_Organization_Chart.pdf").read_bytes(),
-    "policy": (ROOT / "demo_assets" / "en" / "NovaGear_Purchasing_Policy.pdf").read_bytes(),
-}
-OTHER = {
-    "org_chart": (ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Org_Chart.pdf").read_bytes(),
-    "policy": (ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Purchasing_Policy.pdf").read_bytes(),
-}
+SAMPLE = upload_files()
+OTHER = upload_files((ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Org_Chart.pdf").read_bytes(),
+                     [(ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Purchasing_Policy.pdf").read_bytes()])
 client = TestClient(main.app)
 
 
@@ -28,20 +24,17 @@ def signed_in_mode(monkeypatch):
     monkeypatch.setenv("ORGFLOW_REQUIRE_AUTH", "1")
     monkeypatch.setattr(auth, "_checks_today", {})
 
-    async def fake_analyze(org_pdf, policy_pdf):
-        org = Organization.model_validate(load_fixture("organization_fixture.json"))
+    async def fake_analyze(docs):
+        org = Organization.model_validate(load_fixture("novagear/organization.json"))
         return pipeline.StageResult(org, "live", 5)
 
     monkeypatch.setattr(pipeline, "analyze_organization", fake_analyze)
     monkeypatch.setattr(auth, "verify_token", lambda token: "user-1" if token == "good" else None)
 
 
-def analyze(docs, token=None):
+def analyze(files, token=None):
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    return client.post("/api/analyze", headers=headers, files={
-        "org_chart": ("org.pdf", docs["org_chart"], "application/pdf"),
-        "policy": ("policy.pdf", docs["policy"], "application/pdf"),
-    })
+    return client.post("/api/analyze", headers=headers, files=files)
 
 
 def test_the_sample_needs_no_account():

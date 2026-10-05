@@ -1,0 +1,112 @@
+{
+  "workflow_name": "Supplier Invoice Matching and Payment",
+  "opportunity_id": "finance_supplier_invoice_payment",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "requested_item",
+      "label": "Requested Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated Cost",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_justification",
+      "label": "Business Justification",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "requested_item",
+    "estimated_cost",
+    "business_justification"
+  ],
+  "rules": [
+    {
+      "id": "rule_ceo_approval_above_10000",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 10000
+      },
+      "source": "Above USD 10,000 Finance Manager approval + CEO approval"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "check": "Verify invoice details and matching requirements against purchase order.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_match_invoice",
+      "type": "task",
+      "actor": "accountant",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_finance_manager_approval",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_ceo_approval",
+      "type": "approval",
+      "actor": "chief_executive_officer",
+      "only_if": "rule_ceo_approval_above_10000",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_process_payment",
+      "type": "task",
+      "actor": "accountant",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "estimated_cost",
+      "min": null,
+      "max": 10000.0,
+      "source": "Up to USD 10,000 Finance Manager approval"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 10000.0,
+      "max": null,
+      "source": "Above USD 10,000 Finance Manager approval + CEO approval"
+    }
+  ],
+  "starts_from": "Procurement",
+  "hands_to": null,
+  "output": "Processed supplier payment",
+  "explanation": "This workflow executes supplier invoice matching and payment procedures as mandated by policy_2. It enforces matching by the Accountant, mandatory Finance Manager approval, and conditional CEO approval for amounts exceeding USD 10,000."
+}

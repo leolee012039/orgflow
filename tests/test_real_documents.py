@@ -24,14 +24,11 @@ from guard import (
     validate_workflow_output,
 )
 from runner import run_workflow
+from sample_docs import DOC_TEXT, DOCS, OPERATIONS, ORG_PDF, POLICY_PDFS, PURCHASING_PDF, planned, upload_files
 from schemas import Organization, Workflow
 
-ROOT = Path(__file__).resolve().parent.parent
-EN = ROOT / "demo_assets" / "en"
-ORG_PDF = (EN / "NovaGear_Organization_Chart.pdf").read_bytes()
-POLICY_PDF = (EN / "NovaGear_Purchasing_Policy.pdf").read_bytes()
 OTHER_ORG_PDF = ORG_PDF + b"\n% another company's file\n"  # same text, different bytes: not the sample
-DOC_TEXT = extract_pdf_text(ORG_PDF) + "\n" + extract_pdf_text(POLICY_PDF)
+OTHER_DOCS = pipeline.Docs(OTHER_ORG_PDF, POLICY_PDFS)
 
 
 # --- Amounts in Chinese policies ---------------------------------------------------
@@ -64,14 +61,14 @@ def test_rule_value_matches_amount_written_in_wan():
 # --- Organizations that list units without heads ------------------------------------
 
 def test_department_without_named_head_is_accepted():
-    data = copy.deepcopy(load_fixture("organization_fixture.json"))
+    data = copy.deepcopy(load_fixture("novagear/organization.json"))
     data["departments"][0]["head_role_id"] = None  # Sales: unit listed, head not named
     org, problems = validate_organization_output(data, DOC_TEXT)
     assert problems == [] and org is not None
 
 
 def test_requester_manager_without_head_goes_to_a_person():
-    data = copy.deepcopy(load_fixture("organization_fixture.json"))
+    data = copy.deepcopy(load_fixture("novagear/organization.json"))
     data["departments"][1]["head_role_id"] = None  # Operations
     org = Organization.model_validate(data)
     wf = Workflow.model_validate(load_fixture("workflow_fixture.json"))
@@ -86,7 +83,7 @@ def test_workflow_without_rules_is_rejected_when_policy_has_amounts():
     data["rules"] = []
     for step in data["steps"]:
         step["only_if"] = None
-    org = Organization.model_validate(load_fixture("organization_fixture.json"))
+    org = Organization.model_validate(load_fixture("novagear/organization.json"))
     wf, problems = validate_workflow_output(data, org, DOC_TEXT)
     assert wf is None
     assert any("no rules" in p for p in problems)
@@ -103,23 +100,20 @@ def _always_invalid(monkeypatch):
 
 def test_sample_documents_fall_back_to_the_fixture(monkeypatch):
     _always_invalid(monkeypatch)
-    result = asyncio.run(pipeline.analyze_organization(ORG_PDF, POLICY_PDF))
+    result = asyncio.run(pipeline.analyze_organization(DOCS))
     assert result.origin == "fixture" and result.value.company == "NovaGear Inc."
 
 
 def test_other_documents_are_unverified_not_novagear(monkeypatch):
     _always_invalid(monkeypatch)
-    result = asyncio.run(pipeline.analyze_organization(OTHER_ORG_PDF, POLICY_PDF))
+    result = asyncio.run(pipeline.analyze_organization(OTHER_DOCS))
     assert result.origin == "unverified" and result.value is None
     assert result.problems
 
 
 def test_api_says_plainly_when_it_could_not_verify(monkeypatch):
     _always_invalid(monkeypatch)
-    resp = TestClient(main.app).post("/api/analyze", files={
-        "org_chart": ("org.pdf", OTHER_ORG_PDF, "application/pdf"),
-        "policy": ("policy.pdf", POLICY_PDF, "application/pdf"),
-    })
+    resp = TestClient(main.app).post("/api/analyze", files=upload_files(org_pdf=OTHER_ORG_PDF))
     assert resp.status_code == 422
     detail = resp.json()["detail"]
     assert "shows nothing instead of guessing" in detail["message"]
@@ -149,15 +143,13 @@ def test_approver_named_in_the_org_chart_is_only_a_possible_match():
     assert gaps[0]["status"] == "possible_match"
 
 
-def test_workflow_endpoint_returns_gaps(monkeypatch):
+def test_build_endpoint_returns_gaps(monkeypatch):
     async def fake(*args):
-        return AgentResult(load_fixture("workflow_fixture.json"), None, 6000)
+        return AgentResult(load_fixture(f"novagear/workflows/{OPERATIONS}.json"), None, 6000)
     monkeypatch.setattr(workflow_architect, "design", fake)
-    opp = load_fixture("opportunities_fixture.json")["opportunities"][0]
-    resp = TestClient(main.app).post("/api/workflow", files={
-        "org_chart": ("org.pdf", ORG_PDF, "application/pdf"),
-        "policy": ("policy.pdf", POLICY_PDF, "application/pdf"),
-    }, data={"organization": json.dumps(load_fixture("organization_fixture.json")), "opportunity": json.dumps(opp)})
+    resp = TestClient(main.app).post("/api/build", files=upload_files(), data={
+        "organization": json.dumps(load_fixture("novagear/organization.json")),
+        "planned": json.dumps(planned(OPERATIONS).model_dump())})
     assert resp.status_code == 200
     assert resp.json()["gaps"][0]["actor"] == "Director"
 
@@ -173,7 +165,7 @@ def test_vertical_text_still_grounds_unit_names():
 
 
 def test_a_department_can_approve_as_a_unit():
-    org = Organization.model_validate(load_fixture("organization_fixture.json"))
+    org = Organization.model_validate(load_fixture("novagear/organization.json"))
     data = copy.deepcopy(load_fixture("workflow_fixture.json"))
     data["steps"][2]["actor"] = "Finance"  # "the finance department validates"
     wf, problems = validate_workflow_output(data, org, DOC_TEXT)
@@ -221,4 +213,4 @@ def test_text_pdf_is_not_transcribed(monkeypatch):
         raise AssertionError("must not transcribe a PDF that has text")
 
     monkeypatch.setattr(document_reader, "transcribe", boom)
-    assert "Purchasing Policy" in asyncio.run(pipeline.document_text(POLICY_PDF))
+    assert "Purchasing Policy" in asyncio.run(pipeline.document_text(PURCHASING_PDF))

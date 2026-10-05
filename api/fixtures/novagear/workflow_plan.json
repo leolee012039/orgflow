@@ -1,0 +1,110 @@
+{
+  "workflows": [
+    {
+      "id": "sales_quote_discount_approval",
+      "department": "Sales",
+      "name": "Customer Quote and Discount Approval",
+      "trigger": "A sales representative submits a customer quote requiring discount approval.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "Approved customer quote",
+      "basis": "policy",
+      "why": "Discount approvals and information verification are manually routed based on discount tiers. Automating this routes requests directly to the Sales Manager and CEO based on thresholds and sends approved quotes to Finance without delays.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "Every discount request must include: Customer, Product, List Price, Discount Percentage, and Reason. Requests missing required information must not proceed to approval."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "Approved quotes are sent to Finance, which checks the customer's credit limit before the order is confirmed."
+        }
+      ]
+    },
+    {
+      "id": "operations_purchase_request_submission",
+      "department": "Operations",
+      "name": "Purchase Request and Approval",
+      "trigger": "An operations specialist submits an operational purchase request.",
+      "starts_from": null,
+      "hands_to": "Procurement",
+      "output": "Approved purchase request",
+      "basis": "policy",
+      "why": "Operational purchase requests require manual checks across managers, finance validation, and director sign-offs depending on spend. Automation enforces required fields and approval rules automatically before routing to Procurement.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Every purchase request must include: Requester, Department, Requested Item, Estimated Cost, and Business Justification. Requests missing required information must not proceed to approval."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "After all required management and finance approvals are complete, the request is handed to the Procurement Department."
+        }
+      ]
+    },
+    {
+      "id": "procurement_purchasing_and_order_placement",
+      "department": "Procurement",
+      "name": "Vendor Sourcing and Purchase Order Execution",
+      "trigger": "Procurement receives an approved purchase request from Operations.",
+      "starts_from": "Operations",
+      "hands_to": "Finance",
+      "output": "Placed purchase order and supplier invoice",
+      "basis": "policy",
+      "why": "Procurement manually collects tiered vendor quotes and tracks manager approvals for every purchase order before relaying supplier invoices. Automating this tracks quote thresholds, standardizes order approvals, and automatically forwards the invoice to Finance upon order placement.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "Procurement obtains vendor quotes for every approved purchase request before placing an order. The number of quotes depends on the estimated cost."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Once the order is placed, Procurement sends the supplier invoice to Finance for payment."
+        }
+      ]
+    },
+    {
+      "id": "finance_supplier_invoice_payment",
+      "department": "Finance",
+      "name": "Supplier Invoice Matching and Payment",
+      "trigger": "Procurement sends a supplier invoice to Finance after placing an order.",
+      "starts_from": "Procurement",
+      "hands_to": null,
+      "output": "Processed supplier payment",
+      "basis": "policy",
+      "why": "Matching invoices to purchase orders and routing them for manager or CEO sign-offs is done manually. Automating matching and approval thresholds expedites disbursements and prevents unauthorized payments.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "The Accountant matches each supplier invoice to its purchase order before payment."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Above USD 10,000 Finance Manager approval + CEO approval"
+        }
+      ]
+    },
+    {
+      "id": "finance_customer_credit_check",
+      "department": "Finance",
+      "name": "Customer Credit Check",
+      "trigger": "Sales sends an approved customer quote to Finance.",
+      "starts_from": "Sales",
+      "hands_to": null,
+      "output": "Credit limit verification decision",
+      "basis": "policy",
+      "why": "Checking customer credit limits on discounted quotes is currently handled through manual handoffs from Sales. Automation triggers verification immediately upon quote approval so orders can be confirmed without bottlenecking sales cycles.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "Approved quotes are sent to Finance, which checks the customer's credit limit before the order is confirmed."
+        }
+      ]
+    }
+  ]
+}

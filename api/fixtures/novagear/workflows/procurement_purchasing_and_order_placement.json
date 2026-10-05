@@ -1,0 +1,141 @@
+{
+  "workflow_name": "Vendor Sourcing and Purchase Order Execution",
+  "opportunity_id": "procurement_purchasing_and_order_placement",
+  "department": "Procurement",
+  "fields": [
+    {
+      "name": "requested_item",
+      "label": "Requested Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated Cost",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_justification",
+      "label": "Business Justification",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "requested_item",
+    "estimated_cost",
+    "business_justification"
+  ],
+  "rules": [
+    {
+      "id": "rule_quotes_below_1000",
+      "when": {
+        "field": "estimated_cost",
+        "op": "<",
+        "value": 1000
+      },
+      "source": "Below USD 1,000 One vendor quote"
+    },
+    {
+      "id": "rule_quotes_1000_to_5000_min",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">=",
+        "value": 1000
+      },
+      "source": "USD 1,000 - USD 5,000 Two vendor quotes"
+    },
+    {
+      "id": "rule_quotes_1000_to_5000_max",
+      "when": {
+        "field": "estimated_cost",
+        "op": "<=",
+        "value": 5000
+      },
+      "source": "USD 1,000 - USD 5,000 Two vendor quotes"
+    },
+    {
+      "id": "rule_quotes_above_5000",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 5000
+      },
+      "source": "Above USD 5,000 Three vendor quotes"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify approved purchase request details and completeness",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_obtain_one_quote",
+      "type": "task",
+      "actor": "procurement_specialist",
+      "only_if": "rule_quotes_below_1000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_obtain_two_quotes",
+      "type": "task",
+      "actor": "procurement_specialist",
+      "only_if": "rule_quotes_1000_to_5000_min",
+      "also_if": "rule_quotes_1000_to_5000_max",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_obtain_three_quotes",
+      "type": "task",
+      "actor": "procurement_specialist",
+      "only_if": "rule_quotes_above_5000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approve_purchase_order",
+      "type": "approval",
+      "actor": "procurement_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_place_po_and_send_invoice",
+      "type": "task",
+      "actor": "procurement_specialist",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Operations",
+  "hands_to": "Finance",
+  "output": "Placed purchase order and supplier invoice",
+  "explanation": "This workflow executes the Procurement Department's procedures as detailed in policy_2, obtaining the mandatory number of vendor quotes based on the estimated cost thresholds. The Procurement Manager reviews and approves every purchase order prior to order placement by the Procurement Specialist, after which the invoice is forwarded to Finance."
+}

@@ -1,0 +1,77 @@
+{
+  "workflow_name": "Customer Credit Check",
+  "opportunity_id": "finance_customer_credit_check",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "customer",
+      "label": "Customer",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "product",
+      "label": "Product",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "list_price",
+      "label": "List Price",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "discount_percentage",
+      "label": "Discount Percentage",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "Reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "customer",
+    "product",
+    "list_price",
+    "discount_percentage",
+    "reason"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "check": "Verify all required quote and discount details are present before conducting credit check",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_check_credit_limit",
+      "type": "task",
+      "actor": "Finance",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Sales",
+  "hands_to": null,
+  "output": "Credit limit verification decision",
+  "explanation": "This workflow executes the customer credit verification by Finance upon receiving approved quotes from Sales, in accordance with Section 4 of Policy 3. Because the policy specifies Finance checks the customer's credit limit without requiring internal approvals or tiered limits within Finance, the departmental unit performs the credit check task directly."
+}

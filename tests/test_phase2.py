@@ -4,8 +4,6 @@ No test here calls Gemini: agent calls are replaced with fakes.
 """
 
 import asyncio
-import json
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,14 +13,20 @@ import pipeline
 from agents import organization_analyst
 from agents.runtime import AgentResult
 from guard import extract_pdf_text, load_fixture, validate_organization_output, verify_quote_in_text
+from sample_docs import (
+    DOC_TEXT,
+    DOCS,
+    ORG_PDF,
+    ORG_TEXT,
+    POLICY_NAMES,
+    POLICY_PDFS,
+    PURCHASING_PDF,
+    ROOT,
+    fixture,
+    upload_files,
+)
 
-ROOT = Path(__file__).resolve().parent.parent
-EN = ROOT / "demo_assets" / "en"
-ORG_PDF = (EN / "NovaGear_Organization_Chart.pdf").read_bytes()
-POLICY_PDF = (EN / "NovaGear_Purchasing_Policy.pdf").read_bytes()
-ORG_TEXT = extract_pdf_text(ORG_PDF)
-POLICY_TEXT = extract_pdf_text(POLICY_PDF)
-DOC_TEXT = ORG_TEXT + "\n" + POLICY_TEXT
+POLICY_TEXT = extract_pdf_text(PURCHASING_PDF)
 
 
 # --- Clean demo PDFs -----------------------------------------------------------
@@ -50,7 +54,14 @@ def test_policy_keeps_rules_but_not_the_answer():
 def test_web_copies_match_demo_assets():
     web = ROOT / "web" / "public" / "demo"
     assert (web / "NovaGear_Organization_Chart.pdf").read_bytes() == ORG_PDF
-    assert (web / "NovaGear_Purchasing_Policy.pdf").read_bytes() == POLICY_PDF
+    for name, pdf in zip(POLICY_NAMES, POLICY_PDFS):
+        assert (web / name).read_bytes() == pdf
+
+
+def test_the_sample_is_recognized_only_with_all_its_policies_in_order():
+    assert pipeline.sample_name(DOCS) == "novagear"
+    assert pipeline.sample_name(pipeline.Docs(ORG_PDF, POLICY_PDFS[:1])) is None
+    assert pipeline.sample_name(pipeline.Docs(ORG_PDF, POLICY_PDFS[::-1])) is None
 
 
 # --- Check 3: quotes must come from the documents ------------------------------
@@ -72,8 +83,10 @@ def test_quote_invented_fails():
 
 
 @pytest.mark.parametrize("name,quotes", [
-    ("organization_fixture.json", lambda d: [r["evidence"]["quote"] for r in d["relationships"]]),
-    ("opportunities_fixture.json", lambda d: [e["quote"] for o in d["opportunities"] for e in o["evidence"]]),
+    ("novagear/organization.json", lambda d: [r["evidence"]["quote"] for r in d["relationships"]]),
+    ("novagear/department_map.json", lambda d: [w["evidence"]["quote"] for p in d["departments"] for w in p["work"]]
+     + [h["evidence"]["quote"] for h in d["handoffs"]]),
+    ("novagear/workflow_plan.json", lambda d: [e["quote"] for w in d["workflows"] for e in w["evidence"]]),
     ("workflow_fixture.json", lambda d: [r["source"] for r in d["rules"]]),
 ])
 def test_fixture_quotes_ground_in_clean_pdfs(name, quotes):
@@ -84,7 +97,7 @@ def test_fixture_quotes_ground_in_clean_pdfs(name, quotes):
 # --- Organization guard ----------------------------------------------------------
 
 def _org() -> dict:
-    return json.loads(json.dumps(load_fixture("organization_fixture.json")))
+    return fixture("organization.json")
 
 
 def test_fixture_organization_passes_full_guard():
@@ -106,7 +119,7 @@ def test_guard_rejects_broken_reporting_lines():
 def test_guard_rejects_invented_role():
     data = _org()
     data["roles"].append({"id": "director", "title": "Purchasing Director", "department": "Procurement",
-                          "reports_to": "ceo", "responsibilities": []})
+                          "reports_to": data["roles"][0]["id"], "responsibilities": []})
     org, problems = validate_organization_output(data, DOC_TEXT)
     assert org is None
     assert any("Purchasing Director" in p for p in problems)
@@ -171,34 +184,45 @@ def test_stage_timeout_skips_repair():
 client = TestClient(main.app)
 
 
-def _upload(org=ORG_PDF, policy=POLICY_PDF):
-    return client.post("/api/analyze", files={
-        "org_chart": ("org.pdf", org, "application/pdf"),
-        "policy": ("policy.pdf", policy, "application/pdf"),
-    })
-
-
-def test_analyze_endpoint_returns_live_organization(monkeypatch):
-    async def fake_analyze(org_pdf, policy_pdf):
-        assert org_pdf == ORG_PDF and policy_pdf == POLICY_PDF
+def test_analyze_endpoint_reads_every_policy(monkeypatch):
+    async def fake_analyze(docs):
+        assert [label for label, _ in docs] == ["org_chart", "policy_1", "policy_2", "policy_3"]
+        assert docs[0][1] == ORG_PDF and [pdf for _, pdf in docs[1:]] == POLICY_PDFS
         return AgentResult(_org(), None, 8000)
 
     monkeypatch.setattr(organization_analyst, "analyze", fake_analyze)
-    resp = _upload()
+    resp = client.post("/api/analyze", files=upload_files())
     assert resp.status_code == 200
     body = resp.json()
     assert body["origin"] == "live"
     assert body["latency_ms"] == 8000
     assert len(body["departments"]) == 4
-    assert body["relationships"][0]["from"] == "Operations"
+
+
+def test_an_org_chart_alone_is_enough(monkeypatch):
+    async def fake_analyze(docs):
+        assert [label for label, _ in docs] == ["org_chart"]
+        data = _org()
+        data["relationships"] = []  # their quotes come from the policies, which aren't uploaded here
+        return AgentResult(data, None, 10)
+
+    monkeypatch.setattr(organization_analyst, "analyze", fake_analyze)
+    resp = client.post("/api/analyze", files=upload_files(policies=[]))
+    assert resp.status_code == 200 and resp.json()["origin"] == "live"
 
 
 def test_analyze_endpoint_rejects_non_pdf():
-    resp = _upload(org=b"hello, not a pdf")
+    resp = client.post("/api/analyze", files=upload_files(org_pdf=b"hello, not a pdf"))
     assert resp.status_code == 415
     assert "not a PDF" in resp.json()["detail"]
 
 
 def test_analyze_endpoint_rejects_large_pdf():
-    resp = _upload(policy=b"%PDF-" + b"0" * (5 * 1024 * 1024))
+    resp = client.post("/api/analyze", files=upload_files(policies=[b"%PDF-" + b"0" * (5 * 1024 * 1024)]))
     assert resp.status_code == 413
+
+
+def test_analyze_endpoint_limits_the_number_of_policies():
+    resp = client.post("/api/analyze", files=upload_files(policies=[PURCHASING_PDF] * 6))
+    assert resp.status_code == 413
+    assert "at most 5" in resp.json()["detail"]

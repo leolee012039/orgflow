@@ -1,4 +1,4 @@
-﻿import os
+import os
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -10,7 +10,7 @@ load_dotenv()
 
 import auth  # noqa: E402
 import pipeline  # noqa: E402  (reads environment variables at import)
-from schemas import Opportunity, Organization, PurchaseRequestForm, Workflow  # noqa: E402
+from schemas import DepartmentMap, Organization, RequestForm, Workflow, WorkflowCandidate  # noqa: E402
 
 MAX_PDF_BYTES = 5 * 1024 * 1024
 
@@ -51,8 +51,10 @@ async def read_pdf(upload: UploadFile, field: str) -> bytes:
     return data
 
 
-STAGE_NAMES = {"organization": "the organization", "opportunities": "the automation opportunities",
-               "workflow": "the workflow"}
+MAX_POLICIES = 5
+
+STAGE_NAMES = {"organization": "the organization", "department_map": "the departments and their handoffs",
+               "workflow_plan": "the department workflow plans", "workflow": "the workflow"}
 
 
 def stage_response(result, stage: str, by_alias: bool = False) -> dict:
@@ -60,7 +62,7 @@ def stage_response(result, stage: str, by_alias: bool = False) -> dict:
     if result.value is None:
         raise HTTPException(422, {
             "message": f"OrgFlow couldn't verify Gemini's reading of {STAGE_NAMES[stage]} against your documents, "
-                       "so it shows nothing instead of guessing. Check that both PDFs contain selectable text, "
+                       "so it shows nothing instead of guessing. Check that the PDFs contain selectable text, "
                        "or try the NovaGear sample.",
             "problems": result.problems[:5],
         })
@@ -68,20 +70,17 @@ def stage_response(result, stage: str, by_alias: bool = False) -> dict:
             "origin": result.origin, "latency_ms": result.latency_ms}
 
 
-async def read_documents(request: Request, org_chart: UploadFile, policy: UploadFile) -> tuple[bytes, bytes, Optional[str]]:
-    """Both PDFs and the signed-in user (sign-in is needed for anything but the sample)."""
-    org_pdf = await read_pdf(org_chart, "org_chart")
-    policy_pdf = await read_pdf(policy, "policy")
-    uid = auth.require_user(request, pipeline.is_sample(org_pdf, policy_pdf))
-    return org_pdf, policy_pdf, uid
-
-
-@app.post("/api/analyze")
-async def analyze(request: Request, org_chart: UploadFile = File(...), policy: UploadFile = File(...)):
-    org_pdf, policy_pdf, uid = await read_documents(request, org_chart, policy)
-    auth.count_health_check(uid)  # a health check starts here
-    result = await pipeline.analyze_organization(org_pdf, policy_pdf)
-    return stage_response(result, "organization", by_alias=True)
+async def read_documents(request: Request, org_chart: UploadFile,
+                         policies: list[UploadFile]) -> tuple[pipeline.Docs, Optional[str]]:
+    """The org chart, the policies, and the signed-in user (needed for anything but a sample)."""
+    if len(policies) > MAX_POLICIES:
+        raise HTTPException(413, f"Upload at most {MAX_POLICIES} policies at a time.")
+    docs = pipeline.Docs(
+        org_chart=await read_pdf(org_chart, "org_chart"),
+        policies=[await read_pdf(p, f"policy {i}") for i, p in enumerate(policies, 1)],
+    )
+    uid = auth.require_user(request, pipeline.is_sample(docs))
+    return docs, uid
 
 
 def parse_json_field(model, raw: str, field: str):
@@ -91,31 +90,48 @@ def parse_json_field(model, raw: str, field: str):
         raise HTTPException(422, f"{field} is not valid: {exc.errors()[0]['msg']}") from exc
 
 
-@app.post("/api/opportunities")
-async def opportunities(request: Request, org_chart: UploadFile = File(...), policy: UploadFile = File(...),
-                        organization: str = Form(...)):
-    org = parse_json_field(Organization, organization, "organization")
-    org_pdf, policy_pdf, _ = await read_documents(request, org_chart, policy)
-    result = await pipeline.discover_opportunities(org_pdf, policy_pdf, org)
-    return stage_response(result, "opportunities")
+@app.post("/api/analyze")
+async def analyze(request: Request, org_chart: UploadFile = File(...), policies: list[UploadFile] = File(default=[])):
+    docs, uid = await read_documents(request, org_chart, policies)
+    auth.count_health_check(uid)  # an analysis starts here
+    result = await pipeline.analyze_organization(docs)
+    return stage_response(result, "organization", by_alias=True)
 
 
-@app.post("/api/workflow")
-async def workflow(request: Request, org_chart: UploadFile = File(...), policy: UploadFile = File(...),
-                   organization: str = Form(...), opportunity: str = Form(...)):
+@app.post("/api/map")
+async def department_map(request: Request, org_chart: UploadFile = File(...),
+                         policies: list[UploadFile] = File(default=[]), organization: str = Form(...)):
     org = parse_json_field(Organization, organization, "organization")
-    opp = parse_json_field(Opportunity, opportunity, "opportunity")
-    if not opp.executable:
-        raise HTTPException(400, f"'{opp.name}' is a blueprint only and cannot be generated yet.")
-    org_pdf, policy_pdf, _ = await read_documents(request, org_chart, policy)
-    result = await pipeline.design_workflow(org_pdf, policy_pdf, org, opp)
+    docs, _ = await read_documents(request, org_chart, policies)
+    result = await pipeline.map_departments(docs, org)
+    return stage_response(result, "department_map", by_alias=True)
+
+
+@app.post("/api/plan")
+async def plan(request: Request, org_chart: UploadFile = File(...), policies: list[UploadFile] = File(default=[]),
+               organization: str = Form(...), department_map: str = Form(...)):
+    org = parse_json_field(Organization, organization, "organization")
+    dmap = parse_json_field(DepartmentMap, department_map, "department_map")
+    docs, _ = await read_documents(request, org_chart, policies)
+    result = await pipeline.plan_workflows(docs, org, dmap)
+    return stage_response(result, "workflow_plan")
+
+
+@app.post("/api/build")
+async def build(request: Request, org_chart: UploadFile = File(...), policies: list[UploadFile] = File(default=[]),
+                organization: str = Form(...), planned: str = Form(...), upstream: str = Form(default="null")):
+    org = parse_json_field(Organization, organization, "organization")
+    candidate = parse_json_field(WorkflowCandidate, planned, "planned")
+    upstream_wf = None if upstream.strip() in ("", "null") else parse_json_field(Workflow, upstream, "upstream")
+    docs, _ = await read_documents(request, org_chart, policies)
+    result = await pipeline.build_workflow(docs, org, candidate, upstream_wf)
     return stage_response(result, "workflow")
 
 
 class RunBody(BaseModel):
     workflow: Workflow
     organization: Organization
-    request: PurchaseRequestForm
+    request: RequestForm
     manual_handoffs_before: Optional[int] = None
 
 
@@ -123,4 +139,21 @@ class RunBody(BaseModel):
 async def run(body: RunBody):
     handoffs = body.manual_handoffs_before if body.manual_handoffs_before is not None else 4
     trace = await pipeline.run_request(body.workflow, body.organization, body.request, handoffs)
+    return trace.model_dump()
+
+
+class ChainBody(BaseModel):
+    workflows: list[Workflow]
+    organization: Organization
+    start_id: str
+    request: RequestForm
+    handoffs_before: dict[str, int] = {}
+
+
+@app.post("/api/run_chain")
+async def run_chain(body: ChainBody):
+    if not any(w.opportunity_id == body.start_id for w in body.workflows):
+        raise HTTPException(422, f"No built workflow '{body.start_id}' to start from.")
+    trace = await pipeline.run_chain_request(body.workflows, body.organization, body.start_id, body.request,
+                                             body.handoffs_before)
     return trace.model_dump()

@@ -70,6 +70,11 @@ def pdf_part(label: str, pdf_bytes: bytes) -> list[types.Part]:
     ]
 
 
+def document_parts(docs: list[tuple[str, bytes]]) -> list[types.Part]:
+    """Every uploaded document, each labelled with its id ("org_chart", "policy_1", ...)."""
+    return [part for label, pdf in docs for part in pdf_part(label, pdf)]
+
+
 def json_part(label: str, value: Any) -> types.Part:
     return types.Part.from_text(text=f"{label}:\n{json.dumps(value, ensure_ascii=False, indent=1)}")
 

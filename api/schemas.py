@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union, Any
+from typing import Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
 # Origin indicator for responses
@@ -39,35 +39,50 @@ class Organization(BaseModel):
     roles: list[Role]
     relationships: list[Relationship] = Field(default_factory=list)
 
-class OrganizationResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    company: str
-    departments: list[Department]
-    roles: list[Role]
-    relationships: list[Relationship] = Field(default_factory=list)
-    origin: OriginType = "live"
-
 # -----------------------------------------------------------------------------
-# 2. Opportunities Schemas
+# 2. Department map and workflow plan
 # -----------------------------------------------------------------------------
 
-class Opportunity(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    id: str
+class DepartmentWork(BaseModel):
+    """One kind of work a department does, as the documents state it."""
+    task: str
+    evidence: Evidence
+
+class DepartmentProfile(BaseModel):
     name: str
-    departments: list[str]
-    manual_handoffs: int
-    impact: Literal["HIGH", "MEDIUM", "LOW"]
+    summary: str
+    work: list[DepartmentWork]
+
+class Handoff(BaseModel):
+    """Work passing from one department to another."""
+    model_config = ConfigDict(populate_by_name=True)
+    from_dept: str = Field(..., alias="from")
+    to: str
+    what: str
+    evidence: Evidence
+
+class DepartmentMap(BaseModel):
+    departments: list[DepartmentProfile]
+    handoffs: list[Handoff] = Field(default_factory=list)
+
+BasisType = Literal["policy", "org_chart"]
+
+class WorkflowCandidate(BaseModel):
+    """A workflow one department could automate, before it is built."""
+    id: str
+    department: str
+    name: str
+    trigger: str
+    starts_from: Optional[str] = None  # the department whose handoff starts it; None: a person submits a form
+    hands_to: Optional[str] = None  # the department that receives its result
+    output: str
+    basis: BasisType  # "policy": rules written in a policy; "org_chart": only responsibilities describe it
     why: str
-    executable: bool
-    evidence: list[Evidence] = Field(default_factory=list)
+    manual_handoffs: int
+    evidence: list[Evidence]
 
-class Opportunities(BaseModel):
-    opportunities: list[Opportunity]
-
-class OpportunitiesResponse(BaseModel):
-    opportunities: list[Opportunity]
-    origin: OriginType = "live"
+class WorkflowPlan(BaseModel):
+    workflows: list[WorkflowCandidate]
 
 # -----------------------------------------------------------------------------
 # 3. Workflow Schemas
@@ -85,9 +100,17 @@ class Rule(BaseModel):
 
 class AmountTier(BaseModel):
     """One approval level of the policy, with the amounts it states at each end."""
+    field: str = "estimated_cost"  # the form field the amounts apply to
     min: Optional[float] = None  # None: the tier has no lower end
     max: Optional[float] = None  # None: the tier has no upper end
     source: str
+
+class FormField(BaseModel):
+    """A field of the form that starts a workflow."""
+    name: str  # snake_case
+    label: str  # as the documents call it
+    type: Literal["text", "number", "date", "choice"] = "text"
+    options: list[str] = Field(default_factory=list)  # for "choice"
 
 StepType = Literal["approval", "ai_review", "task", "notification"]
 
@@ -96,36 +119,40 @@ class Step(BaseModel):
     type: StepType
     actor: str
     only_if: Optional[str] = None
+    also_if: Optional[str] = None  # a second rule that must also hold, for a range of amounts
     check: Optional[str] = None
     on_fail: Optional[str] = None
 
 class Workflow(BaseModel):
     workflow_name: str
-    opportunity_id: str
+    opportunity_id: str  # the candidate (or opportunity) it was built from
+    department: str = ""  # the department that owns it
+    fields: list[FormField] = Field(default_factory=list)  # empty: the original purchase request form
     required_fields: list[str]
     rules: list[Rule] = Field(default_factory=list)
     steps: list[Step]
     unresolved_actors: list[str] = Field(default_factory=list)
     amount_tiers: list[AmountTier] = Field(default_factory=list)
+    starts_from: Optional[str] = None
+    hands_to: Optional[str] = None
+    output: str = ""
     explanation: str
-
-class WorkflowResponse(BaseModel):
-    workflow_name: str
-    opportunity_id: str
-    required_fields: list[str]
-    rules: list[Rule] = Field(default_factory=list)
-    steps: list[Step]
-    unresolved_actors: list[str] = Field(default_factory=list)
-    amount_tiers: list[AmountTier] = Field(default_factory=list)
-    explanation: str
-    origin: OriginType = "live"
 
 # -----------------------------------------------------------------------------
 # 4. Request Form & Execution Trace Schemas
 # -----------------------------------------------------------------------------
 
-class PurchaseRequestForm(BaseModel):
+class RequestForm(BaseModel):
+    """What someone submits to start a workflow: who, from which department, plus the workflow's own fields."""
     model_config = ConfigDict(extra="allow")
+    request_id: str = "REQ-0001"
+    requester: str = ""
+    department: str = ""
+
+STANDARD_FIELDS = {"requester", "department"}
+
+class PurchaseRequestForm(RequestForm):
+    """The original NovaGear purchase request form, used by workflows without their own fields."""
     request_id: str = "PR-2026-0142"
     requester: str = "Emma Chen"
     department: str = "Operations"
@@ -156,6 +183,21 @@ class ExecutionTrace(BaseModel):
     status: TraceStatusType
     steps: list[StepTrace] = Field(default_factory=list)
     metrics: TraceMetrics = Field(default_factory=TraceMetrics)
+
+class ChainLeg(BaseModel):
+    """One department's workflow inside a chained run."""
+    workflow_id: str
+    workflow_name: str
+    department: str
+    trace: ExecutionTrace
+
+class ChainTrace(BaseModel):
+    """A case that moves from one department's workflow to the next."""
+    request_id: str
+    status: TraceStatusType
+    legs: list[ChainLeg] = Field(default_factory=list)
+    # When the last workflow hands to a department with no built workflow yet
+    waiting_for: Optional[str] = None
 
 # -----------------------------------------------------------------------------
 # 5. AI Review Schemas

@@ -1,0 +1,124 @@
+{
+  "company": "NovaGear Inc.",
+  "departments": [
+    {
+      "name": "Sales",
+      "head_role_id": "sales_manager"
+    },
+    {
+      "name": "Operations",
+      "head_role_id": "operations_manager"
+    },
+    {
+      "name": "Finance",
+      "head_role_id": "finance_manager"
+    },
+    {
+      "name": "Procurement",
+      "head_role_id": "procurement_manager"
+    }
+  ],
+  "roles": [
+    {
+      "id": "chief_executive_officer",
+      "title": "Chief Executive Officer (CEO)",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "Sets company strategy and leads the management team."
+      ]
+    },
+    {
+      "id": "sales_manager",
+      "title": "Sales Manager",
+      "department": "Sales",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Leads the sales team and key customer accounts."
+      ]
+    },
+    {
+      "id": "sales_representative",
+      "title": "Sales Representative",
+      "department": "Sales",
+      "reports_to": "sales_manager",
+      "responsibilities": [
+        "Prepares customer quotes and manages customer relationships."
+      ]
+    },
+    {
+      "id": "operations_manager",
+      "title": "Operations Manager",
+      "department": "Operations",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Approves departmental purchase needs and business necessity."
+      ]
+    },
+    {
+      "id": "operations_specialist",
+      "title": "Operations Specialist",
+      "department": "Operations",
+      "reports_to": "operations_manager",
+      "responsibilities": [
+        "Submits operational purchase requests."
+      ]
+    },
+    {
+      "id": "finance_manager",
+      "title": "Finance Manager",
+      "department": "Finance",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Validates amounts, policy rules, and required approvals."
+      ]
+    },
+    {
+      "id": "accountant",
+      "title": "Accountant",
+      "department": "Finance",
+      "reports_to": "finance_manager",
+      "responsibilities": [
+        "Matches supplier invoices to purchase orders and processes payments."
+      ]
+    },
+    {
+      "id": "procurement_manager",
+      "title": "Procurement Manager",
+      "department": "Procurement",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Selects vendors and approves purchase orders."
+      ]
+    },
+    {
+      "id": "procurement_specialist",
+      "title": "Procurement Specialist",
+      "department": "Procurement",
+      "reports_to": "procurement_manager",
+      "responsibilities": [
+        "Requests vendor quotes and places purchase orders."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Procurement",
+      "to": "Finance",
+      "description": "Procurement sends supplier invoices to Finance for payment once an order is placed.",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Once the order is placed, Procurement sends the supplier invoice to Finance for payment."
+      }
+    },
+    {
+      "from": "Sales",
+      "to": "Finance",
+      "description": "Sales sends approved quotes to Finance for a credit check before order confirmation.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "Approved quotes are sent to Finance, which checks the customer's credit limit before the order is confirmed."
+      }
+    }
+  ]
+}

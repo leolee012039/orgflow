@@ -1,0 +1,129 @@
+{
+  "workflow_name": "Purchase Request and Approval",
+  "opportunity_id": "operations_purchase_request_submission",
+  "department": "Operations",
+  "fields": [
+    {
+      "name": "requested_item",
+      "label": "Requested Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated Cost",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_justification",
+      "label": "Business Justification",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "requested_item",
+    "estimated_cost",
+    "business_justification"
+  ],
+  "rules": [
+    {
+      "id": "rule_cost_requires_finance_validation",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">=",
+        "value": 1000
+      },
+      "source": "USD 1,000 - USD 5,000 Manager approval + Finance validation"
+    },
+    {
+      "id": "rule_cost_requires_director_approval",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 5000
+      },
+      "source": "Above USD 5,000 Manager approval + Finance validation + Director approval"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "check": "Verify all required information including Requester, Department, Requested Item, Estimated Cost, and Business Justification are present.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_manager_approval",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_finance_validation",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_cost_requires_finance_validation",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_director_approval",
+      "type": "approval",
+      "actor": "Director",
+      "only_if": "rule_cost_requires_director_approval",
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_hand_to_procurement",
+      "type": "task",
+      "actor": "Procurement",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "Director"
+  ],
+  "amount_tiers": [
+    {
+      "field": "estimated_cost",
+      "min": null,
+      "max": 1000.0,
+      "source": "Below USD 1,000 Manager approval"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 1000.0,
+      "max": 5000.0,
+      "source": "USD 1,000 - USD 5,000 Manager approval + Finance validation"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 5000.0,
+      "max": null,
+      "source": "Above USD 5,000 Manager approval + Finance validation + Director approval"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Procurement",
+  "output": "Approved purchase request",
+  "explanation": "This workflow follows the purchasing policy by validating all mandatory fields prior to routing through manager approval, finance validation, and director approval based on estimated cost tiers. Once approved, the request is formally handed to the Procurement department and a notification is sent to the requester."
+}

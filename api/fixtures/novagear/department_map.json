@@ -1,0 +1,127 @@
+{
+  "departments": [
+    {
+      "name": "Sales",
+      "summary": "Sales manages customer relationships, prepares quotes, and oversees key customer accounts.",
+      "work": [
+        {
+          "task": "lead sales team and key accounts",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Leads the sales team and key customer accounts."
+          }
+        },
+        {
+          "task": "prepare quotes and manage customer relationships",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Prepares customer quotes and manages customer relationships."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operations",
+      "summary": "Operations manages departmental operations and initiates operational purchase requests.",
+      "work": [
+        {
+          "task": "approve departmental purchase needs",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Approves departmental purchase needs and business necessity."
+          }
+        },
+        {
+          "task": "submit operational purchase requests",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Submits operational purchase requests."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance",
+      "summary": "Finance validates purchase requests, checks customer credit, and processes supplier invoice payments.",
+      "work": [
+        {
+          "task": "validate amounts and required approvals",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Validates amounts, policy rules, and required approvals."
+          }
+        },
+        {
+          "task": "match invoices and process payments",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Matches supplier invoices to purchase orders and processes payments."
+          }
+        },
+        {
+          "task": "check customer credit limit",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "Approved quotes are sent to Finance, which checks the customer's credit limit before the order is confirmed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Procurement",
+      "summary": "Procurement sources vendor quotes, selects suppliers, executes purchase orders, and handles follow-up.",
+      "work": [
+        {
+          "task": "select vendors and approve purchase orders",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Selects vendors and approves purchase orders."
+          }
+        },
+        {
+          "task": "request quotes and place purchase orders",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Requests vendor quotes and places purchase orders."
+          }
+        },
+        {
+          "task": "vendor selection and purchase execution",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "Procurement is responsible for vendor selection, purchase execution, and order follow-up."
+          }
+        }
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "Operations",
+      "to": "Procurement",
+      "what": "approved purchase request",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "After all required management and finance approvals are complete, the request is handed to the Procurement Department."
+      }
+    },
+    {
+      "from": "Procurement",
+      "to": "Finance",
+      "what": "supplier invoice",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Once the order is placed, Procurement sends the supplier invoice to Finance for payment."
+      }
+    },
+    {
+      "from": "Sales",
+      "to": "Finance",
+      "what": "approved quotes",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "Approved quotes are sent to Finance, which checks the customer's credit limit before the order is confirmed."
+      }
+    }
+  ]
+}

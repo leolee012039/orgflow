@@ -93,24 +93,34 @@ def find_amount_gaps(tiers: list[AmountTier]) -> list[dict]:
     quotes, goods and services), and pairing across tables would invent findings.
     """
     findings = []
-    for amount in sorted({t.max for t in tiers if t.max is not None}):
-        ending = [t for t in tiers if t.max == amount]
-        starting = [t for t in tiers if t.min == amount]
-        if len(ending) != 1 or len(starting) != 1:
-            continue
-        below, above = ending[0], starting[0]
-        ends = bound_wording(below.source, amount, "upper")
-        starts = bound_wording(above.source, amount, "lower")
-        if ends == starts == {"exclusive"}:
-            kind = "gap"
-        elif ends == starts == {"inclusive"}:
-            kind = "overlap"
-        else:
-            continue
-        findings.append({"kind": kind, "amount": amount, "below": below.source, "above": above.source})
+    for field in sorted({t.field for t in tiers}):  # an amount and a discount rate never meet
+        same_field = [t for t in tiers if t.field == field]
+        for amount in sorted({t.max for t in same_field if t.max is not None}):
+            ending = [t for t in same_field if t.max == amount]
+            starting = [t for t in same_field if t.min == amount]
+            if len(ending) != 1 or len(starting) != 1:
+                continue
+            below, above = ending[0], starting[0]
+            ends = bound_wording(below.source, amount, "upper")
+            starts = bound_wording(above.source, amount, "lower")
+            if ends == starts == {"exclusive"}:
+                kind = "gap"
+            elif ends == starts == {"inclusive"}:
+                kind = "overlap"
+            else:
+                continue
+            findings.append({"kind": kind, "field": field, "amount": amount,
+                             "below": below.source, "above": above.source})
     return findings
 
 
-def amount_finding(tiers: list[AmountTier], amount: float) -> Optional[dict]:
-    """The gap or overlap at exactly this amount, if the policy has one."""
-    return next((f for f in find_amount_gaps(tiers) if f["amount"] == amount), None)
+def amount_finding(tiers: list[AmountTier], values: dict) -> Optional[dict]:
+    """The gap or overlap that this request's numbers fall on exactly, if the policy has one."""
+    for finding in find_amount_gaps(tiers):
+        value = values.get(finding["field"])
+        try:
+            if value is not None and float(value) == finding["amount"]:
+                return finding
+        except (TypeError, ValueError):
+            continue
+    return None
