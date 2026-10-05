@@ -31,7 +31,7 @@ export function OpportunityList({
               <div className="flex flex-col gap-1">
                 <h3 className="text-xl font-semibold text-balance">{opp.name}</h3>
                 <p className="text-sm text-muted">
-                  {IMPACT[opp.impact]}. {opp.departments.join(" → ")}. {opp.manual_handoffs} handoffs today.
+                  {IMPACT[opp.impact]}. {opp.departments.join(" → ")}. {opp.manual_handoffs} {opp.manual_handoffs === 1 ? "handoff" : "handoffs"} today.
                 </p>
               </div>
               <p className="max-w-prose leading-relaxed">{opp.why}</p>
