@@ -24,10 +24,10 @@ from google.genai import types
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-# Most calls answer in 3-9 s, but a few take 15-30 s. After HEDGE_AFTER_S a second,
+# Most calls answer in 3-10 s; long real documents take 30-40 s and a few calls stall. After HEDGE_AFTER_S a second,
 # identical request starts and the first answer wins; CALL_TIMEOUT_S caps the pair.
-CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "40"))
-HEDGE_AFTER_S = float(os.getenv("GEMINI_HEDGE_AFTER_S", "12"))
+CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "60"))
+HEDGE_AFTER_S = float(os.getenv("GEMINI_HEDGE_AFTER_S", "20"))
 
 # Low thinking keeps a call near 10 s; the default level often runs past the time budget.
 LOW_THINKING = types.GenerateContentConfig(
