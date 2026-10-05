@@ -20,6 +20,10 @@ dev = [
     "reportlab>=4.0.0",  # scripts/make_demo_pdfs.py only
 ]
 
+[tool.pyrefly]
+# The API imports its modules from api/ (as in the Docker image), not as a package
+search-path = ["api"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["api"]

@@ -25,6 +25,12 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "25"))
+
+# Low thinking keeps a call near 10 s; the default level often runs past the 25 s budget.
+LOW_THINKING = types.GenerateContentConfig(
+    temperature=0,
+    thinking_config=types.ThinkingConfig(thinking_level="low"),
+)
 CACHE_DIR = Path(__file__).resolve().parent.parent.parent / ".cache" / "llm"
 
 
@@ -46,6 +52,19 @@ def pdf_part(label: str, pdf_bytes: bytes) -> list[types.Part]:
         types.Part.from_text(text=f"Document id: {label}"),
         types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
     ]
+
+
+def json_part(label: str, value: Any) -> types.Part:
+    return types.Part.from_text(text=f"{label}:\n{json.dumps(value, ensure_ascii=False, indent=1)}")
+
+
+def problems_part(previous: Optional[dict], problems: list[str]) -> types.Part:
+    """What a repair call is told: its previous answer and why the guard rejected it."""
+    return types.Part.from_text(
+        text="Your previous output:\n" + json.dumps(previous, ensure_ascii=False)
+        + "\n\nAn automatic check rejected it for these problems:\n- " + "\n- ".join(problems)
+        + "\n\nReturn a corrected version that fixes every problem."
+    )
 
 
 def _cache_key(agent: Agent, parts: list[types.Part]) -> str:

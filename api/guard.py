@@ -10,6 +10,7 @@ from pypdf import PdfReader
 from schemas import (
     Organization,
     Opportunities,
+    PurchaseRequestForm,
     Workflow,
     OriginType,
 )
@@ -247,6 +248,20 @@ def validate_opportunities_output(
         errors.append(f"Expected exactly 3 opportunities, got {len(opps.opportunities)}")
         return None, errors
 
+    executable = [o.id for o in opps.opportunities if o.executable]
+    if executable != [opps.opportunities[0].id]:
+        errors.append(f"Only the top-ranked opportunity must be executable; executable now: {executable}")
+    if len({o.id for o in opps.opportunities}) != 3:
+        errors.append("Opportunity ids must be unique")
+    known_departments = {d.name.lower() for d in org.departments} if org else None
+    for opp in opps.opportunities:
+        if not opp.evidence:
+            errors.append(f"Opportunity '{opp.id}' has no evidence quote")
+        if known_departments is not None:
+            for dept in opp.departments:
+                if dept.lower() not in known_departments:
+                    errors.append(f"Opportunity '{opp.id}' names unknown department '{dept}'")
+
     # Check 3 on opportunity evidence quotes
     if doc_text and opps is not None:
         for opp in opps.opportunities:
@@ -260,6 +275,31 @@ def validate_opportunities_output(
         return None, errors
     return opps, []
 
+FORM_FIELDS = set(PurchaseRequestForm.model_fields) - {"request_id"}
+
+
+def check_workflow_structure(wf: Workflow) -> list[str]:
+    """The runner can only execute what it can resolve: known fields, rule ids and unique steps."""
+    errors: list[str] = []
+    rule_ids = {r.id for r in wf.rules}
+    if len(rule_ids) != len(wf.rules):
+        errors.append("Rule ids must be unique")
+    if len({s.id for s in wf.steps}) != len(wf.steps):
+        errors.append("Step ids must be unique")
+    if not any(s.type == "approval" for s in wf.steps):
+        errors.append("Workflow has no approval step")
+    for field in wf.required_fields:
+        if field not in FORM_FIELDS:
+            errors.append(f"Required field '{field}' is not a request form field ({', '.join(sorted(FORM_FIELDS))})")
+    for rule in wf.rules:
+        if rule.when.field not in FORM_FIELDS:
+            errors.append(f"Rule '{rule.id}' uses '{rule.when.field}', which is not a request form field")
+    for step in wf.steps:
+        if step.only_if and step.only_if not in rule_ids:
+            errors.append(f"Step '{step.id}' only_if '{step.only_if}' is not a rule id")
+    return errors
+
+
 def validate_workflow_output(
     data: Any,
     org: Optional[Organization] = None,
@@ -272,6 +312,12 @@ def validate_workflow_output(
     # Check 2: actors
     actor_errors = check_step_actors(wf, org)
     errors.extend(actor_errors)
+
+    errors.extend(check_workflow_structure(wf))
+    if doc_text:
+        for name in wf.unresolved_actors:
+            if not verify_quote_in_text(name, doc_text):
+                errors.append(f"Unresolved actor '{name}' does not appear in the uploaded documents")
 
     # Check 4: rule threshold numbers in source
     rule_errors = check_rule_numbers(wf)

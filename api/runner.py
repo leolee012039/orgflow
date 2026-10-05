@@ -105,6 +105,7 @@ def run_workflow(
     org: Organization,
     form_data: Union[dict, PurchaseRequestForm],
     ai_reviewer: Optional[Callable[[PurchaseRequestForm], AIReviewResponse]] = None,
+    manual_handoffs_before: int = 4,
 ) -> ExecutionTrace:
     """
     Deterministic Workflow Runner.
@@ -147,7 +148,7 @@ def run_workflow(
                     reason=f"Missing required field(s): {', '.join(missing_fields)}",
                 )
             ],
-            metrics=TraceMetrics(manual_handoffs_before=4, human_approvals=0, ai_checks=0),
+            metrics=TraceMetrics(manual_handoffs_before=manual_handoffs_before, human_approvals=0, ai_checks=0),
         )
 
     # -------------------------------------------------------------------------
@@ -193,7 +194,7 @@ def run_workflow(
                 status="NEEDS_HUMAN_REVIEW",
                 steps=trace_steps,
                 metrics=TraceMetrics(
-                    manual_handoffs_before=4,
+                    manual_handoffs_before=manual_handoffs_before,
                     human_approvals=human_approvals,
                     ai_checks=ai_checks,
                 ),
@@ -259,7 +260,7 @@ def run_workflow(
                     status="NEEDS_HUMAN_REVIEW",
                     steps=trace_steps,
                     metrics=TraceMetrics(
-                        manual_handoffs_before=4,
+                        manual_handoffs_before=manual_handoffs_before,
                         human_approvals=human_approvals,
                         ai_checks=ai_checks,
                     ),
@@ -272,7 +273,7 @@ def run_workflow(
                     type="task",
                     actor=step.actor,
                     result="DONE",
-                    reason="Procurement task created (simulated)",
+                    reason=f"Task assigned to {role_title} (simulated)",
                 )
             )
 
@@ -283,7 +284,7 @@ def run_workflow(
                     type="notification",
                     actor=step.actor,
                     result="DONE",
-                    reason="Requester notified (simulated)",
+                    reason=f"{role_title} notified (simulated)",
                 )
             )
 
@@ -292,7 +293,7 @@ def run_workflow(
         status="COMPLETED",
         steps=trace_steps,
         metrics=TraceMetrics(
-            manual_handoffs_before=4,
+            manual_handoffs_before=manual_handoffs_before,
             human_approvals=human_approvals,
             ai_checks=ai_checks,
         ),

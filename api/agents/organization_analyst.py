@@ -1,11 +1,9 @@
 """Organization Analyst: reads the org chart and policy PDFs into organization.json."""
 
-import json
-
 from google.adk import Agent
 from google.genai import types
 
-from agents.runtime import MODEL, AgentResult, pdf_part, run_agent
+from agents.runtime import LOW_THINKING, MODEL, AgentResult, pdf_part, problems_part, run_agent
 from schemas import Organization
 
 INSTRUCTION = """You are the Organization Analyst for OrgFlow.
@@ -31,26 +29,9 @@ Rules:
   it as a role.
 - Return JSON only."""
 
-REPAIR_INSTRUCTION = """You previously produced organization JSON for these documents,
-but an automatic check rejected it. Produce a corrected version that fixes every
-listed problem, following the same rules: use only the supplied documents, never
-invent roles or departments, copy quotes word for word, and return JSON only."""
-
-_config = types.GenerateContentConfig(
-    temperature=0,
-    # Low thinking keeps a call near 10 s; the default level often runs past the 25 s budget.
-    thinking_config=types.ThinkingConfig(thinking_level="low"),
-)
-
-
-def build_agent() -> Agent:
-    return Agent(name="organization_analyst", model=MODEL, instruction=INSTRUCTION,
-                 output_schema=Organization, generate_content_config=_config)
-
-
-def build_repair_agent() -> Agent:
-    return Agent(name="organization_analyst_repair", model=MODEL, instruction=REPAIR_INSTRUCTION,
-                 output_schema=Organization, generate_content_config=_config)
+def build_agent(name: str = "organization_analyst") -> Agent:
+    return Agent(name=name, model=MODEL, instruction=INSTRUCTION,
+                 output_schema=Organization, generate_content_config=LOW_THINKING)
 
 
 def _documents(org_pdf: bytes, policy_pdf: bytes) -> list[types.Part]:
@@ -63,10 +44,6 @@ async def analyze(org_pdf: bytes, policy_pdf: bytes) -> AgentResult:
     return await run_agent(build_agent(), parts)
 
 
-async def repair(org_pdf: bytes, policy_pdf: bytes, previous: dict | None, errors: list[str]) -> AgentResult:
-    parts = _documents(org_pdf, policy_pdf)
-    parts.append(types.Part.from_text(
-        text="Previous output:\n" + json.dumps(previous, ensure_ascii=False)
-        + "\n\nProblems found:\n- " + "\n- ".join(errors)
-    ))
-    return await run_agent(build_repair_agent(), parts)
+async def repair(org_pdf: bytes, policy_pdf: bytes, previous: dict | None, problems: list[str]) -> AgentResult:
+    parts = [*_documents(org_pdf, policy_pdf), problems_part(previous, problems)]
+    return await run_agent(build_agent("organization_analyst_repair"), parts)
