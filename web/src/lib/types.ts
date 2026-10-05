@@ -10,7 +10,7 @@ export interface Evidence {
 
 export interface Department {
   name: string;
-  head_role_id: string;
+  head_role_id: string | null;
 }
 
 export interface Role {
@@ -35,15 +35,43 @@ export interface Organization {
   relationships: Relationship[];
 }
 
-export interface Opportunity {
-  id: string;
+/** What a department does and how work moves between departments. */
+export interface DepartmentProfile {
   name: string;
-  departments: string[];
-  manual_handoffs: number;
-  impact: "HIGH" | "MEDIUM" | "LOW";
+  summary: string;
+  work: { task: string; evidence: Evidence }[];
+}
+
+export interface Handoff {
+  from: string;
+  to: string;
+  what: string;
+  evidence: Evidence;
+}
+
+export interface DepartmentMap {
+  departments: DepartmentProfile[];
+  handoffs: Handoff[];
+}
+
+/** A workflow one department could automate, before it is built. */
+export interface WorkflowCandidate {
+  id: string;
+  department: string;
+  name: string;
+  trigger: string;
+  starts_from: string | null;
+  hands_to: string | null;
+  output: string;
+  /** policy: rules written in a policy. org_chart: only responsibilities describe it. */
+  basis: "policy" | "org_chart";
   why: string;
-  executable: boolean;
+  manual_handoffs: number;
   evidence: Evidence[];
+}
+
+export interface WorkflowPlan {
+  workflows: WorkflowCandidate[];
 }
 
 export interface Rule {
@@ -59,12 +87,22 @@ export interface Step {
   type: StepType;
   actor: string;
   only_if?: string | null;
+  /** A second rule that must also hold, for a range of amounts. */
+  also_if?: string | null;
   check?: string | null;
   on_fail?: string | null;
 }
 
+export interface FormField {
+  name: string;
+  label: string;
+  type: "text" | "number" | "date" | "choice";
+  options: string[];
+}
+
 /** One approval level of the policy, with the amounts it states at each end. */
 export interface AmountTier {
+  field: string;
   min: number | null;
   max: number | null;
   source: string;
@@ -73,25 +111,19 @@ export interface AmountTier {
 export interface Workflow {
   workflow_name: string;
   opportunity_id: string;
+  department: string;
+  /** Empty: the original NovaGear purchase request form. */
+  fields: FormField[];
   required_fields: string[];
   rules: Rule[];
   steps: Step[];
   unresolved_actors: string[];
   amount_tiers?: AmountTier[];
+  starts_from: string | null;
+  hands_to: string | null;
+  output: string;
   explanation: string;
 }
-
-/** An amount where one tier ends and the next begins, and the wording leaves it in no tier or in both. */
-export interface AmountGap {
-  kind: "gap" | "overlap";
-  amount: number;
-  /** passage of the tier that ends at this amount */
-  below: string;
-  /** passage of the tier that starts at this amount */
-  above: string;
-}
-
-export type WorkflowResult = Workflow & { gaps: Gap[]; amount_gaps?: AmountGap[] };
 
 /** An approver the policy requires that the organization does not provide. */
 export interface Gap {
@@ -101,6 +133,19 @@ export interface Gap {
   step_id: string | null;
   policy_quote: string | null;
 }
+
+/** A number where one level ends and the next begins, and the wording leaves it in no level or in both. */
+export interface AmountGap {
+  kind: "gap" | "overlap";
+  field: string;
+  amount: number;
+  /** passage of the level that ends at this number */
+  below: string;
+  /** passage of the level that starts at this number */
+  above: string;
+}
+
+export type BuiltWorkflow = WithMeta<Workflow & { gaps: Gap[]; amount_gaps: AmountGap[] }>;
 
 export type StepResult = "PASSED" | "SKIPPED" | "DONE" | "RETURNED" | "HUMAN_REVIEW";
 
@@ -114,23 +159,37 @@ export interface StepTrace {
   source?: string | null;
 }
 
+export type TraceStatus = "COMPLETED" | "RETURNED" | "NEEDS_HUMAN_REVIEW";
+
 export interface Trace {
   request_id: string;
-  status: "COMPLETED" | "RETURNED" | "NEEDS_HUMAN_REVIEW";
+  status: TraceStatus;
   steps: StepTrace[];
   metrics: { manual_handoffs_before: number; human_approvals: number; ai_checks: number };
 }
 
-export interface PurchaseRequest {
-  request_id: string;
-  requester: string;
+export interface ChainLeg {
+  workflow_id: string;
+  workflow_name: string;
   department: string;
-  item: string;
-  estimated_cost: number;
-  business_justification: string;
+  trace: Trace;
 }
+
+export interface ChainTrace {
+  request_id: string;
+  status: TraceStatus;
+  legs: ChainLeg[];
+  /** The department the last workflow hands to, when nothing is built there yet. */
+  waiting_for: string | null;
+}
+
+/** What starts a workflow: who, from which department, plus the workflow's own fields. */
+export type CaseRequest = { request_id: string; requester: string; department: string } & Record<
+  string,
+  string | number
+>;
 
 export interface Documents {
   orgChart: File;
-  policy: File;
+  policies: File[];
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { deleteCheck, setShared, type SavedCheck } from "@/lib/audits";
+import { deleteWorkspace, setShared, type SavedWorkspace } from "@/lib/workspaces";
 
-const buttonClass = "rounded-md border border-line px-4 py-2 font-medium hover:border-ink disabled:opacity-50";
+export const buttonClass = "rounded-md border border-line px-4 py-2 font-medium hover:border-ink disabled:opacity-50";
 
 /** The browser's print dialog, where "Save as PDF" is one of the printers. */
 export function PrintButton() {
@@ -14,18 +14,18 @@ export function PrintButton() {
   );
 }
 
-/** Owner-only controls for a saved report: share a read-only link, or delete it. */
-export function OwnerActions({ check, onDeleted }: { check: SavedCheck; onDeleted: () => void }) {
-  const [shared, setSharedState] = useState(check.shared);
+/** Owner-only controls for a saved workspace: share a read-only link, or delete it. */
+export function OwnerActions({ workspace, onDeleted }: { workspace: SavedWorkspace; onDeleted: () => void }) {
+  const [shared, setSharedState] = useState(workspace.shared);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const link = typeof window === "undefined" ? "" : `${window.location.origin}/report?id=${check.id}`;
+  const link = typeof window === "undefined" ? "" : `${window.location.origin}/?id=${workspace.id}`;
 
   async function toggleShare() {
     setBusy(true);
     setNote(null);
     try {
-      await setShared(check.id, !shared);
+      await setShared(workspace.id, !shared);
       setSharedState(!shared);
       setNote(shared ? "The link no longer works for anyone but you." : null);
     } catch {
@@ -45,13 +45,13 @@ export function OwnerActions({ check, onDeleted }: { check: SavedCheck; onDelete
   }
 
   async function remove() {
-    if (!window.confirm(`Delete the health check for ${check.company}? This can't be undone.`)) return;
+    if (!window.confirm(`Delete ${workspace.company} and every workflow built for it? This can't be undone.`)) return;
     setBusy(true);
     try {
-      await deleteCheck(check.id);
+      await deleteWorkspace(workspace.id);
       onDeleted();
     } catch {
-      setNote("OrgFlow couldn't delete this report. Try again.");
+      setNote("OrgFlow couldn't delete this. Try again.");
       setBusy(false);
     }
   }
@@ -59,7 +59,6 @@ export function OwnerActions({ check, onDeleted }: { check: SavedCheck; onDelete
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-3">
-        <PrintButton />
         <button type="button" onClick={toggleShare} disabled={busy} className={buttonClass} aria-pressed={shared}>
           {shared ? "Stop sharing" : "Share a read-only link"}
         </button>
@@ -72,7 +71,7 @@ export function OwnerActions({ check, onDeleted }: { check: SavedCheck; onDelete
           Delete
         </button>
       </div>
-      {shared && <p className="text-sm text-muted">Anyone with the link can read this report. They can&apos;t change it.</p>}
+      {shared && <p className="text-sm text-muted">Anyone with the link can read this. They can&apos;t change it.</p>}
       {note && (
         <p role="status" className="text-sm">
           {note}

@@ -1,16 +1,16 @@
-import { actorName, currencyOf, money, ruleExpression, STEP_KIND } from "@/lib/format";
+import { actorName, fieldsOf, formatValue, ruleExpression, STEP_KIND } from "@/lib/format";
 import type { AmountGap, Gap, Organization, Rule, Workflow } from "@/lib/types";
 import { Quote } from "./Quote";
 
 /** The headline finding: an approver the policy requires that the organization doesn't have. */
-function GapCard({ gap, org, rule }: { gap: Gap; org: Organization; rule?: Rule }) {
+function GapCard({ gap, org, rule, workflow }: { gap: Gap; org: Organization; rule?: Rule; workflow: Workflow }) {
   const missing = gap.status === "missing";
   const titles = org.roles.map((r) => r.title);
   return (
     <div className={`flex break-inside-avoid flex-col gap-4 rounded-md border-l-4 bg-sheet p-5 ${missing ? "border-alert" : "border-rule"}`}>
       <div className="flex flex-col gap-1">
         <p className={`text-sm font-medium ${missing ? "text-alert" : "text-rule"}`}>
-          {missing ? "Your policy can't run as written" : "Please confirm"}
+          {missing ? "This workflow can't run as written" : "Please confirm"}
         </p>
         <h3 className="text-xl font-semibold text-balance">
           {missing
@@ -34,7 +34,7 @@ function GapCard({ gap, org, rule }: { gap: Gap; org: Organization; rule?: Rule 
       </div>
       <p className="text-muted">
         {rule
-          ? `Requests where ${ruleExpression(rule)} will stop and wait for a person to name the approver.`
+          ? `Requests where ${ruleExpression(rule, workflow)} will stop and wait for a person to name the approver.`
           : "Requests that reach this step will stop and wait for a person to name the approver."}{" "}
         OrgFlow doesn&apos;t guess who should approve.
       </p>
@@ -42,14 +42,14 @@ function GapCard({ gap, org, rule }: { gap: Gap; org: Organization; rule?: Rule 
   );
 }
 
-/** An amount the policy's approval levels leave out, or include twice. Found by plain code, not Gemini. */
-function AmountGapCard({ finding, currency }: { finding: AmountGap; currency: string }) {
-  const amount = money(finding.amount, currency);
+/** A number the policy's approval levels leave out, or include twice. Found by plain code, not Gemini. */
+function AmountGapCard({ finding, workflow }: { finding: AmountGap; workflow: Workflow }) {
+  const amount = formatValue(workflow, finding.field, finding.amount);
   const gap = finding.kind === "gap";
   return (
     <div className="flex break-inside-avoid flex-col gap-4 rounded-md border-l-4 border-alert bg-sheet p-5">
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-alert">Your policy can&apos;t run as written</p>
+        <p className="text-sm font-medium text-alert">This workflow can&apos;t run as written</p>
         <h3 className="text-xl font-semibold text-balance">
           {gap
             ? `No approval level covers exactly ${amount}. One level stops just below it, and the next starts just above it.`
@@ -74,7 +74,7 @@ function AmountGapCard({ finding, currency }: { finding: AmountGap; currency: st
   );
 }
 
-/** Every place the policy can't run as written: approvers that don't exist, amounts no level covers. */
+/** Every place a workflow can't run as written: approvers that don't exist, numbers no level covers. */
 export function Findings({
   workflow,
   gaps,
@@ -94,14 +94,10 @@ export function Findings({
   return (
     <div className="flex flex-col gap-4">
       {gaps.map((gap) => (
-        <GapCard key={gap.actor} gap={gap} org={org} rule={ruleOf(gap.step_id)} />
+        <GapCard key={gap.actor} gap={gap} org={org} rule={ruleOf(gap.step_id)} workflow={workflow} />
       ))}
       {amountGaps.map((finding) => (
-        <AmountGapCard
-          key={`${finding.kind}-${finding.amount}`}
-          finding={finding}
-          currency={currencyOf(workflow.rules)}
-        />
+        <AmountGapCard key={`${finding.kind}-${finding.field}-${finding.amount}`} finding={finding} workflow={workflow} />
       ))}
     </div>
   );
@@ -110,34 +106,47 @@ export function Findings({
 export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps: Gap[]; org: Organization }) {
   const rules = new Map(workflow.rules.map((r) => [r.id, r]));
   const gapFor = new Map(gaps.map((g) => [g.actor, g]));
+  const fields = fieldsOf(workflow);
 
   return (
-    <div className="flex flex-col gap-10">
-      <p className="max-w-prose text-lg leading-relaxed">{workflow.explanation}</p>
+    <div className="flex flex-col gap-8">
+      <p className="max-w-prose leading-relaxed">{workflow.explanation}</p>
 
-      <div className="flex flex-col gap-4">
-        <h3 className="font-semibold">Rules taken from the policy</h3>
-        <p className="max-w-prose text-muted">
-          Gemini wrote each rule once, with the passage it came from. When a request runs, plain code compares the
-          numbers, so the same request always gets the same answer.
+      <div className="flex flex-col gap-3">
+        <h4 className="font-semibold">Form</h4>
+        <p className="text-muted">
+          {workflow.starts_from
+            ? `Arrives filled in from ${workflow.starts_from}: `
+            : "Requester, department, and "}
+          {fields.map((f) => f.label).join(", ")}.
         </p>
-        <ul className="flex flex-col gap-5">
-          {workflow.rules.map((rule) => (
-            <li key={rule.id} className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-start">
-              <code className="w-fit rounded bg-rule-soft px-2 py-1 font-mono text-sm text-rule">
-                {ruleExpression(rule)}
-              </code>
-              <Quote text={rule.source} doc="policy" />
-            </li>
-          ))}
-        </ul>
       </div>
 
+      {workflow.rules.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <h4 className="font-semibold">Rules taken from the policy</h4>
+          <p className="max-w-prose text-muted">
+            Gemini wrote each rule once, with the passage it came from. When a request runs, plain code compares the
+            numbers, so the same request always gets the same answer.
+          </p>
+          <ul className="flex flex-col gap-5">
+            {workflow.rules.map((rule) => (
+              <li key={rule.id} className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-start">
+                <code className="w-fit rounded bg-rule-soft px-2 py-1 font-mono text-sm text-rule">
+                  {ruleExpression(rule, workflow)}
+                </code>
+                <Quote text={rule.source} doc="policy" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4">
-        <h3 className="font-semibold">Steps</h3>
+        <h4 className="font-semibold">Steps</h4>
         <ol className="flex flex-col">
           {workflow.steps.map((step, i) => {
-            const rule = step.only_if ? rules.get(step.only_if) : undefined;
+            const conditions = [step.only_if, step.also_if].map((id) => (id ? rules.get(id) : undefined)).filter(Boolean) as Rule[];
             const missing = workflow.unresolved_actors.includes(step.actor);
             return (
               <li key={step.id} className="grid grid-cols-[2rem_1fr] gap-x-4 border-l border-line pb-6 pl-0 last:pb-0">
@@ -153,9 +162,15 @@ export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps
                     <span className="font-medium">{actorName(step.actor, org)}</span>
                   </p>
                   {step.check && <p className="text-muted">{step.check}</p>}
-                  {rule && (
+                  {conditions.length > 0 && (
                     <p className="text-sm">
-                      Only when <code className="font-mono text-rule">{ruleExpression(rule)}</code>
+                      Only when{" "}
+                      {conditions.map((rule, j) => (
+                        <span key={rule.id}>
+                          {j > 0 && " and "}
+                          <code className="font-mono text-rule">{ruleExpression(rule, workflow)}</code>
+                        </span>
+                      ))}
                     </p>
                   )}
                   {missing && (
@@ -176,6 +191,12 @@ export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps
             );
           })}
         </ol>
+        {workflow.hands_to && (
+          <p className="text-sm text-muted">
+            When it completes, the case goes to {workflow.hands_to}
+            {workflow.output ? ` as ${workflow.output}` : ""}.
+          </p>
+        )}
       </div>
     </div>
   );

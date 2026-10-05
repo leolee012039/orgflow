@@ -26,8 +26,8 @@ export function AppHeader() {
         {accountsEnabled && (
           <nav aria-label="Account" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             {user && (
-              <Link href="/audits" className="font-medium underline-offset-4 hover:underline">
-                My health checks
+              <Link href="/companies" className="font-medium underline-offset-4 hover:underline">
+                My companies
               </Link>
             )}
             {user && <span className="max-w-[14rem] truncate text-muted">{user.displayName ?? user.email}</span>}

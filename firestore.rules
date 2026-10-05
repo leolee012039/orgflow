@@ -1,10 +1,11 @@
 rules_version = '2';
 
-// A health check belongs to the person who ran it. They can share it read-only
-// (shared == true) and unshare or delete it. Nobody else can change it.
+// A company workspace belongs to the person who created it. They can add built
+// workflows, share it read-only (shared == true), unshare or delete it. Nobody
+// else can change it.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /audits/{auditId} {
+    match /workspaces/{workspaceId} {
       function signedIn() {
         return request.auth != null;
       }
@@ -17,7 +18,7 @@ service cloud.firestore {
         && request.resource.data.owner == request.auth.uid
         && request.resource.data.shared == false;
       allow update: if isOwner()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shared'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['built', 'shared', 'updatedAt'])
         && request.resource.data.shared is bool;
       allow delete: if isOwner();
     }
