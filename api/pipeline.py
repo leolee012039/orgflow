@@ -11,10 +11,20 @@ stage returns "unverified" and the API says so, instead of showing NovaGear.
 
 import asyncio
 import hashlib
+import io
+import re
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
 
-from agents import opportunity_analyst, organization_analyst, request_reviewer, workflow_architect
+from pypdf import PdfReader
+
+from agents import (
+    document_reader,
+    opportunity_analyst,
+    organization_analyst,
+    request_reviewer,
+    workflow_architect,
+)
 from agents.runtime import AgentResult, log_event
 from guard import (
     extract_pdf_text,
@@ -89,12 +99,42 @@ def _fixture(org_pdf: bytes, policy_pdf: bytes, name: str, model):
     return lambda: model.model_validate(load_fixture(name))
 
 
-def documents_text(org_pdf: bytes, policy_pdf: bytes) -> str:
-    return extract_pdf_text(org_pdf) + "\n" + extract_pdf_text(policy_pdf)
+_TRANSCRIPTS: dict[str, str] = {}
+
+
+def _has_text_layer(text: str, pdf: bytes) -> bool:
+    """A scanned PDF yields almost no text: fewer than 40 visible characters per page."""
+    try:
+        pages = len(PdfReader(io.BytesIO(pdf)).pages)
+    except Exception:
+        pages = 1
+    return len(re.sub(r"\s", "", text)) >= 40 * max(pages, 1)
+
+
+async def document_text(pdf: bytes) -> str:
+    """The text the guard checks quotes against. Scanned PDFs are transcribed by Gemini once."""
+    text = extract_pdf_text(pdf)
+    if _has_text_layer(text, pdf):
+        return text
+    key = _sha256(pdf)
+    if key not in _TRANSCRIPTS:
+        result = await document_reader.transcribe(pdf)
+        transcript = (result.data or {}).get("text", "") if result.data else ""
+        log_event("transcribed", ok=bool(transcript), chars=len(transcript), latency_ms=result.latency_ms,
+                  error=result.error)
+        if not transcript:
+            return text  # nothing better: the checks will fail and say so
+        _TRANSCRIPTS[key] = transcript
+    return _TRANSCRIPTS[key]
+
+
+async def documents_text(org_pdf: bytes, policy_pdf: bytes) -> str:
+    org_text, policy_text = await asyncio.gather(document_text(org_pdf), document_text(policy_pdf))
+    return org_text + "\n" + policy_text
 
 
 async def analyze_organization(org_pdf: bytes, policy_pdf: bytes) -> StageResult[Organization]:
-    doc_text = documents_text(org_pdf, policy_pdf)
+    doc_text = await documents_text(org_pdf, policy_pdf)
     return await run_guarded_stage(
         stage="organization",
         first_call=lambda: organization_analyst.analyze(org_pdf, policy_pdf),
@@ -105,7 +145,7 @@ async def analyze_organization(org_pdf: bytes, policy_pdf: bytes) -> StageResult
 
 
 async def discover_opportunities(org_pdf: bytes, policy_pdf: bytes, org: Organization) -> StageResult[Opportunities]:
-    doc_text = documents_text(org_pdf, policy_pdf)
+    doc_text = await documents_text(org_pdf, policy_pdf)
     org_json = org.model_dump(by_alias=True)
     return await run_guarded_stage(
         stage="opportunities",
@@ -140,7 +180,7 @@ def find_gaps(workflow: Workflow, org_chart_text: str) -> list[dict[str, Any]]:
 
 async def design_workflow(org_pdf: bytes, policy_pdf: bytes, org: Organization,
                           opportunity: Opportunity) -> StageResult[Workflow]:
-    doc_text = documents_text(org_pdf, policy_pdf)
+    doc_text = await documents_text(org_pdf, policy_pdf)
     org_json = org.model_dump(by_alias=True)
     opp_json = opportunity.model_dump()
 
@@ -159,7 +199,7 @@ async def design_workflow(org_pdf: bytes, policy_pdf: bytes, org: Organization,
         fixture=_fixture(org_pdf, policy_pdf, "workflow_fixture.json", Workflow),
     )
     if result.value is not None:
-        result.extras["gaps"] = find_gaps(result.value, extract_pdf_text(org_pdf))
+        result.extras["gaps"] = find_gaps(result.value, await document_text(org_pdf))
     return result
 
 

@@ -20,7 +20,7 @@ Found on 2026-10-05 during the council review of business value. Each entry: wha
 
 - `extract_pdf_text` uses pypdf, which returns no text for image-only PDFs. Every quote check then fails.
 - Fix direction: when pypdf returns little or no text, ask Gemini to transcribe the PDF and check quotes against that transcript.
-- Status: open, not yet reproduced with a real scanned file.
+- Status: **fixed.** When a PDF has fewer than 40 visible characters per page, Gemini transcribes it once (cached by sha256) and the guard checks quotes against the transcript. Live check 2026-10-05 with JPEG-only versions of the NovaGear PDFs: both transcribed in 5–6 s, all three stages passed on the first answer, the Director gap was found.
 
 ## 5. Real run: National Taiwan University (2026-10-05)
 

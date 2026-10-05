@@ -182,3 +182,43 @@ def test_a_department_can_approve_as_a_unit():
                                    "estimated_cost": 2400, "business_justification": "New designer needs a laptop."})
     finance = next(s for s in trace.steps if s.step_id == "finance_validation")
     assert finance.result == "PASSED" and "Finance" in finance.reason
+
+
+# --- Scanned PDFs: no text layer, so Gemini transcribes once for the guard ----------
+
+def _image_only_pdf() -> bytes:
+    import io
+    from reportlab.pdfgen import canvas
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf)
+    c.rect(72, 72, 300, 200)  # a drawing, no text layer
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def test_scanned_pdf_is_transcribed_once(monkeypatch):
+    from agents import document_reader
+    calls = []
+
+    async def fake_transcribe(pdf):
+        calls.append(pdf)
+        return AgentResult({"text": "Purchasing Policy\nAbove USD 5,000 Director approval"}, None, 900)
+
+    monkeypatch.setattr(document_reader, "transcribe", fake_transcribe)
+    monkeypatch.setattr(pipeline, "_TRANSCRIPTS", {})
+    scanned = _image_only_pdf()
+    first = asyncio.run(pipeline.document_text(scanned))
+    second = asyncio.run(pipeline.document_text(scanned))
+    assert "Director approval" in first and first == second
+    assert len(calls) == 1
+
+
+def test_text_pdf_is_not_transcribed(monkeypatch):
+    from agents import document_reader
+
+    async def boom(pdf):
+        raise AssertionError("must not transcribe a PDF that has text")
+
+    monkeypatch.setattr(document_reader, "transcribe", boom)
+    assert "Purchasing Policy" in asyncio.run(pipeline.document_text(POLICY_PDF))
