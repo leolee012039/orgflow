@@ -1,0 +1,133 @@
+{
+  "company": "NovaGear Inc.",
+  "departments": [
+    {
+      "name": "Operations",
+      "head_role_id": "operations_manager"
+    },
+    {
+      "name": "Finance",
+      "head_role_id": "finance_manager"
+    },
+    {
+      "name": "Procurement",
+      "head_role_id": "procurement_manager"
+    },
+    {
+      "name": "Sales",
+      "head_role_id": "sales_manager"
+    }
+  ],
+  "roles": [
+    {
+      "id": "ceo",
+      "title": "Chief Executive Officer",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "Executive leadership and strategic direction for NovaGear Inc."
+      ]
+    },
+    {
+      "id": "operations_manager",
+      "title": "Operations Manager",
+      "department": "Operations",
+      "reports_to": "ceo",
+      "responsibilities": [
+        "Approve departmental purchase needs and business necessity."
+      ]
+    },
+    {
+      "id": "operations_specialist",
+      "title": "Operations Specialist",
+      "department": "Operations",
+      "reports_to": "operations_manager",
+      "responsibilities": [
+        "Execute operations workflows, track inventory, and submit purchase requests."
+      ]
+    },
+    {
+      "id": "finance_manager",
+      "title": "Finance Manager",
+      "department": "Finance",
+      "reports_to": "ceo",
+      "responsibilities": [
+        "Validate departmental purchase requests exceeding USD 1,000, enforce budget policies, and manage corporate finance."
+      ]
+    },
+    {
+      "id": "accountant",
+      "title": "Accountant",
+      "department": "Finance",
+      "reports_to": "finance_manager",
+      "responsibilities": [
+        "Process supplier payments, maintain financial ledgers, and invoice reconciliation."
+      ]
+    },
+    {
+      "id": "procurement_manager",
+      "title": "Procurement Manager",
+      "department": "Procurement",
+      "reports_to": "ceo",
+      "responsibilities": [
+        "Oversee procurement strategy, vendor relations, and contract negotiations."
+      ]
+    },
+    {
+      "id": "procurement_specialist",
+      "title": "Procurement Specialist",
+      "department": "Procurement",
+      "reports_to": "procurement_manager",
+      "responsibilities": [
+        "Vendor selection, issue purchase orders, and fulfill approved purchase requests."
+      ]
+    },
+    {
+      "id": "sales_manager",
+      "title": "Sales Manager",
+      "department": "Sales",
+      "reports_to": "ceo",
+      "responsibilities": [
+        "Lead sales team, revenue growth, and client acquisition."
+      ]
+    },
+    {
+      "id": "sales_representative",
+      "title": "Sales Representative",
+      "department": "Sales",
+      "reports_to": "sales_manager",
+      "responsibilities": [
+        "Customer engagement, sales pipeline management, and contract execution."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Operations",
+      "to": "Finance",
+      "description": "Submit purchase requests above USD 1,000 for budget and policy compliance validation",
+      "evidence": {
+        "doc": "policy",
+        "quote": "USD 1,000 - USD 5,000  Manager approval + Finance validation"
+      }
+    },
+    {
+      "from": "Finance",
+      "to": "Procurement",
+      "description": "Hand off approved purchase requests for vendor selection and purchase order fulfillment",
+      "evidence": {
+        "doc": "policy",
+        "quote": "After approval, Procurement is responsible for vendor selection, purchase order issuance, and order fulfillment."
+      }
+    },
+    {
+      "from": "Operations",
+      "to": "Procurement",
+      "description": "Coordinate delivery and asset registration of procured operational equipment",
+      "evidence": {
+        "doc": "policy",
+        "quote": "Procurement fulfills approved requests."
+      }
+    }
+  ]
+}

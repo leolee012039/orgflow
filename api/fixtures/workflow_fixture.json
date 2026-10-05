@@ -1,0 +1,71 @@
+{
+  "workflow_name": "Purchase Request Approval",
+  "opportunity_id": "purchase_request_approval",
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "estimated_cost",
+    "business_justification"
+  ],
+  "rules": [
+    {
+      "id": "r_finance",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">=",
+        "value": 1000
+      },
+      "source": "USD 1,000 - USD 5,000  Manager approval + Finance validation"
+    },
+    {
+      "id": "r_director",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 5000
+      },
+      "source": "Above USD 5,000  Manager approval + Finance validation + Director approval"
+    }
+  ],
+  "steps": [
+    {
+      "id": "completeness_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "check": "Policy section 2: required information is present and meaningful",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "manager_approval",
+      "type": "approval",
+      "actor": "requester.manager"
+    },
+    {
+      "id": "finance_validation",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "r_finance"
+    },
+    {
+      "id": "director_approval",
+      "type": "approval",
+      "actor": "Director",
+      "only_if": "r_director"
+    },
+    {
+      "id": "procurement",
+      "type": "task",
+      "actor": "procurement_specialist"
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester"
+    }
+  ],
+  "unresolved_actors": [
+    "Director"
+  ],
+  "explanation": "Automates NovaGear's purchasing approval workflow from submission to procurement handoff based on purchasing policy thresholds."
+}

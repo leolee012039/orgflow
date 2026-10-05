@@ -1,0 +1,59 @@
+{
+  "opportunities": [
+    {
+      "id": "purchase_request_approval",
+      "name": "Purchase Request & Approval",
+      "departments": [
+        "Operations",
+        "Finance",
+        "Procurement"
+      ],
+      "manual_handoffs": 4,
+      "impact": "HIGH",
+      "why": "Cross-departmental purchasing requires sequential managerial, financial, and procurement approvals with policy-based thresholds.",
+      "executable": true,
+      "evidence": [
+        {
+          "doc": "policy",
+          "quote": "USD 1,000 - USD 5,000  Manager approval + Finance validation"
+        }
+      ]
+    },
+    {
+      "id": "employee_onboarding_provisioning",
+      "name": "Employee Onboarding Equipment Provisioning",
+      "departments": [
+        "Operations",
+        "Procurement"
+      ],
+      "manual_handoffs": 3,
+      "impact": "MEDIUM",
+      "why": "Setting up new hires requires equipment requests, departmental manager approval, and procurement fulfillment.",
+      "executable": false,
+      "evidence": [
+        {
+          "doc": "policy",
+          "quote": "All equipment purchases require purchase requests with business justification."
+        }
+      ]
+    },
+    {
+      "id": "expense_reimbursement_audit",
+      "name": "Expense Reimbursement & Policy Check",
+      "departments": [
+        "Operations",
+        "Finance"
+      ],
+      "manual_handoffs": 2,
+      "impact": "MEDIUM",
+      "why": "Operational expense reporting and validation against financial compliance guidelines.",
+      "executable": false,
+      "evidence": [
+        {
+          "doc": "policy",
+          "quote": "Finance validation is required for expenditure compliance."
+        }
+      ]
+    }
+  ]
+}
