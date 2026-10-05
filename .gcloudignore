@@ -1,0 +1,16 @@
+# Only the API goes to Cloud Run; the web app is deployed to Firebase Hosting.
+.git/
+.gitignore
+.venv/
+.cache/
+.pytest_cache/
+__pycache__/
+web/
+docs/
+tests/
+scripts/
+demo_assets/
+firebase.json
+.firebaserc
+*.env
+.env*

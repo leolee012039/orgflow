@@ -10,13 +10,14 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "python-multipart>=0.0.9",
     "google-genai>=1.0.0",
-    "reportlab>=4.0.0",
+    "google-adk>=2.0,<3",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
     "httpx>=0.27.0",
+    "reportlab>=4.0.0",  # scripts/make_demo_pdfs.py only
 ]
 
 [tool.pytest.ini_options]

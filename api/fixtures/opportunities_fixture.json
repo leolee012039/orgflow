@@ -3,55 +3,49 @@
     {
       "id": "purchase_request_approval",
       "name": "Purchase Request & Approval",
-      "departments": [
-        "Operations",
-        "Finance",
-        "Procurement"
-      ],
+      "departments": ["Operations", "Finance", "Procurement"],
       "manual_handoffs": 4,
       "impact": "HIGH",
-      "why": "Cross-departmental purchasing requires sequential managerial, financial, and procurement approvals with policy-based thresholds.",
+      "why": "Every purchase passes from the requester to a manager, then to Finance when the amount is USD 1,000 or more, then to Procurement. The approval tiers are explicit rules, so routing can be automated.",
       "executable": true,
       "evidence": [
         {
           "doc": "policy",
-          "quote": "USD 1,000 - USD 5,000  Manager approval + Finance validation"
-        }
-      ]
-    },
-    {
-      "id": "employee_onboarding_provisioning",
-      "name": "Employee Onboarding Equipment Provisioning",
-      "departments": [
-        "Operations",
-        "Procurement"
-      ],
-      "manual_handoffs": 3,
-      "impact": "MEDIUM",
-      "why": "Setting up new hires requires equipment requests, departmental manager approval, and procurement fulfillment.",
-      "executable": false,
-      "evidence": [
+          "quote": "USD 1,000 - USD 5,000 Manager approval + Finance validation"
+        },
         {
           "doc": "policy",
-          "quote": "All equipment purchases require purchase requests with business justification."
+          "quote": "Requests missing required information must not proceed to approval."
         }
       ]
     },
     {
-      "id": "expense_reimbursement_audit",
-      "name": "Expense Reimbursement & Policy Check",
-      "departments": [
-        "Operations",
-        "Finance"
-      ],
+      "id": "purchase_request_intake",
+      "name": "Purchase Request Intake & Completeness Check",
+      "departments": ["Operations", "Finance"],
       "manual_handoffs": 2,
       "impact": "MEDIUM",
-      "why": "Operational expense reporting and validation against financial compliance guidelines.",
+      "why": "Each request must carry five required fields before anyone approves it. Checking them by hand is repetitive and a rule-based check can do it at submission.",
       "executable": false,
       "evidence": [
         {
           "doc": "policy",
-          "quote": "Finance validation is required for expenditure compliance."
+          "quote": "Every purchase request must include: Requester, Department, Requested Item, Estimated Cost, and Business Justification."
+        }
+      ]
+    },
+    {
+      "id": "vendor_selection_follow_up",
+      "name": "Vendor Selection & Order Follow-up",
+      "departments": ["Procurement", "Operations"],
+      "manual_handoffs": 3,
+      "impact": "MEDIUM",
+      "why": "After approval, Procurement selects a vendor, places the order, and follows it up with the requester. These handoffs repeat for every approved purchase.",
+      "executable": false,
+      "evidence": [
+        {
+          "doc": "policy",
+          "quote": "Procurement is responsible for vendor selection, purchase execution, and order follow-up."
         }
       ]
     }

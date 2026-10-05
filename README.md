@@ -72,7 +72,7 @@ uv run pytest
 
 Deploying backend to Cloud Run:
 ```bash
-gcloud run deploy orgflow-api --source api --region asia-east1 --allow-unauthenticated --max-instances 2
+gcloud run deploy orgflow-api --source . --region asia-east1 --allow-unauthenticated --max-instances 2
 ```
 
 Deploying frontend to Firebase Hosting:

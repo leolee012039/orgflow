@@ -1,22 +1,10 @@
 {
   "company": "NovaGear Inc.",
   "departments": [
-    {
-      "name": "Operations",
-      "head_role_id": "operations_manager"
-    },
-    {
-      "name": "Finance",
-      "head_role_id": "finance_manager"
-    },
-    {
-      "name": "Procurement",
-      "head_role_id": "procurement_manager"
-    },
-    {
-      "name": "Sales",
-      "head_role_id": "sales_manager"
-    }
+    { "name": "Sales", "head_role_id": "sales_manager" },
+    { "name": "Operations", "head_role_id": "operations_manager" },
+    { "name": "Finance", "head_role_id": "finance_manager" },
+    { "name": "Procurement", "head_role_id": "procurement_manager" }
   ],
   "roles": [
     {
@@ -24,109 +12,91 @@
       "title": "Chief Executive Officer",
       "department": null,
       "reports_to": null,
-      "responsibilities": [
-        "Executive leadership and strategic direction for NovaGear Inc."
-      ]
-    },
-    {
-      "id": "operations_manager",
-      "title": "Operations Manager",
-      "department": "Operations",
-      "reports_to": "ceo",
-      "responsibilities": [
-        "Approve departmental purchase needs and business necessity."
-      ]
-    },
-    {
-      "id": "operations_specialist",
-      "title": "Operations Specialist",
-      "department": "Operations",
-      "reports_to": "operations_manager",
-      "responsibilities": [
-        "Execute operations workflows, track inventory, and submit purchase requests."
-      ]
-    },
-    {
-      "id": "finance_manager",
-      "title": "Finance Manager",
-      "department": "Finance",
-      "reports_to": "ceo",
-      "responsibilities": [
-        "Validate departmental purchase requests exceeding USD 1,000, enforce budget policies, and manage corporate finance."
-      ]
-    },
-    {
-      "id": "accountant",
-      "title": "Accountant",
-      "department": "Finance",
-      "reports_to": "finance_manager",
-      "responsibilities": [
-        "Process supplier payments, maintain financial ledgers, and invoice reconciliation."
-      ]
-    },
-    {
-      "id": "procurement_manager",
-      "title": "Procurement Manager",
-      "department": "Procurement",
-      "reports_to": "ceo",
-      "responsibilities": [
-        "Oversee procurement strategy, vendor relations, and contract negotiations."
-      ]
-    },
-    {
-      "id": "procurement_specialist",
-      "title": "Procurement Specialist",
-      "department": "Procurement",
-      "reports_to": "procurement_manager",
-      "responsibilities": [
-        "Vendor selection, issue purchase orders, and fulfill approved purchase requests."
-      ]
+      "responsibilities": ["Sets company strategy and leads the management team."]
     },
     {
       "id": "sales_manager",
       "title": "Sales Manager",
       "department": "Sales",
       "reports_to": "ceo",
-      "responsibilities": [
-        "Lead sales team, revenue growth, and client acquisition."
-      ]
+      "responsibilities": ["Leads the sales team and key customer accounts."]
     },
     {
       "id": "sales_representative",
       "title": "Sales Representative",
       "department": "Sales",
       "reports_to": "sales_manager",
-      "responsibilities": [
-        "Customer engagement, sales pipeline management, and contract execution."
-      ]
+      "responsibilities": ["Sells products and manages customer relationships."]
+    },
+    {
+      "id": "operations_manager",
+      "title": "Operations Manager",
+      "department": "Operations",
+      "reports_to": "ceo",
+      "responsibilities": ["Approves departmental purchase needs and business necessity."]
+    },
+    {
+      "id": "operations_specialist",
+      "title": "Operations Specialist",
+      "department": "Operations",
+      "reports_to": "operations_manager",
+      "responsibilities": ["Submits operational purchase requests."]
+    },
+    {
+      "id": "finance_manager",
+      "title": "Finance Manager",
+      "department": "Finance",
+      "reports_to": "ceo",
+      "responsibilities": ["Validates amounts, policy rules, and required approvals."]
+    },
+    {
+      "id": "accountant",
+      "title": "Accountant",
+      "department": "Finance",
+      "reports_to": "finance_manager",
+      "responsibilities": ["Validates amounts, policy rules, and required approvals."]
+    },
+    {
+      "id": "procurement_manager",
+      "title": "Procurement Manager",
+      "department": "Procurement",
+      "reports_to": "ceo",
+      "responsibilities": ["Selects vendors and executes approved purchases."]
+    },
+    {
+      "id": "procurement_specialist",
+      "title": "Procurement Specialist",
+      "department": "Procurement",
+      "reports_to": "procurement_manager",
+      "responsibilities": ["Selects vendors and executes approved purchases."]
     }
   ],
   "relationships": [
     {
       "from": "Operations",
       "to": "Finance",
-      "description": "Submit purchase requests above USD 1,000 for budget and policy compliance validation",
+      "description": "Operations purchase requests of USD 1,000 or more need Finance validation after the manager approves.",
       "evidence": {
         "doc": "policy",
-        "quote": "USD 1,000 - USD 5,000  Manager approval + Finance validation"
+        "quote": "USD 1,000 - USD 5,000 Manager approval + Finance validation"
       }
     },
     {
       "from": "Finance",
       "to": "Procurement",
-      "description": "Hand off approved purchase requests for vendor selection and purchase order fulfillment",
+      "description": "Once all required approvals are complete, the request is handed to Procurement.",
       "evidence": {
         "doc": "policy",
-        "quote": "After approval, Procurement is responsible for vendor selection, purchase order issuance, and order fulfillment."
+        "quote": "After all required management and finance approvals are complete, the request is handed to the Procurement Department."
       }
     },
     {
       "from": "Operations",
       "to": "Procurement",
-      "description": "Coordinate delivery and asset registration of procured operational equipment",
+      "description": "Operations submits purchase requests that Procurement executes once approved.",
       "evidence": {
-        "doc": "policy",
-        "quote": "Procurement fulfills approved requests."
+        "doc": "org_chart",
+        "quote": "Selects vendors and executes approved purchases."
       }
     }
   ]
