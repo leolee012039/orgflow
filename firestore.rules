@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // A company workspace belongs to the person who created it. They can add built
-// workflows, share it read-only (shared == true), unshare or delete it. Nobody
+// workflows and cases, share it read-only (shared == true), unshare or delete it. Nobody
 // else can change it.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,7 +18,7 @@ service cloud.firestore {
         && request.resource.data.owner == request.auth.uid
         && request.resource.data.shared == false;
       allow update: if isOwner()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['built', 'shared', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['built', 'cases', 'shared', 'updatedAt'])
         && request.resource.data.shared is bool;
       allow delete: if isOwner();
     }

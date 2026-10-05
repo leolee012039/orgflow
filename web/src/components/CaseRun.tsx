@@ -6,6 +6,7 @@ import { chainFrom, orderedBuilt, startPoints } from "@/lib/chain";
 import { actorName, fieldLabel, fieldsOf, formatValue, ruleExpression, STEP_KIND, tryValues } from "@/lib/format";
 import type {
   BuiltWorkflow,
+  CaseRecord,
   CaseRequest,
   ChainTrace,
   FormField,
@@ -216,20 +217,22 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** One routing slip that crosses departments, stamped step by step. */
-function ChainSlip({
+/** One routing slip that crosses departments, stamped step by step (or all at once for a past case). */
+export function ChainSlip({
   trace,
   built,
   org,
   request,
+  animate = true,
 }: {
   trace: ChainTrace;
   built: BuiltWorkflow[];
   org: Organization;
   request: CaseRequest;
+  animate?: boolean;
 }) {
   const total = trace.legs.reduce((n, leg) => n + leg.trace.steps.length, 0);
-  const [shown, setShown] = useState(() => (prefersReducedMotion() ? total : 0));
+  const [shown, setShown] = useState(() => (!animate || prefersReducedMotion() ? total : 0));
   const done = shown >= total;
   useEffect(() => {
     if (shown >= total) return;
@@ -250,7 +253,8 @@ function ChainSlip({
         </div>
         <ol aria-live="polite">
           {trace.legs.map((leg, i) => {
-            const wf = built.find((w) => w.opportunity_id === leg.workflow_id)!;
+            const wf = built.find((w) => w.opportunity_id === leg.workflow_id);
+            if (!wf) return null; // the workflow was rebuilt or removed since this case ran
             const visible = leg.trace.steps.slice(0, Math.max(0, shown - offsets[i]));
             if (visible.length === 0) return null;
             return (
@@ -291,6 +295,21 @@ function ChainSlip({
   );
 }
 
+/** A finished case in one line, for the case list. */
+export function caseResult(trace: ChainTrace, built: BuiltWorkflow[]): { ok: boolean; text: string } {
+  if (trace.status === "COMPLETED") {
+    const n = trace.legs.length;
+    return { ok: true, text: `Completed in ${n} ${n === 1 ? "department" : "departments"}${trace.waiting_for ? `, ready for ${trace.waiting_for}` : ""}` };
+  }
+  const last = trace.legs[trace.legs.length - 1];
+  const step = last?.trace.steps[last.trace.steps.length - 1];
+  const wf = built.find((w) => w.opportunity_id === last?.workflow_id);
+  if (trace.status === "RETURNED") return { ok: false, text: `Returned in ${last.department}: information missing` };
+  if (step?.step_id === "amount_check") return { ok: false, text: `Stopped in ${last.department}: no rule for this exact amount` };
+  if (wf?.unresolved_actors.includes(step?.actor ?? "")) return { ok: false, text: `Stopped in ${last.department}: no ${step.actor} in the org chart` };
+  return { ok: false, text: `Stopped in ${last.department}: flagged for a person` };
+}
+
 function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built: BuiltWorkflow[]; org: Organization; request: CaseRequest }) {
   const departments = trace.legs.map((l) => l.department);
   const approvals = trace.legs.reduce((n, l) => n + l.trace.metrics.human_approvals, 0);
@@ -315,13 +334,13 @@ function ChainOutcome({ trace, built, org, request }: { trace: ChainTrace; built
   }
   const last = trace.legs[trace.legs.length - 1];
   const lastStep = last.trace.steps[last.trace.steps.length - 1];
-  const wf = built.find((w) => w.opportunity_id === last.workflow_id)!;
+  const wf = built.find((w) => w.opportunity_id === last.workflow_id);
   const why =
     trace.status === "RETURNED"
       ? "Nothing was approved. The requester can add the missing information and submit again."
       : lastStep?.step_id === "amount_check"
         ? `${org.company}'s policy doesn't settle who approves this exact amount, so OrgFlow stopped before any approval.`
-        : wf.unresolved_actors.includes(lastStep?.actor ?? "")
+        : wf?.unresolved_actors.includes(lastStep?.actor ?? "")
           ? `The policy requires ${lastStep.actor} approval, and ${org.company}'s org chart has no ${lastStep.actor}. OrgFlow stopped instead of guessing.`
           : "Gemini flagged the request details, so a person decides before anyone approves it.";
   return (
@@ -339,10 +358,15 @@ export function CaseRun({
   plan,
   built,
   org,
+  nextNumber = 1,
+  onCase,
 }: {
   plan: WorkflowCandidate[];
   built: Record<string, BuiltWorkflow>;
   org: Organization;
+  /** The number the next case gets: CASE-0001, CASE-0002 ... */
+  nextNumber?: number;
+  onCase?: (record: CaseRecord) => void;
 }) {
   const starts = useMemo(() => startPoints(plan, built), [plan, built]);
   const builtList = useMemo(() => orderedBuilt(plan, built), [plan, built]);
@@ -360,14 +384,17 @@ export function CaseRun({
   const last = path[path.length - 1];
   const handoffsBefore = Object.fromEntries(plan.map((c) => [c.id, c.manual_handoffs]));
 
-  async function run(request: CaseRequest) {
+  async function run(form: CaseRequest) {
+    const request = { ...form, request_id: `CASE-${String(nextNumber).padStart(4, "0")}` };
     setBusy(true);
     setError(null);
     setTrace(null); // the last case's slip would read as this one's answer
     setLastRequest(request);
     try {
-      setTrace(await api.runChain(builtList, org, start.id, request, handoffsBefore));
+      const result = await api.runChain(builtList, org, start.id, request, handoffsBefore);
+      setTrace(result);
       setRunKey((k) => k + 1);
+      onCase?.({ id: request.request_id, at: new Date().toISOString(), startId: start.id, request, trace: result });
     } catch (e) {
       setError((e as Error).message);
     } finally {

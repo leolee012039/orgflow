@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import type { Analysis } from "./api";
 import { db } from "./firebase";
-import type { BuiltWorkflow } from "./types";
+import type { BuiltWorkflow, CaseRecord } from "./types";
 
 /** One company's analysis and the workflows built from it. The PDFs are not kept. */
 export interface Workspace extends Analysis {
@@ -23,6 +23,8 @@ export interface Workspace extends Analysis {
   documents: { orgChart: string; policies: string[] };
   /** Built workflows by planned workflow id */
   built: Record<string, BuiltWorkflow>;
+  /** Cases run across departments, newest first */
+  cases?: CaseRecord[];
   analyzedAt: string;
   sample: boolean;
 }
@@ -51,6 +53,11 @@ export async function saveWorkspace(workspace: Workspace, owner: string): Promis
 
 export const saveBuilt = (id: string, built: Record<string, BuiltWorkflow>) =>
   updateDoc(doc(db(), "workspaces", id), { built: plain(built), updatedAt: serverTimestamp() });
+
+export const MAX_CASES = 30;
+
+export const saveCases = (id: string, cases: CaseRecord[]) =>
+  updateDoc(doc(db(), "workspaces", id), { cases: plain(cases.slice(0, MAX_CASES)), updatedAt: serverTimestamp() });
 
 /** The saved workspace, or null when it doesn't exist or this viewer may not see it. */
 export async function loadWorkspace(id: string): Promise<SavedWorkspace | null> {

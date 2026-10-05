@@ -90,3 +90,21 @@ body {
     background: #fff;
   }
 }
+
+/* Department canvas connectors, drawn into an SVG from the boxes' positions */
+.canvas-edge {
+  fill: none;
+  stroke: var(--color-rule);
+  stroke-width: 1.5;
+}
+.canvas-arrowhead {
+  fill: var(--color-rule);
+}
+.canvas-label {
+  font-size: 12px;
+  fill: var(--color-rule);
+  paint-order: stroke;
+  stroke: var(--color-sheet);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}

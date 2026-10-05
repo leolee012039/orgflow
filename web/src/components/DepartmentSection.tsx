@@ -1,12 +1,13 @@
 "use client";
 
 import type { BuiltWorkflow, DepartmentMap, DepartmentProfile, Organization, WorkflowCandidate } from "@/lib/types";
-import { departmentAnchor } from "./DepartmentMap";
 import { Quote } from "./Quote";
 import { ErrorNote, OriginNote, PrimaryButton, Working } from "./Section";
 import { Findings, WorkflowView } from "./WorkflowView";
 
-export type BuildState = { status: "building" } | { status: "error"; message: string; problems: string[] };
+import type { BuildState } from "@/lib/useBuilds";
+
+const departmentAnchor = (name: string) => `dept-${encodeURIComponent(name).replace(/%/g, "")}`;
 
 function Basis({ basis }: { basis: WorkflowCandidate["basis"] }) {
   return basis === "policy" ? (

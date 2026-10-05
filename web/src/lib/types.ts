@@ -191,6 +191,15 @@ export type CaseRequest = { request_id: string; requester: string; department: s
   string | number
 >;
 
+/** A case run across departments, kept in the company's case list. */
+export interface CaseRecord {
+  id: string;
+  at: string;
+  startId: string;
+  request: CaseRequest;
+  trace: ChainTrace;
+}
+
 export interface Documents {
   orgChart: File;
   policies: File[];

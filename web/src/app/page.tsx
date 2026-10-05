@@ -2,15 +2,22 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { CompanyConsole } from "@/components/console/CompanyConsole";
+import { Shell } from "@/components/console/Shell";
 import { OwnerActions } from "@/components/ReportActions";
 import { ErrorNote, Tag, Working } from "@/components/Section";
 import { UploadStep, type DraftDocuments } from "@/components/UploadStep";
-import { Workspace } from "@/components/Workspace";
 import { AnalysisError, runAnalysis, type AnalysisStep } from "@/lib/api";
 import { accountsEnabled, signIn, signInMessage, useUser } from "@/lib/firebase";
-import type { BuiltWorkflow, Documents } from "@/lib/types";
-import { loadWorkspace, saveBuilt, saveWorkspace, type SavedWorkspace, type Workspace as WorkspaceData } from "@/lib/workspaces";
+import type { BuiltWorkflow, CaseRecord, Documents } from "@/lib/types";
+import {
+  loadWorkspace,
+  saveBuilt,
+  saveCases,
+  saveWorkspace,
+  type SavedWorkspace,
+  type Workspace as WorkspaceData,
+} from "@/lib/workspaces";
 
 const STEPS: { id: AnalysisStep; label: string }[] = [
   { id: "organization", label: "Reading how the company is organized" },
@@ -153,114 +160,108 @@ function Home() {
     );
   }
 
+  function onCases(cases: CaseRecord[]) {
+    if (savedId) saveCases(savedId, cases).catch(() => undefined);
+    setView((v) => (v.status === "ready" ? { ...v, workspace: { ...v.workspace, cases } } : v));
+  }
+
+  function startOver() {
+    setView({ status: "idle" });
+    window.history.replaceState(null, "", "/");
+  }
+
   if (view.status === "ready") {
     const isOwner = Boolean(view.saved && user && view.saved.owner === user.uid);
     const editable = !view.saved || isOwner;
     return (
-      <main className="flex max-w-5xl flex-col gap-6 py-10">
-        {(!view.saved || view.saveError) && (
-          <p role="status" className="rounded-md border border-line bg-sheet px-4 py-3 text-sm print:hidden">
-            {view.saveError ??
-              (accountsEnabled ? "This isn't saved. Sign in before your next analysis to keep it and share it." : "This isn't saved.")}
-          </p>
-        )}
-        <Workspace
-          key={view.saved?.id ?? view.workspace.analyzedAt}
-          workspace={view.workspace}
-          docs={docs}
-          onDocs={setDocs}
-          editable={editable}
-          onBuilt={onBuilt}
-          actions={
-            <div className="flex flex-col gap-3">
-              {isOwner && view.saved && <OwnerActions workspace={view.saved} onDeleted={() => router.push("/companies")} />}
-              <button
-                type="button"
-                onClick={() => {
-                  setView({ status: "idle" });
-                  window.history.replaceState(null, "", "/");
-                }}
-                className="w-fit text-sm text-ai underline underline-offset-4"
-              >
-                Analyze another company
-              </button>
-            </div>
-          }
-        />
-      </main>
+      <CompanyConsole
+        key={view.saved?.id ?? view.workspace.analyzedAt}
+        workspace={view.workspace}
+        docs={docs}
+        onDocs={setDocs}
+        editable={editable}
+        onBuilt={onBuilt}
+        onCases={onCases}
+        onNew={startOver}
+        notice={
+          (!view.saved || view.saveError) && (
+            <p role="status" className="rounded-md border border-line bg-sheet px-4 py-3 text-sm print:hidden">
+              {view.saveError ??
+                (accountsEnabled ? "This isn't saved. Sign in before your next analysis to keep it and share it." : "This isn't saved.")}
+            </p>
+          )
+        }
+        ownerActions={isOwner && view.saved ? <OwnerActions workspace={view.saved} onDeleted={() => router.push("/companies")} /> : undefined}
+      />
     );
   }
 
   if (view.status === "loading" || (id && view.status === "idle"))
     return (
-      <main className="py-10">
+      <Shell current="new" onNew={startOver}>
         <Working label="Opening the company" />
-      </main>
+      </Shell>
     );
   if (view.status === "missing")
     return (
-      <main className="flex flex-col gap-4 py-10">
-        <h1 className="text-3xl font-semibold tracking-tight">This company isn&apos;t available</h1>
-        <p className="max-w-prose text-lg text-muted">
-          It may have been deleted, or its owner stopped sharing it. {user ? "" : "If it's yours, sign in to open it."}
-        </p>
-      </main>
+      <Shell current="new" onNew={startOver}>
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl font-semibold tracking-tight">This company isn&apos;t available</h1>
+          <p className="max-w-prose text-lg text-muted">
+            It may have been deleted, or its owner stopped sharing it. {user ? "" : "If it's yours, sign in to open it."}
+          </p>
+        </div>
+      </Shell>
     );
 
   return (
-    <main className="grid gap-12 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Turn your org chart into workflows that hand off to each other
-          </h1>
-          <p className="max-w-xl text-lg leading-relaxed text-muted">
-            Upload an org chart and your policies. OrgFlow maps what each department does and where its work goes, plans
-            a workflow for each department, and builds them so a case runs from one department into the next.
-          </p>
-        </div>
-        {view.status === "analyzing" ? (
-          <Progress step={view.step} />
-        ) : (
-          <UploadStep docs={draft} onDocs={setDraft} onRun={analyze} busy={false} needsSignIn={needsSignIn} />
-        )}
-        {view.status === "error" && <ErrorNote message={view.message} problems={view.problems} onRetry={view.retry} />}
-      </div>
-      <aside className="flex flex-col gap-6 lg:border-l lg:border-line lg:pl-10">
-        <h2 className="text-lg font-semibold">What you get</h2>
-        <ul className="flex flex-col gap-5">
-          {LOOKS_FOR.map((item) => (
-            <li key={item.title} className="flex flex-col gap-1">
-              <span className="font-medium">{item.title}</span>
-              <span className="text-muted">{item.text}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="flex flex-col gap-2 border-t border-line pt-5 text-sm text-muted">
-          <div className="flex gap-2">
-            <Tag kind="gemini" />
-            <Tag kind="rules" />
+    <Shell current="new" onNew={startOver}>
+      <main className="grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
+            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+              Turn your org chart into workflows that hand off to each other
+            </h1>
+            <p className="max-w-xl text-lg leading-relaxed text-muted">
+              Upload an org chart and your policies. OrgFlow maps what each department does and where its work goes,
+              plans a workflow for each department, and builds them so a case runs from one department into the next.
+            </p>
           </div>
-          <p>Gemini reads the documents and designs. Plain code checks every quote and runs every case.</p>
+          {view.status === "analyzing" ? (
+            <Progress step={view.step} />
+          ) : (
+            <UploadStep docs={draft} onDocs={setDraft} onRun={analyze} busy={false} needsSignIn={needsSignIn} />
+          )}
+          {view.status === "error" && <ErrorNote message={view.message} problems={view.problems} onRetry={view.retry} />}
         </div>
-      </aside>
-    </main>
+        <aside className="flex flex-col gap-6 lg:border-l lg:border-line lg:pl-10">
+          <h2 className="text-lg font-semibold">What you get</h2>
+          <ul className="flex flex-col gap-5">
+            {LOOKS_FOR.map((item) => (
+              <li key={item.title} className="flex flex-col gap-1">
+                <span className="font-medium">{item.title}</span>
+                <span className="text-muted">{item.text}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-col gap-2 border-t border-line pt-5 text-sm text-muted">
+            <div className="flex gap-2">
+              <Tag kind="gemini" />
+              <Tag kind="rules" />
+            </div>
+            <p>Gemini reads the documents and designs. Plain code checks every quote and runs every case.</p>
+            <p>OrgFlow runs on Gemini 3.8 Flash, Google ADK, Cloud Run, Firebase Authentication, Firestore and Firebase Hosting.</p>
+          </div>
+        </aside>
+      </main>
+    </Shell>
   );
 }
 
 export default function HomePage() {
   return (
-    <>
-      <AppHeader />
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <Suspense fallback={<main className="py-10"><Working label="Loading" /></main>}>
-          <Home />
-        </Suspense>
-        <footer className="border-t border-line py-8 text-sm text-muted print:hidden">
-          OrgFlow runs on Gemini 3.8 Flash, Google ADK, Cloud Run, Firebase Authentication, Firestore and Firebase
-          Hosting.
-        </footer>
-      </div>
-    </>
+    <Suspense fallback={<Working label="Loading" />}>
+      <Home />
+    </Suspense>
   );
 }

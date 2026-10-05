@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { Shell } from "@/components/console/Shell";
 import { ErrorNote, PrimaryButton, Working } from "@/components/Section";
 import { signIn, signInMessage, useUser } from "@/lib/firebase";
 import { findings, listWorkspaces, type SavedWorkspace } from "@/lib/workspaces";
@@ -85,19 +85,16 @@ function Companies() {
 
 export default function CompaniesPage() {
   return (
-    <>
-      <AppHeader />
-      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="text-4xl font-semibold tracking-tight">My companies</h1>
+    <Shell current="companies">
+      <main className="flex max-w-5xl flex-col gap-8">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink pb-6">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">My companies</h1>
           <Link href="/" className="font-medium text-ai underline underline-offset-4">
             Analyze a company
           </Link>
         </div>
-        <div className="max-w-4xl">
-          <Companies />
-        </div>
+        <Companies />
       </main>
-    </>
+    </Shell>
   );
 }
