@@ -24,9 +24,12 @@ from google.genai import types
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "25"))
+# Most calls answer in 3-9 s, but a few take 15-30 s. After HEDGE_AFTER_S a second,
+# identical request starts and the first answer wins; CALL_TIMEOUT_S caps the pair.
+CALL_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "40"))
+HEDGE_AFTER_S = float(os.getenv("GEMINI_HEDGE_AFTER_S", "12"))
 
-# Low thinking keeps a call near 10 s; the default level often runs past the 25 s budget.
+# Low thinking keeps a call near 10 s; the default level often runs past the time budget.
 LOW_THINKING = types.GenerateContentConfig(
     temperature=0,
     thinking_config=types.ThinkingConfig(thinking_level="low"),
@@ -91,6 +94,34 @@ async def _run(agent: Agent, parts: list[types.Part]) -> str:
     return final_text
 
 
+async def _run_hedged(agent: Agent, parts: list[types.Part], timeout_s: float) -> tuple[str, bool]:
+    """Return the first successful answer; start a backup request if the first is slow."""
+    deadline = time.perf_counter() + timeout_s
+    pending = {asyncio.create_task(_run(agent, parts))}
+    hedged = False
+    last_error: Optional[BaseException] = None
+    try:
+        while pending:
+            wait_s = deadline - time.perf_counter()
+            if not hedged:
+                wait_s = min(wait_s, HEDGE_AFTER_S)
+            done, pending = await asyncio.wait(pending, timeout=max(wait_s, 0),
+                                               return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                if task.exception() is None:
+                    return task.result(), hedged
+                last_error = task.exception()
+            if not done and not hedged and time.perf_counter() < deadline:
+                hedged = True
+                pending.add(asyncio.create_task(_run(agent, parts)))
+            elif not done:
+                raise asyncio.TimeoutError
+        raise last_error or RuntimeError("no answer")
+    finally:
+        for task in pending:
+            task.cancel()
+
+
 def _parse_json(text: str) -> dict[str, Any]:
     cleaned = text.strip()
     if cleaned.startswith("```"):
@@ -110,8 +141,9 @@ async def run_agent(agent: Agent, parts: list[types.Part], timeout_s: float = CA
 
     call_id = uuid.uuid4().hex[:8]
     start = time.perf_counter()
+    hedged = False
     try:
-        text = await asyncio.wait_for(_run(agent, parts), timeout=timeout_s)
+        text, hedged = await _run_hedged(agent, parts, timeout_s)
         data = _parse_json(text)
         error = None
     except asyncio.TimeoutError:
@@ -123,7 +155,7 @@ async def run_agent(agent: Agent, parts: list[types.Part], timeout_s: float = CA
     latency_ms = int((time.perf_counter() - start) * 1000)
 
     log_event("gemini_call", call_id=call_id, agent=agent.name, model=MODEL, cached=False,
-              latency_ms=latency_ms, ok=error is None, error=error)
+              latency_ms=latency_ms, hedged=hedged, ok=error is None, error=error)
     if use_cache and data is not None:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cache_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

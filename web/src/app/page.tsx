@@ -1,210 +1,245 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
+import { OpportunityList } from "@/components/OpportunityList";
+import { OrgView } from "@/components/OrgView";
+import { RunPanel } from "@/components/RunPanel";
+import { ErrorNote, OriginNote, Section, Tag, Working } from "@/components/Section";
+import { StepRail, type RailState } from "@/components/StepRail";
+import { UploadStep } from "@/components/UploadStep";
+import { WorkflowView } from "@/components/WorkflowView";
+import { api } from "@/lib/api";
+import type { Documents, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "@/lib/types";
 
-interface HealthStatus {
-  ok: boolean;
-  model: string;
+type Stage<T> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "done"; data: T }
+  | { status: "error"; error: string };
+
+const IDLE = { status: "idle" } as const;
+const LOADING = { status: "loading" } as const;
+const failed = (e: unknown) => ({ status: "error", error: (e as Error).message }) as const;
+
+function railState(stage: Stage<unknown>, previousDone: boolean): RailState {
+  if (stage.status === "done") return "done";
+  if (stage.status === "loading" || stage.status === "error" || previousDone) return "current";
+  return "upcoming";
+}
+
+function reveal(ref: RefObject<HTMLElement | null>) {
+  const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" }));
 }
 
 export default function Home() {
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [docs, setDocs] = useState<Partial<Documents>>({});
+  const [org, setOrg] = useState<Stage<WithMeta<Organization>>>(IDLE);
+  const [opps, setOpps] = useState<Stage<WithMeta<{ opportunities: Opportunity[] }>>>(IDLE);
+  const [chosen, setChosen] = useState<Opportunity | null>(null);
+  const [workflow, setWorkflow] = useState<Stage<WithMeta<Workflow>>>(IDLE);
+  const [run, setRun] = useState<Stage<Trace>>(IDLE);
+  const [lastRequest, setLastRequest] = useState<PurchaseRequest | null>(null);
+  const [runKey, setRunKey] = useState(0);
 
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ||
-    "http://localhost:8000";
+  const understandRef = useRef<HTMLElement>(null);
+  const recommendRef = useRef<HTMLElement>(null);
+  const generateRef = useRef<HTMLElement>(null);
+  const runRef = useRef<HTMLElement>(null);
 
-  const checkHealth = async () => {
-    setLoading(true);
-    setError(null);
-    const start = performance.now();
+  async function findOpportunities(d: Documents, organization: Organization) {
+    setOpps(LOADING);
+    reveal(recommendRef);
     try {
-      const res = await fetch(`${apiBase}/api/health`, {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}`);
-      }
-      const data: HealthStatus = await res.json();
-      setHealth(data);
-      setLatencyMs(Math.round(performance.now() - start));
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to connect";
-      setError(message);
-      setHealth(null);
-    } finally {
-      setLoading(false);
+      setOpps({ status: "done", data: await api.opportunities(d, organization) });
+    } catch (e) {
+      setOpps(failed(e));
     }
-  };
+  }
 
-  useEffect(() => {
-    checkHealth();
-  }, [apiBase]);
+  async function readDocuments(d: Documents) {
+    setOrg(LOADING);
+    setOpps(IDLE);
+    setChosen(null);
+    setWorkflow(IDLE);
+    setRun(IDLE);
+    reveal(understandRef);
+    let organization: WithMeta<Organization>;
+    try {
+      organization = await api.analyze(d);
+    } catch (e) {
+      setOrg(failed(e));
+      return;
+    }
+    setOrg({ status: "done", data: organization });
+    await findOpportunities(d, organization);
+  }
+
+  async function buildWorkflow(opportunity: Opportunity) {
+    if (org.status !== "done" || !docs.orgChart || !docs.policy) return;
+    setChosen(opportunity);
+    setWorkflow(LOADING);
+    setRun(IDLE);
+    reveal(generateRef);
+    try {
+      setWorkflow({
+        status: "done",
+        data: await api.workflow({ orgChart: docs.orgChart, policy: docs.policy }, org.data, opportunity),
+      });
+      reveal(generateRef);
+    } catch (e) {
+      setWorkflow(failed(e));
+    }
+  }
+
+  async function runRequest(request: PurchaseRequest) {
+    if (org.status !== "done" || workflow.status !== "done") return;
+    setRun(LOADING);
+    setLastRequest(request);
+    try {
+      const trace = await api.run(workflow.data, org.data, request, chosen?.manual_handoffs ?? 4);
+      setRunKey((k) => k + 1);
+      setRun({ status: "done", data: trace });
+    } catch (e) {
+      setRun(failed(e));
+    }
+  }
+
+  const docsReady = Boolean(docs.orgChart && docs.policy);
+  const rail = [
+    { id: "upload", label: "Upload", state: org.status !== "idle" ? "done" : "current" },
+    { id: "understand", label: "Understand", state: railState(org, org.status !== "idle") },
+    { id: "recommend", label: "Recommend", state: railState(opps, org.status === "done") },
+    { id: "generate", label: "Generate", state: railState(workflow, opps.status === "done") },
+    { id: "run", label: "Run", state: railState(run, workflow.status === "done") },
+  ] satisfies { id: string; label: string; state: RailState }[];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center">
-      {/* Header */}
-      <header className="w-full max-w-5xl px-6 py-8 border-b border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/30">
-              OF
+    <div className="mx-auto flex max-w-6xl flex-col px-5 sm:px-8">
+      <header className="flex flex-col gap-4 border-b border-ink py-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">OrgFlow</h1>
+            <p className="text-lg text-muted">Turn company documents into a workflow that runs.</p>
+          </div>
+          <div className="flex max-w-md flex-col gap-2 text-sm text-muted">
+            <div className="flex gap-2">
+              <Tag kind="gemini" />
+              <Tag kind="rules" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              OrgFlow
-            </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-950 border border-blue-800 text-blue-300 font-medium">
-              Google Cloud AI Builder Cup 2026
-            </span>
+            <p>Gemini reads the documents and designs the workflow. Plain code applies the rules, so a request always gets the same answer.</p>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
-            Turn organizational documents into executable, verified workflows in minutes
-          </p>
-        </div>
-
-        {/* System & Health Status Indicator */}
-        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-xl shadow-inner">
-          <div className="flex items-center gap-2">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                loading
-                  ? "bg-amber-400 animate-pulse"
-                  : health?.ok
-                  ? "bg-emerald-400 shadow-[0_0_8px_#34d399]"
-                  : "bg-rose-500"
-              }`}
-            />
-            <span className="text-sm font-semibold tracking-wide">
-              {loading
-                ? "Connecting..."
-                : health?.ok
-                ? "API OK"
-                : "API Disconnected"}
-            </span>
-          </div>
-          {health?.ok && (
-            <span className="text-xs text-slate-400 border-l border-slate-700 pl-3">
-              Model: <code className="text-emerald-400 font-mono">{health.model}</code>
-              {latencyMs !== null && ` (${latencyMs}ms)`}
-            </span>
-          )}
-          {error && (
-            <button
-              onClick={checkHealth}
-              className="text-xs text-rose-400 underline hover:text-rose-300 ml-2"
-            >
-              Retry
-            </button>
-          )}
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="w-full max-w-5xl px-6 py-10 flex flex-col gap-10">
-        {/* Phase 0 Status Banner */}
-        <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur">
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                Environment & Deployment Status (Phase 0)
-              </h2>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Verifying end-to-end communication between Firebase Hosting and Google Cloud Run.
-              </p>
-            </div>
-            <div className="text-xs font-mono bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
-              API Base: {apiBase}
-            </div>
-          </div>
+      <div className="grid gap-x-12 py-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
+        <aside className="mb-4 min-w-0 lg:mb-0">
+          <StepRail steps={rail} />
+        </aside>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                Frontend
-              </div>
-              <div className="text-sm font-medium text-slate-200 mt-1">
-                Next.js 15 (Static Export)
-              </div>
-              <div className="text-xs text-emerald-400 mt-1">✓ Ready for Firebase Hosting</div>
-            </div>
+        <main className="min-w-0 max-w-3xl">
+          <Section id="upload" step={1} title="Upload company documents">
+            <UploadStep docs={docs} onDocs={setDocs} onRead={readDocuments} busy={org.status === "loading"} />
+          </Section>
 
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                Backend
-              </div>
-              <div className="text-sm font-medium text-slate-200 mt-1">
-                FastAPI · Python 3.12
-              </div>
-              <div className="text-xs text-emerald-400 mt-1">✓ Containerized (Cloud Run)</div>
-            </div>
+          {org.status !== "idle" && (
+            <Section id="understand" step={2} title="How the company is organized" sectionRef={understandRef} tags={<Tag kind="gemini" />}>
+              {org.status === "loading" && <Working label="Gemini is reading both documents" />}
+              {org.status === "error" && (
+                <ErrorNote message={org.error} onRetry={docsReady ? () => readDocuments(docs as Documents) : undefined} />
+              )}
+              {org.status === "done" && (
+                <>
+                  <OrgView org={org.data} />
+                  <OriginNote origin={org.data.origin} latencyMs={org.data.latency_ms} />
+                </>
+              )}
+            </Section>
+          )}
 
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                Live Health Response
-              </div>
-              <div className="text-sm font-medium text-slate-200 mt-1">
-                {loading ? (
-                  <span className="text-amber-400">Pinging backend...</span>
-                ) : health?.ok ? (
-                  <span className="text-emerald-400 font-bold">API OK</span>
-                ) : (
-                  <span className="text-rose-400 font-medium">{error || "Unavailable"}</span>
-                )}
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                {health?.model ? `Gemini target: ${health.model}` : "Awaiting response"}
-              </div>
-            </div>
-          </div>
-        </section>
+          {opps.status !== "idle" && (
+            <Section id="recommend" step={3} title="What to automate" sectionRef={recommendRef} tags={<Tag kind="gemini" />}>
+              {opps.status === "loading" && <Working label="Gemini is looking for repetitive, rule-based work" />}
+              {opps.status === "error" && org.status === "done" && (
+                <ErrorNote message={opps.error} onRetry={() => findOpportunities(docs as Documents, org.data)} />
+              )}
+              {opps.status === "done" && (
+                <>
+                  <OpportunityList
+                    opportunities={opps.data.opportunities}
+                    onBuild={buildWorkflow}
+                    busy={workflow.status === "loading"}
+                  />
+                  <OriginNote origin={opps.data.origin} latencyMs={opps.data.latency_ms} />
+                </>
+              )}
+            </Section>
+          )}
 
-        {/* 5-Step Demo Story Preview */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-200">
-              OrgFlow Execution Pipeline (Upcoming Phases)
-            </h2>
-            <span className="text-xs text-slate-500 font-mono">Target: &lt; 3 min demo path</span>
-          </div>
+          {workflow.status !== "idle" && (
+            <Section
+              id="generate"
+              step={4}
+              title={workflow.status === "done" ? workflow.data.workflow_name : "Workflow"}
+              sectionRef={generateRef}
+              tags={
+                <>
+                  <Tag kind="gemini" />
+                  <Tag kind="rules" />
+                </>
+              }
+            >
+              {workflow.status === "loading" && <Working label="Gemini is turning the policy into steps and rules" />}
+              {workflow.status === "error" && chosen && (
+                <ErrorNote message={workflow.error} onRetry={() => buildWorkflow(chosen)} />
+              )}
+              {workflow.status === "done" && org.status === "done" && (
+                <>
+                  <WorkflowView workflow={workflow.data} org={org.data} />
+                  <OriginNote origin={workflow.data.origin} latencyMs={workflow.data.latency_ms} />
+                </>
+              )}
+            </Section>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {[
-              { num: "1", title: "Upload", desc: "Org Chart & Purchasing Policy PDFs" },
-              { num: "2", title: "Understand", desc: "CEO, 4 departments, 8 roles hierarchy" },
-              { num: "3", title: "Recommend", desc: "3 opportunities (Purchase approval first)" },
-              { num: "4", title: "Generate", desc: "Workflow steps with policy quote links" },
-              { num: "5", title: "Run", desc: "USD 2,400 MacBook Pro live deterministic trace" },
-            ].map((step) => (
-              <div
-                key={step.num}
-                className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between opacity-80"
-              >
-                <div>
-                  <span className="text-xs font-bold text-blue-400 font-mono">
-                    STEP 0{step.num}
-                  </span>
-                  <div className="font-semibold text-slate-100 text-sm mt-1">
-                    {step.title}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-                <div className="mt-3 text-[11px] font-mono text-slate-500">
-                  Phase {step.num === "1" || step.num === "2" ? "2" : step.num === "3" || step.num === "4" ? "3" : "4"}
-                </div>
+          {workflow.status === "done" && org.status === "done" && (
+            <Section
+              id="run"
+              step={5}
+              title="Run a request"
+              sectionRef={runRef}
+              tags={
+                <>
+                  <Tag kind="rules" />
+                  <Tag kind="gemini" />
+                </>
+              }
+            >
+              <div className="flex flex-col gap-6">
+                <p className="max-w-prose text-lg leading-relaxed">
+                  Submit a purchase request. The rules engine walks it through the workflow; Gemini only checks that the
+                  required information makes sense.
+                </p>
+                {run.status === "error" && <ErrorNote message={run.error} />}
+                {run.status === "loading" && <Working label="Running the request" />}
+                <RunPanel
+                  org={org.data}
+                  workflow={workflow.data}
+                  trace={run.status === "done" ? run.data : null}
+                  runKey={runKey}
+                  lastRequest={lastRequest}
+                  busy={run.status === "loading"}
+                  onRun={runRequest}
+                />
               </div>
-            ))}
-          </div>
-        </section>
-      </main>
+            </Section>
+          )}
+        </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-slate-900 py-6 mt-auto text-center text-xs text-slate-500">
-        OrgFlow · Google Cloud AI Builder Cup 2026 · NovaGear Fictional Enterprise Benchmark
+      <footer className="border-t border-line py-8 text-sm text-muted">
+        NovaGear Inc. is a fictional company created for this demo. OrgFlow runs on Gemini 3.8 Flash, Google ADK, Cloud
+        Run and Firebase Hosting.
       </footer>
     </div>
   );

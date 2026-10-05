@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  OrgFlow tokens. Color says who produced a piece of the screen:
+  ai (blue) = Gemini understood or designed it; rule (amber) = deterministic code decided it.
+  Document quotes are set in a serif, so the company's own words read as a document.
+*/
+@theme {
+  --color-paper: #f5f7f6;
+  --color-sheet: #ffffff;
+  --color-ink: #1a2124;
+  --color-muted: #59656a;
+  --color-line: #d5dcda;
+  --color-ai: #1d6a86;
+  --color-ai-soft: #e2eff4;
+  --color-rule: #93560a;
+  --color-rule-soft: #f6ead8;
+  --color-ok: #2a7a4b;
+  --color-alert: #b0281f;
+  --color-alert-soft: #fbe9e6;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ai);
+  outline-offset: 2px;
+}
+
+/* A rubber stamp landing on the routing slip */
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.7) rotate(-9deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.94) rotate(-4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-4deg);
+  }
+}
+
+.stamp {
+  transform: rotate(-4deg);
+  animation: stamp-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes working {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.working-dot {
+  animation: working 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp,
+  .working-dot {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
