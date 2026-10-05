@@ -50,16 +50,29 @@ async def read_pdf(upload: UploadFile, field: str) -> bytes:
     return data
 
 
+STAGE_NAMES = {"organization": "the organization", "opportunities": "the automation opportunities",
+               "workflow": "the workflow"}
+
+
+def stage_response(result, stage: str, by_alias: bool = False) -> dict:
+    """The stage's JSON, or a 422 that says plainly why nothing is shown."""
+    if result.value is None:
+        raise HTTPException(422, {
+            "message": f"OrgFlow couldn't verify Gemini's reading of {STAGE_NAMES[stage]} against your documents, "
+                       "so it shows nothing instead of guessing. Check that both PDFs contain selectable text, "
+                       "or try the NovaGear sample.",
+            "problems": result.problems[:5],
+        })
+    return {**result.value.model_dump(by_alias=by_alias), **result.extras,
+            "origin": result.origin, "latency_ms": result.latency_ms}
+
+
 @app.post("/api/analyze")
 async def analyze(org_chart: UploadFile = File(...), policy: UploadFile = File(...)):
     org_pdf = await read_pdf(org_chart, "org_chart")
     policy_pdf = await read_pdf(policy, "policy")
     result = await pipeline.analyze_organization(org_pdf, policy_pdf)
-    return {
-        **result.value.model_dump(by_alias=True),
-        "origin": result.origin,
-        "latency_ms": result.latency_ms,
-    }
+    return stage_response(result, "organization", by_alias=True)
 
 
 def parse_json_field(model, raw: str, field: str):
@@ -76,7 +89,7 @@ async def opportunities(org_chart: UploadFile = File(...), policy: UploadFile = 
     org_pdf = await read_pdf(org_chart, "org_chart")
     policy_pdf = await read_pdf(policy, "policy")
     result = await pipeline.discover_opportunities(org_pdf, policy_pdf, org)
-    return {**result.value.model_dump(), "origin": result.origin, "latency_ms": result.latency_ms}
+    return stage_response(result, "opportunities")
 
 
 @app.post("/api/workflow")
@@ -89,7 +102,7 @@ async def workflow(org_chart: UploadFile = File(...), policy: UploadFile = File(
     org_pdf = await read_pdf(org_chart, "org_chart")
     policy_pdf = await read_pdf(policy, "policy")
     result = await pipeline.design_workflow(org_pdf, policy_pdf, org, opp)
-    return {**result.value.model_dump(), "origin": result.origin, "latency_ms": result.latency_ms}
+    return stage_response(result, "workflow")
 
 
 class RunBody(BaseModel):

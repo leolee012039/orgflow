@@ -15,7 +15,8 @@ class Evidence(BaseModel):
 
 class Department(BaseModel):
     name: str
-    head_role_id: str
+    # None when the documents name a unit but not who leads it
+    head_role_id: Optional[str] = None
 
 class Role(BaseModel):
     id: str

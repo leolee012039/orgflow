@@ -10,7 +10,7 @@ REQUEST_FIELDS = {
     "requester": "name of the person asking",
     "department": "department of the requester",
     "item": "what is being requested",
-    "estimated_cost": "number, in USD",
+    "estimated_cost": "number, in the currency the policy uses",
     "business_justification": "why it is needed",
 }
 
@@ -24,9 +24,13 @@ design it: the program runs it later, so every decision must be an explicit rule
 Fields:
 - workflow_name: a short title. opportunity_id: the chosen opportunity's id.
 - required_fields: the request form fields that the policy says every request must include.
-- rules: one rule per condition stated in the policy. when.field is a request form
-  field, when.op is one of < <= > >= ==, when.value is a number for amounts.
-  Read "A - B" or "between A and B" as inclusive, "below A" as < A and "above B" as > B.
+- rules: one rule per condition stated in the policy. Every amount that decides who
+  must approve becomes a rule; a workflow for a policy with amount limits always has
+  rules. when.field is a request form field, when.op is one of < <= > >= ==, and
+  when.value is the amount written out in full in the policy's currency (for example
+  12萬元 is 120000 and 三千元 is 3000). Read "A - B" or "between A and B" as
+  inclusive, "below A" / 未達 A as < A, "above B" / 逾 B as > B, and 以上 / 以下 as
+  inclusive.
   An approval that applies to several tiers needs one rule covering all of them
   (for example, if Legal review were required in every tier from USD 10,000 upward,
   the rule would be estimated_cost >= 10000).
@@ -41,8 +45,9 @@ Fields:
      approval applies only under a condition, set only_if to that rule's id;
   3. a "task" step for the role that carries out the work after approval;
   4. a "notification" step to actor "requester".
-- actors: use role ids from the organization JSON, or the special actors
-  "requester", "requester.manager" and "orgflow_ai". If the policy requires an
+- actors: use role ids from the organization JSON, department names from the
+  organization JSON when the policy says a unit (not a person) does the step, or
+  the special actors "requester", "requester.manager" and "orgflow_ai". If the policy requires an
   approver that has no matching role in the organization, use the approver's name
   exactly as the policy writes it, and also list that name in unresolved_actors.
   Never map such an approver onto a different existing role.

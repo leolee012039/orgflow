@@ -8,18 +8,19 @@ import { ErrorNote, OriginNote, Section, Tag, Working } from "@/components/Secti
 import { StepRail, type RailState } from "@/components/StepRail";
 import { UploadStep } from "@/components/UploadStep";
 import { WorkflowView } from "@/components/WorkflowView";
-import { api } from "@/lib/api";
-import type { Documents, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "@/lib/types";
+import { api, ApiError } from "@/lib/api";
+import type { Documents, Gap, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "@/lib/types";
 
 type Stage<T> =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "done"; data: T }
-  | { status: "error"; error: string };
+  | { status: "error"; error: string; problems: string[] };
 
 const IDLE = { status: "idle" } as const;
 const LOADING = { status: "loading" } as const;
-const failed = (e: unknown) => ({ status: "error", error: (e as Error).message }) as const;
+const failed = (e: unknown) =>
+  ({ status: "error", error: (e as Error).message, problems: e instanceof ApiError ? e.problems : [] }) as const;
 
 function railState(stage: Stage<unknown>, previousDone: boolean): RailState {
   if (stage.status === "done") return "done";
@@ -37,7 +38,7 @@ export default function Home() {
   const [org, setOrg] = useState<Stage<WithMeta<Organization>>>(IDLE);
   const [opps, setOpps] = useState<Stage<WithMeta<{ opportunities: Opportunity[] }>>>(IDLE);
   const [chosen, setChosen] = useState<Opportunity | null>(null);
-  const [workflow, setWorkflow] = useState<Stage<WithMeta<Workflow>>>(IDLE);
+  const [workflow, setWorkflow] = useState<Stage<WithMeta<Workflow & { gaps: Gap[] }>>>(IDLE);
   const [run, setRun] = useState<Stage<Trace>>(IDLE);
   const [lastRequest, setLastRequest] = useState<PurchaseRequest | null>(null);
   const [runKey, setRunKey] = useState(0);
@@ -120,7 +121,10 @@ export default function Home() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-2">
             <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">OrgFlow</h1>
-            <p className="text-lg text-muted">Turn company documents into a workflow that runs.</p>
+            <p className="max-w-xl text-lg text-muted">
+              Find where your written rules can&apos;t run in your organization, with the lines that prove it. Then
+              automate the parts that can.
+            </p>
           </div>
           <div className="flex max-w-md flex-col gap-2 text-sm text-muted">
             <div className="flex gap-2">
@@ -146,7 +150,11 @@ export default function Home() {
             <Section id="understand" step={2} title="How the company is organized" sectionRef={understandRef} tags={<Tag kind="gemini" />}>
               {org.status === "loading" && <Working label="Gemini is reading both documents" />}
               {org.status === "error" && (
-                <ErrorNote message={org.error} onRetry={docsReady ? () => readDocuments(docs as Documents) : undefined} />
+                <ErrorNote
+                  message={org.error}
+                  problems={org.problems}
+                  onRetry={docsReady ? () => readDocuments(docs as Documents) : undefined}
+                />
               )}
               {org.status === "done" && (
                 <>
@@ -161,7 +169,11 @@ export default function Home() {
             <Section id="recommend" step={3} title="What to automate" sectionRef={recommendRef} tags={<Tag kind="gemini" />}>
               {opps.status === "loading" && <Working label="Gemini is looking for repetitive, rule-based work" />}
               {opps.status === "error" && org.status === "done" && (
-                <ErrorNote message={opps.error} onRetry={() => findOpportunities(docs as Documents, org.data)} />
+                <ErrorNote
+                  message={opps.error}
+                  problems={opps.problems}
+                  onRetry={() => findOpportunities(docs as Documents, org.data)}
+                />
               )}
               {opps.status === "done" && (
                 <>
@@ -191,11 +203,11 @@ export default function Home() {
             >
               {workflow.status === "loading" && <Working label="Gemini is turning the policy into steps and rules" />}
               {workflow.status === "error" && chosen && (
-                <ErrorNote message={workflow.error} onRetry={() => buildWorkflow(chosen)} />
+                <ErrorNote message={workflow.error} problems={workflow.problems} onRetry={() => buildWorkflow(chosen)} />
               )}
               {workflow.status === "done" && org.status === "done" && (
                 <>
-                  <WorkflowView workflow={workflow.data} org={org.data} />
+                  <WorkflowView workflow={workflow.data} gaps={workflow.data.gaps ?? []} org={org.data} />
                   <OriginNote origin={workflow.data.origin} latencyMs={workflow.data.latency_ms} />
                 </>
               )}

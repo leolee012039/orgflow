@@ -73,6 +73,15 @@ export interface Workflow {
   explanation: string;
 }
 
+/** An approver the policy requires that the organization does not provide. */
+export interface Gap {
+  actor: string;
+  /** missing: the org chart never mentions it. possible_match: it does, but no role matched. */
+  status: "missing" | "possible_match";
+  step_id: string | null;
+  policy_quote: string | null;
+}
+
 export type StepResult = "PASSED" | "SKIPPED" | "DONE" | "RETURNED" | "HUMAN_REVIEW";
 
 export interface StepTrace {

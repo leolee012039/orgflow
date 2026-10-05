@@ -66,7 +66,8 @@ def problems_part(previous: Optional[dict], problems: list[str]) -> types.Part:
     return types.Part.from_text(
         text="Your previous output:\n" + json.dumps(previous, ensure_ascii=False)
         + "\n\nAn automatic check rejected it for these problems:\n- " + "\n- ".join(problems)
-        + "\n\nReturn a corrected version that fixes every problem."
+        + "\n\nReturn a corrected version that fixes every problem. Keep everything that was correct: "
+        + "never delete departments, roles, rules or steps that appear in the documents just to pass the checks."
     )
 
 
@@ -76,7 +77,7 @@ def _cache_key(agent: Agent, parts: list[types.Part]) -> str:
     for part in parts:
         if part.text is not None:
             h.update(part.text.encode())
-        elif part.inline_data is not None:
+        elif part.inline_data is not None and part.inline_data.data:
             h.update(part.inline_data.data)
     return h.hexdigest()[:32]
 

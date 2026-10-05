@@ -59,6 +59,9 @@ def resolve_actor(actor_name: str, form: PurchaseRequestForm, org: Organization,
         if not dept_match:
             return False, None, f"Requester department '{form.department}' not found in organization"
         
+        if not dept_match.head_role_id:
+            return False, None, f"The org chart names no head for '{dept_match.name}' → human review"
+
         # Find head role
         head_role = None
         for role in org.roles:
@@ -77,6 +80,11 @@ def resolve_actor(actor_name: str, form: PurchaseRequestForm, org: Organization,
     for role in org.roles:
         if role.id.lower() == actor_name.lower() or role.title.lower() == actor_name.lower():
             return True, role.title, None
+
+    # 6. A department acting as a unit, e.g. "the accounting office reviews"
+    for dept in org.departments:
+        if dept.name.lower() == actor_name.lower():
+            return True, dept.name, None
 
     # Not found in organization
     return False, None, f"Role '{actor_name}' is missing from the org chart → human review"

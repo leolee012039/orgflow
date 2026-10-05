@@ -8,6 +8,8 @@ policy: the org chart has no such role, which the demo relies on.
 Run: uv run python scripts/make_demo_pdfs.py
 """
 
+import hashlib
+import json
 import shutil
 from pathlib import Path
 
@@ -177,6 +179,14 @@ def main() -> None:
         build(out)
         shutil.copyfile(out, WEB_DIR / name)
         print(f"wrote {out.relative_to(ROOT)} and web/public/demo/{name}")
+
+    # The API falls back to the NovaGear fixtures only for these exact files.
+    hashes = {
+        "org_chart": hashlib.sha256((OUT_DIR / "NovaGear_Organization_Chart.pdf").read_bytes()).hexdigest(),
+        "policy": hashlib.sha256((OUT_DIR / "NovaGear_Purchasing_Policy.pdf").read_bytes()).hexdigest(),
+    }
+    (ROOT / "api" / "fixtures" / "sample_documents.json").write_text(json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
+    print("wrote api/fixtures/sample_documents.json")
 
 
 if __name__ == "__main__":

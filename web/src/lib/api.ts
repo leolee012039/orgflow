@@ -1,6 +1,16 @@
-import type { Documents, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "./types";
+import type { Documents, Gap, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "./types";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000").replace(/\/$/, "");
+
+/** An API error with the guard's findings, when the service sends them. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly problems: string[] = [],
+  ) {
+    super(message);
+  }
+}
 
 async function post<T>(path: string, body: FormData | object): Promise<T> {
   const isForm = body instanceof FormData;
@@ -12,7 +22,7 @@ async function post<T>(path: string, body: FormData | object): Promise<T> {
       headers: isForm ? undefined : { "Content-Type": "application/json" },
     });
   } catch {
-    throw new Error("Can't reach the OrgFlow service. Check your connection and try again.");
+    throw new ApiError("Can't reach the OrgFlow service. Check your connection and try again.");
   }
   if (!res.ok) {
     let detail: unknown;
@@ -21,9 +31,12 @@ async function post<T>(path: string, body: FormData | object): Promise<T> {
     } catch {
       detail = undefined;
     }
-    throw new Error(
-      typeof detail === "string" ? detail : `The OrgFlow service returned an error (${res.status}). Try again.`,
-    );
+    if (typeof detail === "string") throw new ApiError(detail);
+    if (detail && typeof detail === "object" && "message" in detail) {
+      const d = detail as { message: string; problems?: string[] };
+      throw new ApiError(d.message, d.problems ?? []);
+    }
+    throw new ApiError(`The OrgFlow service returned an error (${res.status}). Try again.`);
   }
   return res.json() as Promise<T>;
 }
@@ -43,7 +56,7 @@ export const api = {
     post<WithMeta<{ opportunities: Opportunity[] }>>("/api/opportunities", documentsForm(docs, { organization })),
 
   workflow: (docs: Documents, organization: Organization, opportunity: Opportunity) =>
-    post<WithMeta<Workflow>>("/api/workflow", documentsForm(docs, { organization, opportunity })),
+    post<WithMeta<Workflow & { gaps: Gap[] }>>("/api/workflow", documentsForm(docs, { organization, opportunity })),
 
   run: (workflow: Workflow, organization: Organization, request: PurchaseRequest, manualHandoffs: number) =>
     post<Trace>("/api/run", { workflow, organization, request, manual_handoffs_before: manualHandoffs }),

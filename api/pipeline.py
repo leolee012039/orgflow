@@ -1,15 +1,18 @@
-"""Guarded AI stages: live answer → one repair → prevalidated fixture.
+"""Guarded AI stages: live answer → one repair → prevalidated fixture or an honest failure.
 
-Each stage asks an agent once, checks the answer with plain code, asks the
-agent once more with the list of problems if the check fails, and otherwise
-returns the fixture so the demo never stops. A timeout skips the repair,
-because a second slow call would break the time budget.
+Each stage asks an agent once, checks the answer with plain code, and asks the
+agent once more with the list of problems if the check fails. A timeout skips
+the repair, because a second slow call would break the time budget.
+
+If both answers fail, the NovaGear sample falls back to its prevalidated
+fixture so the demo never stops. Anyone else's documents get no fixture: the
+stage returns "unverified" and the API says so, instead of showing NovaGear.
 """
 
+import asyncio
+import hashlib
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
-
-import asyncio
 
 from agents import opportunity_analyst, organization_analyst, request_reviewer, workflow_architect
 from agents.runtime import AgentResult, log_event
@@ -19,19 +22,21 @@ from guard import (
     validate_opportunities_output,
     validate_organization_output,
     validate_workflow_output,
+    verify_quote_in_text,
 )
 from runner import run_workflow
-from schemas import ExecutionTrace, Opportunities, Opportunity, Organization, OriginType, PurchaseRequestForm, Workflow
+from schemas import ExecutionTrace, Opportunities, Opportunity, Organization, PurchaseRequestForm, Workflow
 
 T = TypeVar("T")
 
 
 @dataclass
 class StageResult(Generic[T]):
-    value: T
-    origin: OriginType
+    value: Optional[T]
+    origin: str  # "live" | "repaired" | "fixture" | "unverified"
     latency_ms: int
     problems: list[str] = field(default_factory=list)
+    extras: dict[str, Any] = field(default_factory=dict)
 
 
 async def run_guarded_stage(
@@ -39,7 +44,7 @@ async def run_guarded_stage(
     first_call: Callable[[], Awaitable[AgentResult]],
     repair_call: Callable[[Optional[dict], list[str]], Awaitable[AgentResult]],
     validate: Callable[[Any], tuple[Optional[T], list[str]]],
-    fixture: Callable[[], T],
+    fixture: Optional[Callable[[], T]],
 ) -> StageResult[T]:
     first = await first_call()
     latency = first.latency_ms
@@ -63,8 +68,25 @@ async def run_guarded_stage(
         else:
             problems = problems + [second.error or "no answer"]
 
-    log_event("guard", stage=stage, origin="fixture", latency_ms=latency, problems=problems[:10])
-    return StageResult(fixture(), "fixture", latency, problems)
+    origin = "fixture" if fixture is not None else "unverified"
+    log_event("guard", stage=stage, origin=origin, latency_ms=latency, problems=problems[:10])
+    return StageResult(fixture() if fixture is not None else None, origin, latency, problems)
+
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def is_sample(org_pdf: bytes, policy_pdf: bytes) -> bool:
+    """True only for the bundled NovaGear documents, the one case where a fixture is honest."""
+    sample = load_fixture("sample_documents.json")
+    return _sha256(org_pdf) == sample["org_chart"] and _sha256(policy_pdf) == sample["policy"]
+
+
+def _fixture(org_pdf: bytes, policy_pdf: bytes, name: str, model):
+    if not is_sample(org_pdf, policy_pdf):
+        return None
+    return lambda: model.model_validate(load_fixture(name))
 
 
 def documents_text(org_pdf: bytes, policy_pdf: bytes) -> str:
@@ -78,7 +100,7 @@ async def analyze_organization(org_pdf: bytes, policy_pdf: bytes) -> StageResult
         first_call=lambda: organization_analyst.analyze(org_pdf, policy_pdf),
         repair_call=lambda previous, problems: organization_analyst.repair(org_pdf, policy_pdf, previous, problems),
         validate=lambda data: validate_organization_output(data, doc_text),
-        fixture=lambda: Organization.model_validate(load_fixture("organization_fixture.json")),
+        fixture=_fixture(org_pdf, policy_pdf, "organization_fixture.json", Organization),
     )
 
 
@@ -91,8 +113,29 @@ async def discover_opportunities(org_pdf: bytes, policy_pdf: bytes, org: Organiz
         repair_call=lambda previous, problems: opportunity_analyst.repair(
             org_pdf, policy_pdf, org_json, previous, problems),
         validate=lambda data: validate_opportunities_output(data, org, doc_text),
-        fixture=lambda: Opportunities.model_validate(load_fixture("opportunities_fixture.json")),
+        fixture=_fixture(org_pdf, policy_pdf, "opportunities_fixture.json", Opportunities),
     )
+
+
+def find_gaps(workflow: Workflow, org_chart_text: str) -> list[dict[str, Any]]:
+    """Approvers the policy requires that the organization does not provide.
+
+    "missing": the uploaded org chart never mentions the approver.
+    "possible_match": the org chart mentions it, but the extracted organization has no
+    such role, so a person should confirm who it is before anyone calls it a gap.
+    """
+    rules = {r.id: r for r in workflow.rules}
+    gaps = []
+    for actor in workflow.unresolved_actors:
+        step = next((s for s in workflow.steps if s.actor == actor), None)
+        rule = rules.get(step.only_if) if step and step.only_if else None
+        gaps.append({
+            "actor": actor,
+            "status": "possible_match" if verify_quote_in_text(actor, org_chart_text) else "missing",
+            "step_id": step.id if step else None,
+            "policy_quote": rule.source if rule else None,
+        })
+    return gaps
 
 
 async def design_workflow(org_pdf: bytes, policy_pdf: bytes, org: Organization,
@@ -107,14 +150,17 @@ async def design_workflow(org_pdf: bytes, policy_pdf: bytes, org: Organization,
             return None, [f"opportunity_id must be '{opportunity.id}', got '{wf.opportunity_id}'"]
         return wf, problems
 
-    return await run_guarded_stage(
+    result = await run_guarded_stage(
         stage="workflow",
         first_call=lambda: workflow_architect.design(org_pdf, policy_pdf, org_json, opp_json),
         repair_call=lambda previous, problems: workflow_architect.repair(
             org_pdf, policy_pdf, org_json, opp_json, previous, problems),
         validate=validate,
-        fixture=lambda: Workflow.model_validate(load_fixture("workflow_fixture.json")),
+        fixture=_fixture(org_pdf, policy_pdf, "workflow_fixture.json", Workflow),
     )
+    if result.value is not None:
+        result.extras["gaps"] = find_gaps(result.value, extract_pdf_text(org_pdf))
+    return result
 
 
 async def run_request(workflow: Workflow, org: Organization, form: PurchaseRequestForm,

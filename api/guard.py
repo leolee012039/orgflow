@@ -42,14 +42,59 @@ def extract_pdf_text(source: Union[str, bytes, io.BytesIO]) -> str:
         logger.error("Failed to extract PDF text: %s", e)
         return ""
 
+CN_DIGITS = {"零": 0, "〇": 0, "一": 1, "壹": 1, "二": 2, "貳": 2, "兩": 2, "两": 2, "三": 3, "參": 3,
+             "四": 4, "肆": 4, "五": 5, "伍": 5, "六": 6, "陸": 6, "七": 7, "柒": 7, "八": 8, "捌": 8,
+             "九": 9, "玖": 9}
+CN_SMALL_UNITS = {"十": 10, "拾": 10, "百": 100, "佰": 100, "千": 1000, "仟": 1000}
+CN_BIG_UNITS = {"萬": 10_000, "万": 10_000, "億": 100_000_000, "亿": 100_000_000}
+CN_NUMERAL = "".join([*CN_DIGITS, *CN_SMALL_UNITS, *CN_BIG_UNITS])
+
+
+def chinese_numeral_to_int(text: str) -> int:
+    """'五萬' -> 50000, '十五萬' -> 150000, '一百萬' -> 1000000, '五千' -> 5000."""
+    total, section, digit = 0, 0, 0
+    for ch in text:
+        if ch in CN_DIGITS:
+            digit = CN_DIGITS[ch]
+        elif ch in CN_SMALL_UNITS:
+            section += (digit or 1) * CN_SMALL_UNITS[ch]
+            digit = 0
+        elif ch in CN_BIG_UNITS:
+            total = (total + section + digit) * CN_BIG_UNITS[ch]
+            section, digit = 0, 0
+    return total + section + digit
+
+
+def _format_amount(value: float) -> str:
+    return str(int(value)) if float(value).is_integer() else str(value)
+
+
+def normalize_amounts(text: str) -> str:
+    """Write every amount as plain digits so English and Chinese policies compare the same way.
+
+    '1,000' -> '1000', '30萬' -> '300000', '5 千萬' -> '50000000', '新臺幣五萬元' -> '新臺幣50000元'.
+    """
+    text = re.sub(r"(?<=\d),(?=\d{3})", "", text)
+    multipliers = {"千萬": 10_000_000, "百萬": 1_000_000, "十萬": 100_000, "萬": 10_000, "万": 10_000,
+                   "千": 1_000, "億": 100_000_000, "亿": 100_000_000}
+    text = re.sub(
+        r"(\d+(?:\.\d+)?)\s*(千萬|百萬|十萬|萬|万|千|億|亿)",
+        lambda m: _format_amount(float(m.group(1)) * multipliers[m.group(2)]),
+        text,
+    )
+    # Chinese numerals are converted only when they are clearly money, so 「一級主管」 stays as it is.
+    return re.sub(
+        rf"(?<=[臺台]幣)\s*([{CN_NUMERAL}]+)|([{CN_NUMERAL}]+)(?=\s*元)",
+        lambda m: str(chinese_numeral_to_int(m.group(1) or m.group(2))),
+        text,
+    )
+
+
 def extract_numbers(text: str) -> list[str]:
-    """Extract numbers, stripping thousands separators (e.g. 1,000 -> 1000)."""
-    nums: list[str] = []
-    # Match numbers with optional comma separators
-    for m in re.finditer(r"\b\d+(?:,\d{3})*(?:\.\d+)?\b", text):
-        num_str = m.group(0).replace(",", "")
-        nums.append(num_str)
-    return nums
+    """Every number in the text after normalize_amounts. Works next to Chinese characters,
+    where a regex word boundary (\\b) would not fire."""
+    normalized = normalize_amounts(text)
+    return [_format_amount(float(m)) for m in re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])", normalized)]
 
 def extract_tokens(text: str) -> list[str]:
     """
@@ -62,6 +107,11 @@ def extract_tokens(text: str) -> list[str]:
         tokens.append(token)
     return tokens
 
+def _compact(text: str) -> str:
+    """Lowercase, with whitespace and punctuation removed."""
+    return re.sub(r"[\s\W_]+", "", text).lower()
+
+
 def verify_quote_in_text(quote: str, doc_text: str) -> bool:
     """
     Check 3 semantics:
@@ -72,6 +122,13 @@ def verify_quote_in_text(quote: str, doc_text: str) -> bool:
         return False
     if not doc_text or not doc_text.strip():
         return False
+    quote = normalize_amounts(quote)
+    doc_text = normalize_amounts(doc_text)
+
+    # 0. Exact match once spacing is ignored. This also covers PDFs whose text comes out
+    #    one character per line, such as vertical CJK org charts.
+    if _compact(quote) and _compact(quote) in _compact(doc_text):
+        return True
 
     # 1. Number check
     quote_numbers = extract_numbers(quote)
@@ -138,6 +195,7 @@ def check_step_actors(workflow: Workflow, org: Optional[Organization]) -> list[s
 
     valid_role_ids = {r.id.lower() for r in org.roles}
     valid_role_titles = {r.title.lower() for r in org.roles}
+    department_names = {d.name.lower() for d in org.departments}
     unresolved = {a.lower() for a in workflow.unresolved_actors}
 
     errors: list[str] = []
@@ -147,11 +205,12 @@ def check_step_actors(workflow: Workflow, org: Optional[Organization]) -> list[s
             actor_lower in SPECIAL_ACTORS
             or actor_lower in valid_role_ids
             or actor_lower in valid_role_titles
+            or actor_lower in department_names
             or actor_lower in unresolved
         ):
             continue
         errors.append(
-            f"Step '{step.id}' actor '{step.actor}' is not in organization roles and not listed in unresolved_actors"
+            f"Step '{step.id}' actor '{step.actor}' is not an organization role or department and not listed in unresolved_actors"
         )
     return errors
 
@@ -164,17 +223,13 @@ def check_rule_numbers(workflow: Workflow) -> list[str]:
     for rule in workflow.rules:
         val = rule.when.value
         if isinstance(val, (int, float)):
-            val_str = str(int(val)) if float(val).is_integer() else str(val)
-        else:
-            val_str = str(val).strip()
-
-        # Remove commas between digits in source (e.g. 1,000 -> 1000)
-        norm_source = re.sub(r"(\d),(\d)", r"\1\2", rule.source)
-
-        if val_str not in norm_source:
-            errors.append(
-                f"Rule '{rule.id}' threshold value {val_str} does not appear in its source quote: '{rule.source}'"
-            )
+            if _format_amount(val) not in extract_numbers(rule.source):
+                errors.append(
+                    f"Rule '{rule.id}' threshold value {_format_amount(val)} does not appear in its source quote: "
+                    f"'{rule.source}' (write amounts in full, for example 12萬元 is 120000)"
+                )
+        elif str(val).strip() not in rule.source:
+            errors.append(f"Rule '{rule.id}' value '{val}' does not appear in its source quote: '{rule.source}'")
     return errors
 
 # -----------------------------------------------------------------------------
@@ -192,7 +247,7 @@ def check_org_consistency(org: Organization) -> list[str]:
     if len(role_ids) != len(org.roles):
         errors.append("Role ids must be unique")
     for dept in org.departments:
-        if dept.head_role_id not in role_ids:
+        if dept.head_role_id is not None and dept.head_role_id not in role_ids:
             errors.append(f"Department '{dept.name}' head_role_id '{dept.head_role_id}' is not a role id")
     for role in org.roles:
         if role.reports_to is not None and role.reports_to not in role_ids:
@@ -218,6 +273,7 @@ def validate_organization_output(
     valid, org, errors = check_schema(data, Organization)
     if not valid:
         return None, errors
+    assert org is not None
 
     errors.extend(check_org_consistency(org))
     if doc_text:
@@ -244,6 +300,7 @@ def validate_opportunities_output(
     valid, opps, errors = check_schema(data, Opportunities)
     if not valid:
         return None, errors
+    assert opps is not None
     if len(opps.opportunities) != 3:
         errors.append(f"Expected exactly 3 opportunities, got {len(opps.opportunities)}")
         return None, errors
@@ -277,6 +334,14 @@ def validate_opportunities_output(
 
 FORM_FIELDS = set(PurchaseRequestForm.model_fields) - {"request_id"}
 
+_CURRENCY_AMOUNT = re.compile(r"(?:USD|US\$|NT\$|NTD|TWD|新[臺台]幣|\$)\s*(\d{3,})|(\d{3,})\s*(?:元|dollars?)", re.I)
+
+
+def stated_amounts(text: str) -> list[int]:
+    """Money amounts of 1,000 or more that the documents state, after normalize_amounts."""
+    found = [int(a or b) for a, b in _CURRENCY_AMOUNT.findall(normalize_amounts(text))]
+    return [n for n in found if n >= 1000]
+
 
 def check_workflow_structure(wf: Workflow) -> list[str]:
     """The runner can only execute what it can resolve: known fields, rule ids and unique steps."""
@@ -308,12 +373,20 @@ def validate_workflow_output(
     valid, wf, errors = check_schema(data, Workflow)
     if not valid:
         return None, errors
+    assert wf is not None
 
     # Check 2: actors
     actor_errors = check_step_actors(wf, org)
     errors.extend(actor_errors)
 
     errors.extend(check_workflow_structure(wf))
+    if doc_text and not wf.rules and sum(s.type == "approval" for s in wf.steps) >= 2:
+        amounts = stated_amounts(doc_text)
+        if amounts:
+            errors.append(
+                f"The documents state amount limits (for example {amounts[0]:,}) but the workflow has no rules. "
+                "Express each amount limit that decides an approval as a rule and use it in only_if."
+            )
     if doc_text:
         for name in wf.unresolved_actors:
             if not verify_quote_in_text(name, doc_text):

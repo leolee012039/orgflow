@@ -67,12 +67,30 @@ export function Working({ label }: { label: string }) {
   );
 }
 
-export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorNote({
+  message,
+  problems = [],
+  onRetry,
+}: {
+  message: string;
+  problems?: string[];
+  onRetry?: () => void;
+}) {
   return (
-    <div role="alert" className="flex flex-wrap items-center gap-4 rounded-md border border-alert bg-alert-soft px-4 py-3 text-alert">
-      <span>{message}</span>
+    <div role="alert" className="flex flex-col gap-3 rounded-md border border-alert bg-alert-soft px-4 py-3 text-alert">
+      <p>{message}</p>
+      {problems.length > 0 && (
+        <div className="flex flex-col gap-1 text-sm text-ink">
+          <p className="font-medium">What the checks found</p>
+          <ul className="list-disc pl-5">
+            {problems.slice(0, 3).map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {onRetry && (
-        <button type="button" onClick={onRetry} className="font-medium underline underline-offset-4">
+        <button type="button" onClick={onRetry} className="w-fit font-medium underline underline-offset-4">
           Try again
         </button>
       )}

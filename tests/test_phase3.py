@@ -74,7 +74,7 @@ def test_fixture_workflow_passes_full_guard():
     (lambda d: d["steps"][2].update(only_if="r_missing"), "is not a rule id"),
     (lambda d: d["rules"][0]["when"].update(field="budget_code"), "not a request form field"),
     (lambda d: d["required_fields"].append("cost_center"), "not a request form field"),
-    (lambda d: d["steps"][4].update(actor="Chief Purchasing Officer"), "not in organization roles"),
+    (lambda d: d["steps"][4].update(actor="Chief Purchasing Officer"), "not an organization role or department"),
     (lambda d: d["unresolved_actors"].append("Chief Purchasing Officer"), "does not appear in the uploaded documents"),
     (lambda d: d["steps"].append(dict(d["steps"][1])), "Step ids must be unique"),
     (lambda d: d["rules"][1]["when"].update(value=6000), "does not appear in its source quote"),
