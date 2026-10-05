@@ -33,16 +33,20 @@ const inputClass = "rounded-md border border-line bg-sheet px-3 py-2 text-ink";
 function RequestForm({
   org,
   workflow,
+  boundaries,
   busy,
   onRun,
 }: {
   org: Organization;
   workflow: Workflow;
+  boundaries: number[];
   busy: boolean;
   onRun: (request: PurchaseRequest) => void;
 }) {
   const currency = currencyOf(workflow.rules);
-  const presets = currency === "USD" ? NOVAGEAR_AMOUNTS : tryAmounts(workflow.rules);
+  const base = currency === "USD" ? NOVAGEAR_AMOUNTS : tryAmounts(workflow.rules);
+  // Amounts the policy leaves out are worth trying too: they show the run stopping at the gap
+  const presets = [...new Set([...base, ...boundaries])].sort((a, b) => a - b);
   const [request, setRequest] = useState<PurchaseRequest>(() => {
     if (org.departments.some((d) => d.name === SAMPLE_REQUEST.department)) return SAMPLE_REQUEST;
     const department = (org.departments.find((d) => d.head_role_id) ?? org.departments[0])?.name ?? "";
@@ -162,6 +166,9 @@ function explain(step: StepTrace, workflow: Workflow, rules: Map<string, Rule>, 
     const rule = ruleId ? rules.get(ruleId) : undefined;
     return rule ? `${ruleExpression(rule)} is true for ${cost}. Simulated approval.` : "Simulated approval.";
   }
+  if (step.step_id === "amount_check") {
+    return step.reason.replace(/ → human review$/, ".");
+  }
   if (step.result === "HUMAN_REVIEW" && workflow.unresolved_actors.includes(step.actor)) {
     return `The org chart has no ${step.actor}, so a person picks the approver.`;
   }
@@ -222,7 +229,7 @@ function RoutingSlip({
                   <p>
                     <span className="font-medium">{wfStep ? actorName(wfStep.actor, org) : "Rules engine"}</span>
                     <span className="ml-2 text-sm text-muted">
-                      {wfStep ? STEP_KIND[wfStep.type] : "Submission check"}
+                      {wfStep ? STEP_KIND[wfStep.type] : step.step_id === "amount_check" ? "Amount check" : "Submission check"}
                     </span>
                   </p>
                   <p className="text-sm text-muted">{explain(step, workflow, rules, request)}</p>
@@ -262,15 +269,20 @@ function Outcome({ trace, workflow, org, request }: { trace: Trace; workflow: Wo
   }
 
   const unresolved = last && workflow.unresolved_actors.includes(last.actor);
+  const cost = money(request.estimated_cost, currencyOf(workflow.rules));
   return (
     <div className="flex flex-col gap-2 border-l-4 border-alert pl-4">
       <p className="text-lg font-semibold text-alert">{trace.status === "RETURNED" ? `Returned to ${request.requester}` : "Waiting for a person"}</p>
       <p>
         {trace.status === "RETURNED"
           ? "Nothing was approved. The requester can add the missing information and submit again."
-          : unresolved
-            ? `The policy requires ${last.actor} approval for ${money(request.estimated_cost, currencyOf(workflow.rules))}, and ${org.company}'s org chart has no ${last.actor}. OrgFlow stopped here instead of guessing who should approve.`
-            : "Gemini flagged the request details, so a person decides before anyone approves it."}
+          : last?.step_id === "amount_check"
+            ? last.reason.startsWith("No approval level")
+              ? `${org.company}'s policy doesn't say who approves exactly ${cost}. OrgFlow stopped before any approval instead of picking a level.`
+              : `${org.company}'s policy puts exactly ${cost} in two approval levels. OrgFlow stopped before any approval instead of picking one.`
+            : unresolved
+              ? `The policy requires ${last.actor} approval for ${cost}, and ${org.company}'s org chart has no ${last.actor}. OrgFlow stopped here instead of guessing who should approve.`
+              : "Gemini flagged the request details, so a person decides before anyone approves it."}
       </p>
     </div>
   );
@@ -279,6 +291,7 @@ function Outcome({ trace, workflow, org, request }: { trace: Trace; workflow: Wo
 export function RunPanel({
   org,
   workflow,
+  boundaries,
   trace,
   runKey,
   lastRequest,
@@ -287,6 +300,7 @@ export function RunPanel({
 }: {
   org: Organization;
   workflow: Workflow;
+  boundaries: number[];
   trace: Trace | null;
   runKey: number;
   lastRequest: PurchaseRequest | null;
@@ -295,7 +309,7 @@ export function RunPanel({
 }) {
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-      <RequestForm org={org} workflow={workflow} busy={busy} onRun={onRun} />
+      <RequestForm org={org} workflow={workflow} boundaries={boundaries} busy={busy} onRun={onRun} />
       <div>
         {trace && lastRequest ? (
           <RoutingSlip key={runKey} trace={trace} workflow={workflow} org={org} request={lastRequest} />

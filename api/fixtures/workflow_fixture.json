@@ -67,5 +67,22 @@
   "unresolved_actors": [
     "Director"
   ],
+  "amount_tiers": [
+    {
+      "min": null,
+      "max": 1000,
+      "source": "Below USD 1,000  Manager approval"
+    },
+    {
+      "min": 1000,
+      "max": 5000,
+      "source": "USD 1,000 - USD 5,000  Manager approval + Finance validation"
+    },
+    {
+      "min": 5000,
+      "max": null,
+      "source": "Above USD 5,000  Manager approval + Finance validation + Director approval"
+    }
+  ],
   "explanation": "Automates NovaGear's purchasing approval workflow from submission to procurement handoff based on purchasing policy thresholds."
 }

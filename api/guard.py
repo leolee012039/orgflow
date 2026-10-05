@@ -232,6 +232,29 @@ def check_rule_numbers(workflow: Workflow) -> list[str]:
             errors.append(f"Rule '{rule.id}' value '{val}' does not appear in its source quote: '{rule.source}'")
     return errors
 
+
+def check_amount_tiers(workflow: Workflow) -> list[str]:
+    """Each tier's ends are amounts its own passage states, so the coverage check reads real wording."""
+    errors: list[str] = []
+    for i, tier in enumerate(workflow.amount_tiers, 1):
+        if tier.min is None and tier.max is None:
+            errors.append(f"Amount tier {i} has neither min nor max")
+        elif tier.min is not None and tier.max is not None and tier.min >= tier.max:
+            errors.append(f"Amount tier {i} min {_format_amount(tier.min)} is not below its max {_format_amount(tier.max)}")
+        numbers = extract_numbers(tier.source)
+        for end, value in (("min", tier.min), ("max", tier.max)):
+            if value is not None and _format_amount(value) not in numbers:
+                errors.append(
+                    f"Amount tier {i} {end} {_format_amount(value)} does not appear in its source: '{tier.source}' "
+                    "(use the amount the policy writes at that end, in full, without adding or subtracting 1)"
+                )
+    if not workflow.amount_tiers and any(
+        r.when.field == "estimated_cost" and isinstance(r.when.value, (int, float)) for r in workflow.rules
+    ):
+        errors.append("The rules depend on estimated_cost, but amount_tiers is empty. "
+                      "List each approval tier of the policy in amount_tiers.")
+    return errors
+
 # -----------------------------------------------------------------------------
 # Validation Wrappers
 # -----------------------------------------------------------------------------
@@ -395,6 +418,7 @@ def validate_workflow_output(
     # Check 4: rule threshold numbers in source
     rule_errors = check_rule_numbers(wf)
     errors.extend(rule_errors)
+    errors.extend(check_amount_tiers(wf))
 
     # Check 3: source quotes in doc_text
     if doc_text and wf is not None:
@@ -403,6 +427,9 @@ def validate_workflow_output(
                 errors.append(
                     f"Rule '{rule.id}' source does not ground in uploaded documents: '{rule.source}'"
                 )
+        for i, tier in enumerate(wf.amount_tiers, 1):
+            if not verify_quote_in_text(tier.source, doc_text):
+                errors.append(f"Amount tier {i} source does not ground in uploaded documents: '{tier.source}'")
 
     if errors:
         return None, errors

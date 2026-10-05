@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Callable, Optional, Union
+from coverage import amount_finding
 from schemas import (
     Workflow,
     Organization,
@@ -160,7 +161,34 @@ def run_workflow(
         )
 
     # -------------------------------------------------------------------------
-    # 2. Walk the steps in order
+    # 2. An amount the policy's tiers leave uncovered, or cover twice, has no
+    #    defined approvals, so a person decides before anything runs
+    # -------------------------------------------------------------------------
+    finding = amount_finding(workflow.amount_tiers, form.estimated_cost)
+    if finding:
+        amount = f"{form.estimated_cost:,.0f}"
+        reason = (f"No approval level in the policy covers exactly {amount} → human review"
+                  if finding["kind"] == "gap" else
+                  f"Two approval levels in the policy both cover exactly {amount} → human review")
+        logger.info("Runner: amount %s is a policy %s -> NEEDS_HUMAN_REVIEW", amount, finding["kind"])
+        return ExecutionTrace(
+            request_id=form.request_id,
+            status="NEEDS_HUMAN_REVIEW",
+            steps=[
+                StepTrace(
+                    step_id="amount_check",
+                    type="task",
+                    actor="system",
+                    result="HUMAN_REVIEW",
+                    reason=reason,
+                    source=f"{finding['below']} / {finding['above']}",
+                )
+            ],
+            metrics=TraceMetrics(manual_handoffs_before=manual_handoffs_before, human_approvals=0, ai_checks=0),
+        )
+
+    # -------------------------------------------------------------------------
+    # 3. Walk the steps in order
     # -------------------------------------------------------------------------
     for step in workflow.steps:
         # Check 'only_if' condition

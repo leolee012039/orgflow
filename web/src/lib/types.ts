@@ -63,6 +63,13 @@ export interface Step {
   on_fail?: string | null;
 }
 
+/** One approval level of the policy, with the amounts it states at each end. */
+export interface AmountTier {
+  min: number | null;
+  max: number | null;
+  source: string;
+}
+
 export interface Workflow {
   workflow_name: string;
   opportunity_id: string;
@@ -70,8 +77,21 @@ export interface Workflow {
   rules: Rule[];
   steps: Step[];
   unresolved_actors: string[];
+  amount_tiers?: AmountTier[];
   explanation: string;
 }
+
+/** An amount where one tier ends and the next begins, and the wording leaves it in no tier or in both. */
+export interface AmountGap {
+  kind: "gap" | "overlap";
+  amount: number;
+  /** passage of the tier that ends at this amount */
+  below: string;
+  /** passage of the tier that starts at this amount */
+  above: string;
+}
+
+export type WorkflowResult = Workflow & { gaps: Gap[]; amount_gaps?: AmountGap[] };
 
 /** An approver the policy requires that the organization does not provide. */
 export interface Gap {

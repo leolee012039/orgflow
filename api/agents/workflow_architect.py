@@ -51,6 +51,13 @@ Fields:
   approver that has no matching role in the organization, use the approver's name
   exactly as the policy writes it, and also list that name in unresolved_actors.
   Never map such an approver onto a different existing role.
+- amount_tiers: when the policy decides approvals by amount, list each amount tier
+  once, in the policy's order. min and max are the amounts the policy writes at the
+  tier's lower and upper end, in full like rule values, and null when the tier has
+  no such end. Copy the numbers as written, never adding or subtracting 1: for
+  逾二萬元，未達十萬元 min is 20000 and max is 100000; for Above USD 5,000 min is 5000
+  and max is null. source: the tier's passage word for word (the whole table row or
+  sentence). Leave amount_tiers empty when no approval depends on the amount.
 - explanation: two sentences on why this workflow follows the policy.
 
 Use only the four step types: approval, ai_review, task, notification. Never invent

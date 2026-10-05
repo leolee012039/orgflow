@@ -26,6 +26,7 @@ from agents import (
     workflow_architect,
 )
 from agents.runtime import AgentResult, log_event
+from coverage import find_amount_gaps
 from guard import (
     extract_pdf_text,
     load_fixture,
@@ -200,6 +201,7 @@ async def design_workflow(org_pdf: bytes, policy_pdf: bytes, org: Organization,
     )
     if result.value is not None:
         result.extras["gaps"] = find_gaps(result.value, await document_text(org_pdf))
+        result.extras["amount_gaps"] = find_amount_gaps(result.value.amount_tiers)
     return result
 
 

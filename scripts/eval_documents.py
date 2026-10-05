@@ -26,6 +26,7 @@ from schemas import PurchaseRequestForm  # noqa: E402
 
 CACHE = ROOT / ".cache" / "eval"
 EN = ROOT / "demo_assets" / "en"
+ZH = ROOT / "demo_assets" / "zh"
 
 
 @dataclass
@@ -42,6 +43,10 @@ PAIRS = [
          str(EN / "NovaGear_Purchasing_Policy.pdf"), "The demo company (fictional)."),
     Pair("NovaGear, scanned", "image-only PDFs", "scanned:NovaGear_Organization_Chart",
          "scanned:NovaGear_Purchasing_Policy", "Same documents rendered as JPEG pages with no text layer."),
+    Pair("Xiangying Fitness", "fictional, Traditional Chinese", str(ZH / "Xiangying_Fitness_Org_Chart.pdf"),
+         str(ZH / "Xiangying_Fitness_Purchasing_Policy.pdf"),
+         "A made-up gym chain with three planted flaws: an approver missing from the org chart, amounts "
+         "written in Chinese numerals, and no approval level for exactly NT$100,000."),
     Pair("National Taiwan University", "real, Traditional Chinese",
          "https://ntuinfo.ntu.edu.tw/pdf/p1_2_0_strusys.pdf",
          "https://ga.ntu.edu.tw/main_ch/fileRename/fileRename/123/938/1/7/請購作業規範112.1.7修正.pdf",
@@ -100,7 +105,8 @@ async def evaluate(pair: Pair) -> dict:
     row["total_s"] = time.perf_counter() - t
     if wf.value is not None:
         # Run requests just below, at and above every amount threshold (plain code only)
-        amounts = sorted({float(r.when.value) for r in wf.value.rules if isinstance(r.when.value, (int, float))})
+        amounts = sorted({float(r.when.value) for r in wf.value.rules if isinstance(r.when.value, (int, float))}
+                         | {float(f["amount"]) for f in wf.extras.get("amount_gaps", [])})
         probes = sorted({max(a + d, 0) for a in amounts for d in (-1, 0, 1)}) or [1000.0]
         # Requests come from a department whose head is named, if the documents name any
         headed = [d for d in org.value.departments if d.head_role_id]
@@ -143,8 +149,10 @@ def write_report(rows: list[dict]) -> str:
         wf = row.get("wf")
         org = row.get("org")
         rules = len(wf.value.rules) if wf and wf.value else "-"
-        gaps = "; ".join(f"{g['actor']} ({g['status'].replace('_', ' ')})"
-                         for g in (wf.extras.get("gaps", []) if wf else [])) or "none"
+        gaps = "; ".join([f"{g['actor']} ({g['status'].replace('_', ' ')})"
+                          for g in (wf.extras.get("gaps", []) if wf else [])]
+                         + [f"amount {f['kind']} at {f['amount']:,.0f}"
+                            for f in (wf.extras.get("amount_gaps", []) if wf else [])]) or "none"
         runs = row.get("runs")
         runs_txt = f"{len(runs)} (" + ", ".join(f"{s.lower().replace('_', ' ')} ×{runs.count(s)}"
                                                for s in sorted(set(runs))) + ")" if runs else "-"
@@ -159,7 +167,8 @@ def write_report(rows: list[dict]) -> str:
         p = row["pair"]
         lines += [f"### {p.name}", "", p.note, ""]
         if not p.org.startswith(("http", "scanned")):
-            lines.append("Sources: the bundled NovaGear PDFs in `demo_assets/en/`.")
+            lines.append(f"Sources: `{Path(p.org).relative_to(ROOT).as_posix()}` and "
+                         f"`{Path(p.policy).relative_to(ROOT).as_posix()}`.")
         elif p.org.startswith("http"):
             lines += [f"- Organization: {p.org}", f"- Policy: {p.policy}"]
         lines.append(f"- Total time for the three AI stages: {row['total_s']:.1f} s")
@@ -177,6 +186,13 @@ def write_report(rows: list[dict]) -> str:
                 lines.append(f"- Rule `{r.when.field} {r.when.op} {r.when.value:,}`" if isinstance(r.when.value, (int, float))
                              else f"- Rule `{r.when.field} {r.when.op} {r.when.value}`")
                 lines.append(f"  - Policy text: 「{r.source.strip()}」")
+            for t in wf.value.amount_tiers:
+                ends = (f"up to {t.max:,.0f}" if t.min is None else f"from {t.min:,.0f}" if t.max is None
+                        else f"{t.min:,.0f} to {t.max:,.0f}")
+                lines.append(f"- Amount level {ends}: 「{t.source.strip()}」")
+            for f in wf.extras.get("amount_gaps", []):
+                lines.append(f"- Amount {f['kind']} at {f['amount']:,.0f} (found by code): "
+                             f"「{f['below'].strip()}」 then 「{f['above'].strip()}」")
         for stage_name in ("org", "opps", "wf"):
             stage = row.get(stage_name)
             if stage and stage.problems:

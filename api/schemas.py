@@ -83,6 +83,12 @@ class Rule(BaseModel):
     when: RuleWhen
     source: str
 
+class AmountTier(BaseModel):
+    """One approval level of the policy, with the amounts it states at each end."""
+    min: Optional[float] = None  # None: the tier has no lower end
+    max: Optional[float] = None  # None: the tier has no upper end
+    source: str
+
 StepType = Literal["approval", "ai_review", "task", "notification"]
 
 class Step(BaseModel):
@@ -100,6 +106,7 @@ class Workflow(BaseModel):
     rules: list[Rule] = Field(default_factory=list)
     steps: list[Step]
     unresolved_actors: list[str] = Field(default_factory=list)
+    amount_tiers: list[AmountTier] = Field(default_factory=list)
     explanation: str
 
 class WorkflowResponse(BaseModel):
@@ -109,6 +116,7 @@ class WorkflowResponse(BaseModel):
     rules: list[Rule] = Field(default_factory=list)
     steps: list[Step]
     unresolved_actors: list[str] = Field(default_factory=list)
+    amount_tiers: list[AmountTier] = Field(default_factory=list)
     explanation: str
     origin: OriginType = "live"
 

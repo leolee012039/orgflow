@@ -1,4 +1,4 @@
-import type { Documents, Gap, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "./types";
+import type { Documents, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow, WorkflowResult } from "./types";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000").replace(/\/$/, "");
 
@@ -56,7 +56,7 @@ export const api = {
     post<WithMeta<{ opportunities: Opportunity[] }>>("/api/opportunities", documentsForm(docs, { organization })),
 
   workflow: (docs: Documents, organization: Organization, opportunity: Opportunity) =>
-    post<WithMeta<Workflow & { gaps: Gap[] }>>("/api/workflow", documentsForm(docs, { organization, opportunity })),
+    post<WithMeta<WorkflowResult>>("/api/workflow", documentsForm(docs, { organization, opportunity })),
 
   run: (workflow: Workflow, organization: Organization, request: PurchaseRequest, manualHandoffs: number) =>
     post<Trace>("/api/run", { workflow, organization, request, manual_handoffs_before: manualHandoffs }),

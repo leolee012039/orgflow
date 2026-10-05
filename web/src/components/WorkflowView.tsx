@@ -1,5 +1,5 @@
-import { actorName, ruleExpression, STEP_KIND } from "@/lib/format";
-import type { Gap, Organization, Rule, Workflow } from "@/lib/types";
+import { actorName, currencyOf, money, ruleExpression, STEP_KIND } from "@/lib/format";
+import type { AmountGap, Gap, Organization, Rule, Workflow } from "@/lib/types";
 import { Quote } from "./Quote";
 
 /** The headline finding: an approver the policy requires that the organization doesn't have. */
@@ -42,9 +42,52 @@ function GapCard({ gap, org, rule }: { gap: Gap; org: Organization; rule?: Rule 
   );
 }
 
-export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps: Gap[]; org: Organization }) {
+/** An amount the policy's approval levels leave out, or include twice. Found by plain code, not Gemini. */
+function AmountGapCard({ finding, currency }: { finding: AmountGap; currency: string }) {
+  const amount = money(finding.amount, currency);
+  const gap = finding.kind === "gap";
+  return (
+    <div className="flex flex-col gap-4 rounded-md border-l-4 border-alert bg-sheet p-5">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-alert">Your policy can&apos;t run as written</p>
+        <h3 className="text-xl font-semibold text-balance">
+          {gap
+            ? `No approval level covers exactly ${amount}. One level stops just below it, and the next starts just above it.`
+            : `Two approval levels both cover exactly ${amount}, so the policy names two sets of approvers for it.`}
+        </h3>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted">{gap ? "This level stops below it" : "This level includes it"}</p>
+          <Quote text={finding.below} doc="policy" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted">{gap ? "The next level starts above it" : "The next level includes it too"}</p>
+          <Quote text={finding.above} doc="policy" />
+        </div>
+      </div>
+      <p className="text-muted">
+        A request for exactly {amount} will stop and wait for a person. Plain code read the wording on both sides, so
+        this finding doesn&apos;t depend on Gemini.
+      </p>
+    </div>
+  );
+}
+
+export function WorkflowView({
+  workflow,
+  gaps,
+  amountGaps,
+  org,
+}: {
+  workflow: Workflow;
+  gaps: Gap[];
+  amountGaps: AmountGap[];
+  org: Organization;
+}) {
   const rules = new Map(workflow.rules.map((r) => [r.id, r]));
   const gapFor = new Map(gaps.map((g) => [g.actor, g]));
+  const currency = currencyOf(workflow.rules);
   const ruleOf = (stepId: string | null) => {
     const ruleId = workflow.steps.find((s) => s.id === stepId)?.only_if;
     return ruleId ? rules.get(ruleId) : undefined;
@@ -52,10 +95,13 @@ export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps
 
   return (
     <div className="flex flex-col gap-10">
-      {gaps.length > 0 && (
+      {gaps.length + amountGaps.length > 0 && (
         <div className="flex flex-col gap-4">
           {gaps.map((gap) => (
             <GapCard key={gap.actor} gap={gap} org={org} rule={ruleOf(gap.step_id)} />
+          ))}
+          {amountGaps.map((finding) => (
+            <AmountGapCard key={`${finding.kind}-${finding.amount}`} finding={finding} currency={currency} />
           ))}
         </div>
       )}

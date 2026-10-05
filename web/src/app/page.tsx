@@ -9,7 +9,7 @@ import { StepRail, type RailState } from "@/components/StepRail";
 import { UploadStep } from "@/components/UploadStep";
 import { WorkflowView } from "@/components/WorkflowView";
 import { api, ApiError } from "@/lib/api";
-import type { Documents, Gap, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, Workflow } from "@/lib/types";
+import type { Documents, Opportunity, Organization, PurchaseRequest, Trace, WithMeta, WorkflowResult } from "@/lib/types";
 
 type Stage<T> =
   | { status: "idle" }
@@ -38,7 +38,7 @@ export default function Home() {
   const [org, setOrg] = useState<Stage<WithMeta<Organization>>>(IDLE);
   const [opps, setOpps] = useState<Stage<WithMeta<{ opportunities: Opportunity[] }>>>(IDLE);
   const [chosen, setChosen] = useState<Opportunity | null>(null);
-  const [workflow, setWorkflow] = useState<Stage<WithMeta<Workflow & { gaps: Gap[] }>>>(IDLE);
+  const [workflow, setWorkflow] = useState<Stage<WithMeta<WorkflowResult>>>(IDLE);
   const [run, setRun] = useState<Stage<Trace>>(IDLE);
   const [lastRequest, setLastRequest] = useState<PurchaseRequest | null>(null);
   const [runKey, setRunKey] = useState(0);
@@ -207,7 +207,12 @@ export default function Home() {
               )}
               {workflow.status === "done" && org.status === "done" && (
                 <>
-                  <WorkflowView workflow={workflow.data} gaps={workflow.data.gaps ?? []} org={org.data} />
+                  <WorkflowView
+                    workflow={workflow.data}
+                    gaps={workflow.data.gaps ?? []}
+                    amountGaps={workflow.data.amount_gaps ?? []}
+                    org={org.data}
+                  />
                   <OriginNote origin={workflow.data.origin} latencyMs={workflow.data.latency_ms} />
                 </>
               )}
@@ -237,6 +242,7 @@ export default function Home() {
                 <RunPanel
                   org={org.data}
                   workflow={workflow.data}
+                  boundaries={(workflow.data.amount_gaps ?? []).map((g) => g.amount)}
                   trace={run.status === "done" ? run.data : null}
                   runKey={runKey}
                   lastRequest={lastRequest}
