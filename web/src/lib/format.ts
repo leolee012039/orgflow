@@ -1,6 +1,21 @@
 import type { Organization, Rule, StepType } from "./types";
 
-export const money = (n: number) => `USD ${n.toLocaleString("en-US")}`;
+export const money = (n: number, currency = "USD") => `${currency} ${n.toLocaleString("en-US")}`;
+
+/** The policy's currency, read from the passages its rules quote. */
+export function currencyOf(rules: Rule[]): string {
+  return rules.some((r) => /新[臺台]幣|元|NT\$/.test(r.source)) ? "NT$" : "USD";
+}
+
+/** Amounts worth trying: below, between and above the policy's thresholds. */
+export function tryAmounts(rules: Rule[]): number[] {
+  const t = [...new Set(rules.map((r) => Number(r.when.value)).filter((v) => Number.isFinite(v) && v > 0))].sort(
+    (a, b) => a - b,
+  );
+  if (t.length === 0) return [];
+  const between = t.slice(1).map((v, i) => Math.round((v + t[i]) / 2));
+  return [Math.round(t[0] / 2), ...between, Math.round(t[t.length - 1] * 1.5)];
+}
 
 const OPERATORS: Record<string, string> = { "<": "<", "<=": "≤", ">": ">", ">=": "≥", "==": "=" };
 

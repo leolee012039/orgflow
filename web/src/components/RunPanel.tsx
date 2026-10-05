@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
-import { actorName, FIELD_LABELS, money, ruleExpression, STEP_KIND } from "@/lib/format";
+import { actorName, currencyOf, FIELD_LABELS, money, ruleExpression, STEP_KIND, tryAmounts } from "@/lib/format";
 import type { Organization, PurchaseRequest, Rule, StepTrace, Trace, Workflow } from "@/lib/types";
 import { PrimaryButton } from "./Section";
 
@@ -14,7 +14,7 @@ export const SAMPLE_REQUEST: PurchaseRequest = {
   business_justification: "Laptop required for a new Product Designer supporting the Operations team.",
 };
 
-const PRESET_AMOUNTS = [750, 2400, 8000];
+const NOVAGEAR_AMOUNTS = [750, 2400, 8000];
 
 function Field({ label, children }: { label: string; children: (id: string) => ReactNode }) {
   const id = useId();
@@ -32,14 +32,22 @@ const inputClass = "rounded-md border border-line bg-sheet px-3 py-2 text-ink";
 
 function RequestForm({
   org,
+  workflow,
   busy,
   onRun,
 }: {
   org: Organization;
+  workflow: Workflow;
   busy: boolean;
   onRun: (request: PurchaseRequest) => void;
 }) {
-  const [request, setRequest] = useState<PurchaseRequest>(SAMPLE_REQUEST);
+  const currency = currencyOf(workflow.rules);
+  const presets = currency === "USD" ? NOVAGEAR_AMOUNTS : tryAmounts(workflow.rules);
+  const [request, setRequest] = useState<PurchaseRequest>(() => {
+    if (org.departments.some((d) => d.name === SAMPLE_REQUEST.department)) return SAMPLE_REQUEST;
+    const department = (org.departments.find((d) => d.head_role_id) ?? org.departments[0])?.name ?? "";
+    return { ...SAMPLE_REQUEST, department, estimated_cost: presets[1] ?? presets[0] ?? 1000 };
+  });
   const set = (patch: Partial<PurchaseRequest>) => setRequest((r) => ({ ...r, ...patch }));
 
   function submit(e: FormEvent) {
@@ -64,7 +72,7 @@ function RequestForm({
       <Field label="Item">
         {(id) => <input id={id} className={inputClass} value={request.item} onChange={(e) => set({ item: e.target.value })} />}
       </Field>
-      <Field label="Estimated cost (USD)">
+      <Field label={`Estimated cost (${currency})`}>
         {(id) => (
           <input
             id={id}
@@ -79,7 +87,7 @@ function RequestForm({
       </Field>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted">Try</span>
-        {PRESET_AMOUNTS.map((amount) => (
+        {presets.map((amount) => (
           <button
             key={amount}
             type="button"
@@ -87,7 +95,7 @@ function RequestForm({
             aria-pressed={request.estimated_cost === amount}
             className="rounded-full border border-line bg-sheet px-3 py-1 tabular-nums aria-pressed:border-ink"
           >
-            {money(amount)}
+            {money(amount, currency)}
           </button>
         ))}
       </div>
@@ -141,7 +149,7 @@ function missingFields(reason: string): string[] {
 }
 
 function explain(step: StepTrace, workflow: Workflow, rules: Map<string, Rule>, request: PurchaseRequest): string {
-  const cost = money(request.estimated_cost);
+  const cost = money(request.estimated_cost, currencyOf(workflow.rules));
   if (step.result === "SKIPPED" && step.rule_id && rules.get(step.rule_id)) {
     return `${ruleExpression(rules.get(step.rule_id)!)} is not true for ${cost}.`;
   }
@@ -201,7 +209,7 @@ function RoutingSlip({
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink px-5 py-3">
           <h3 className="font-semibold">Routing slip</h3>
           <p className="text-sm text-muted tabular-nums">
-            {trace.request_id}, {request.item}, {money(request.estimated_cost)}
+            {trace.request_id}, {request.item}, {money(request.estimated_cost, currencyOf(workflow.rules))}
           </p>
         </div>
         <ol aria-live="polite">
@@ -261,7 +269,7 @@ function Outcome({ trace, workflow, org, request }: { trace: Trace; workflow: Wo
         {trace.status === "RETURNED"
           ? "Nothing was approved. The requester can add the missing information and submit again."
           : unresolved
-            ? `The policy requires ${last.actor} approval for ${money(request.estimated_cost)}, and ${org.company}'s org chart has no ${last.actor}. OrgFlow stopped here instead of guessing who should approve.`
+            ? `The policy requires ${last.actor} approval for ${money(request.estimated_cost, currencyOf(workflow.rules))}, and ${org.company}'s org chart has no ${last.actor}. OrgFlow stopped here instead of guessing who should approve.`
             : "Gemini flagged the request details, so a person decides before anyone approves it."}
       </p>
     </div>
@@ -287,7 +295,7 @@ export function RunPanel({
 }) {
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-      <RequestForm org={org} busy={busy} onRun={onRun} />
+      <RequestForm org={org} workflow={workflow} busy={busy} onRun={onRun} />
       <div>
         {trace && lastRequest ? (
           <RoutingSlip key={runKey} trace={trace} workflow={workflow} org={org} request={lastRequest} />
