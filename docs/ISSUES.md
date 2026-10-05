@@ -70,6 +70,13 @@ Found 2026-10-05 by an adversarial review; each case was reproduced with saved a
 - Also: a handoff to a department with no profile left cases waiting forever; a saved sample workflow could be used against an upstream it doesn't fit; a failed save looked saved.
 - Status: **fixed.** A built workflow records `upstream_id`, set by code to the workflow it was built against, and cases follow only that link (first in plan order, on both sides). Guards rewrite every department name to the organization's spelling, reject plans whose workflows hand cases round in a loop, reject handoffs to departments without a profile, and use a saved workflow only if it passes the checks against the actual upstream. "Build all" drops only the workflows whose upstream failed. Each company gets its own Workspace component and late builds are dropped. Request numbers must be below 10^15 (422 otherwise). A failed save is shown. Tests: `tests/test_departments.py`; page logic checked against the saved NovaGear answers.
 
+## 9. Handoffs from "every unit" are not mapped
+
+- Seen 2026-10-05 in the evaluation: National Taitung University got 10 department profiles and 10 built workflows, but no handoffs, so no chains. Its procurement rules say 「採購案逾新臺幣五萬元者，應送總務處辦理」: any unit sends large purchases to 總務處. A handoff needs one sending department, and "any unit" is not one.
+- Effect: companies whose policies address every unit get workflows per department but no chained runs.
+- Fix direction: allow a handoff from "any department" and let each department's workflow hand to the receiver.
+- Status: open, a known limit of the MVP.
+
 ## 4. Different job titles may be reported as missing roles
 
 - A policy may say "Director" while a real org chart says 協理 or "Head of Procurement". The workflow architect would list the approver as unresolved, which is a false gap.
