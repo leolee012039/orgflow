@@ -3,7 +3,7 @@
 from google.adk import Agent
 from google.genai import types
 
-from agents.runtime import LOW_THINKING, MODEL, AgentResult, json_part, pdf_part, problems_part, run_agent
+from agents.runtime import LOW_THINKING, gemini, AgentResult, json_part, pdf_part, problems_part, run_agent
 from schemas import Workflow
 
 REQUEST_FIELDS = {
@@ -53,8 +53,9 @@ Fields:
   Never map such an approver onto a different existing role.
 - amount_tiers: when the policy decides approvals by amount, list each amount tier
   once, in the policy's order. min and max are the amounts the policy writes at the
-  tier's lower and upper end, in full like rule values, and null when the tier has
-  no such end. Copy the numbers as written, never adding or subtracting 1: for
+  tier's lower and upper end, in full like rule values, and null when the tier's
+  passage writes no amount for that end. Copy the numbers as written, never adding
+  or subtracting 1: for
   逾二萬元，未達十萬元 min is 20000 and max is 100000; for Above USD 5,000 min is 5000
   and max is null. source: the tier's passage word for word (the whole table row or
   sentence). Leave amount_tiers empty when no approval depends on the amount.
@@ -65,7 +66,7 @@ roles, thresholds or rules. Return JSON only."""
 
 
 def build_agent(name: str = "workflow_architect") -> Agent:
-    return Agent(name=name, model=MODEL, instruction=INSTRUCTION,
+    return Agent(name=name, model=gemini(), instruction=INSTRUCTION,
                  output_schema=Workflow, generate_content_config=LOW_THINKING)
 
 

@@ -73,3 +73,36 @@ def test_immediate_error_is_reported_without_backup(monkeypatch):
 def test_markdown_wrapped_json_is_accepted(monkeypatch):
     fake_calls(monkeypatch, [(0.0, '```json\n{"answer": 2}\n```')])
     assert run().data == {"answer": 2}
+
+
+class FakeRunner:
+    """Stands in for ADK's InMemoryRunner: yields the given events, then never finishes,
+    the way ADK keeps a run open after reporting a failed model call."""
+
+    events: list = []
+
+    def __init__(self, agent, app_name):
+        async def create_session(app_name, user_id):
+            return SimpleNamespace(id="s1")
+
+        self.session_service = SimpleNamespace(create_session=create_session)
+
+    async def run_async(self, user_id, session_id, new_message):
+        for event in self.events:
+            yield event
+        await asyncio.sleep(3600)
+
+
+def test_a_reported_model_error_stops_the_call_at_once(monkeypatch):
+    FakeRunner.events = [SimpleNamespace(content=None, error_code="RESOURCE_EXHAUSTED",
+                                         error_message="429 Resource exhausted")]
+    monkeypatch.setattr(runtime, "InMemoryRunner", FakeRunner)
+    start = time.perf_counter()
+    result = run(timeout_s=5.0)
+    assert time.perf_counter() - start < 1.0
+    assert result.data is None and "RESOURCE_EXHAUSTED" in result.error
+
+
+def test_every_agent_retries_a_busy_endpoint():
+    model = runtime.gemini()
+    assert model.retry_options is not None and model.retry_options.attempts == 3

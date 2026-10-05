@@ -26,13 +26,14 @@ from agents import (
     workflow_architect,
 )
 from agents.runtime import AgentResult, log_event
-from coverage import find_amount_gaps
+from amount_coverage import find_amount_gaps
 from guard import (
     extract_pdf_text,
     load_fixture,
     validate_opportunities_output,
     validate_organization_output,
     validate_workflow_output,
+    verified_amount_tiers,
     verify_quote_in_text,
 )
 from runner import run_workflow
@@ -201,7 +202,11 @@ async def design_workflow(org_pdf: bytes, policy_pdf: bytes, org: Organization,
     )
     if result.value is not None:
         result.extras["gaps"] = find_gaps(result.value, await document_text(org_pdf))
-        result.extras["amount_gaps"] = find_amount_gaps(result.value.amount_tiers)
+        tiers, tier_problems = verified_amount_tiers(result.value.amount_tiers, doc_text)
+        if tier_problems:
+            log_event("amount_tiers_dropped", count=len(result.value.amount_tiers), problems=tier_problems[:5])
+        result.value.amount_tiers = tiers  # the runner gets only tiers that passed the checks
+        result.extras["amount_gaps"] = find_amount_gaps(tiers)
     return result
 
 

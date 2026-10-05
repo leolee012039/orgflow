@@ -3,7 +3,7 @@
 from google.adk import Agent
 from google.genai import types
 
-from agents.runtime import LOW_THINKING, MODEL, AgentResult, json_part, pdf_part, problems_part, run_agent
+from agents.runtime import LOW_THINKING, gemini, AgentResult, json_part, pdf_part, problems_part, run_agent
 from schemas import Opportunities
 
 INSTRUCTION = """You are the Opportunity Analyst for OrgFlow.
@@ -36,7 +36,7 @@ mention. Return JSON only."""
 
 
 def build_agent(name: str = "opportunity_analyst") -> Agent:
-    return Agent(name=name, model=MODEL, instruction=INSTRUCTION,
+    return Agent(name=name, model=gemini(), instruction=INSTRUCTION,
                  output_schema=Opportunities, generate_content_config=LOW_THINKING)
 
 

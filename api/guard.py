@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from pypdf import PdfReader
 
 from schemas import (
+    AmountTier,
     Organization,
     Opportunities,
     PurchaseRequestForm,
@@ -94,7 +95,8 @@ def extract_numbers(text: str) -> list[str]:
     """Every number in the text after normalize_amounts. Works next to Chinese characters,
     where a regex word boundary (\\b) would not fire."""
     normalized = normalize_amounts(text)
-    return [_format_amount(float(m)) for m in re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])", normalized)]
+    # (?!\d|\.\d) lets a full stop end the number: "Above USD 5,000." states 5000
+    return [_format_amount(float(m)) for m in re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?!\d|\.\d)", normalized)]
 
 def extract_tokens(text: str) -> list[str]:
     """
@@ -233,10 +235,10 @@ def check_rule_numbers(workflow: Workflow) -> list[str]:
     return errors
 
 
-def check_amount_tiers(workflow: Workflow) -> list[str]:
-    """Each tier's ends are amounts its own passage states, so the coverage check reads real wording."""
+def amount_tier_problems(tiers: list[AmountTier], doc_text: Optional[str] = None) -> list[str]:
+    """Each tier's ends must be amounts its own passage states, and the passage must be in the documents."""
     errors: list[str] = []
-    for i, tier in enumerate(workflow.amount_tiers, 1):
+    for i, tier in enumerate(tiers, 1):
         if tier.min is None and tier.max is None:
             errors.append(f"Amount tier {i} has neither min nor max")
         elif tier.min is not None and tier.max is not None and tier.min >= tier.max:
@@ -244,16 +246,20 @@ def check_amount_tiers(workflow: Workflow) -> list[str]:
         numbers = extract_numbers(tier.source)
         for end, value in (("min", tier.min), ("max", tier.max)):
             if value is not None and _format_amount(value) not in numbers:
-                errors.append(
-                    f"Amount tier {i} {end} {_format_amount(value)} does not appear in its source: '{tier.source}' "
-                    "(use the amount the policy writes at that end, in full, without adding or subtracting 1)"
-                )
-    if not workflow.amount_tiers and any(
-        r.when.field == "estimated_cost" and isinstance(r.when.value, (int, float)) for r in workflow.rules
-    ):
-        errors.append("The rules depend on estimated_cost, but amount_tiers is empty. "
-                      "List each approval tier of the policy in amount_tiers.")
+                errors.append(f"Amount tier {i} {end} {_format_amount(value)} does not appear in its source: '{tier.source}'")
+        if doc_text and not verify_quote_in_text(tier.source, doc_text):
+            errors.append(f"Amount tier {i} source does not ground in uploaded documents: '{tier.source}'")
     return errors
+
+
+def verified_amount_tiers(tiers: list[AmountTier], doc_text: Optional[str] = None) -> tuple[list[AmountTier], list[str]]:
+    """All tiers, or none if any fails a check.
+
+    The tiers only feed the coverage check, so a bad tier never fails the workflow. It
+    drops them all instead of one: a missing tier could pair two others that don't meet.
+    """
+    problems = amount_tier_problems(tiers, doc_text)
+    return ([], problems) if problems else (tiers, [])
 
 # -----------------------------------------------------------------------------
 # Validation Wrappers
@@ -418,7 +424,6 @@ def validate_workflow_output(
     # Check 4: rule threshold numbers in source
     rule_errors = check_rule_numbers(wf)
     errors.extend(rule_errors)
-    errors.extend(check_amount_tiers(wf))
 
     # Check 3: source quotes in doc_text
     if doc_text and wf is not None:
@@ -427,9 +432,6 @@ def validate_workflow_output(
                 errors.append(
                     f"Rule '{rule.id}' source does not ground in uploaded documents: '{rule.source}'"
                 )
-        for i, tier in enumerate(wf.amount_tiers, 1):
-            if not verify_quote_in_text(tier.source, doc_text):
-                errors.append(f"Amount tier {i} source does not ground in uploaded documents: '{tier.source}'")
 
     if errors:
         return None, errors

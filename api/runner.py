@@ -1,6 +1,6 @@
 import logging
 from typing import Any, Callable, Optional, Union
-from coverage import amount_finding
+from amount_coverage import amount_finding
 from schemas import (
     Workflow,
     Organization,

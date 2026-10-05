@@ -9,7 +9,7 @@ import asyncio
 from google.adk import Agent
 from google.genai import types
 
-from agents.runtime import LOW_THINKING, MODEL, json_part, run_agent
+from agents.runtime import LOW_THINKING, gemini, json_part, run_agent
 from schemas import AIReviewResponse, PurchaseRequestForm
 
 INSTRUCTION = """You are the Request Reviewer for OrgFlow.
@@ -27,7 +27,7 @@ Return decision "PASS" when the check is satisfied, otherwise
 
 
 def build_agent() -> Agent:
-    return Agent(name="request_reviewer", model=MODEL, instruction=INSTRUCTION,
+    return Agent(name="request_reviewer", model=gemini(), instruction=INSTRUCTION,
                  output_schema=AIReviewResponse, generate_content_config=LOW_THINKING)
 
 

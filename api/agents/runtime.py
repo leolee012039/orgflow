@@ -17,6 +17,7 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 from google.adk import Agent
+from google.adk.models.google_llm import Gemini
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
@@ -34,7 +35,19 @@ LOW_THINKING = types.GenerateContentConfig(
     temperature=0,
     thinking_config=types.ThinkingConfig(thinking_level="low"),
 )
+# Vertex answers 429 when its shared capacity is busy. Two retries, about 2 s and 4 s later,
+# clear most of them well inside the time budget. Without retry options the client never retries.
+RETRY = types.HttpRetryOptions(attempts=3, initial_delay=2, max_delay=8)
+
+
+def gemini() -> Gemini:
+    """The model every agent uses."""
+    return Gemini(model=MODEL, retry_options=RETRY)
 CACHE_DIR = Path(__file__).resolve().parent.parent.parent / ".cache" / "llm"
+
+
+class GeminiCallError(RuntimeError):
+    """The model call failed, for example 429 RESOURCE_EXHAUSTED after the retries."""
 
 
 @dataclass
@@ -87,11 +100,20 @@ async def _run(agent: Agent, parts: list[types.Part]) -> str:
     session = await runner.session_service.create_session(app_name="orgflow", user_id="orgflow")
     message = types.Content(role="user", parts=parts)
     final_text = ""
-    async for event in runner.run_async(user_id="orgflow", session_id=session.id, new_message=message):
-        if event.content and event.content.parts:
-            text = "".join(p.text or "" for p in event.content.parts if not getattr(p, "thought", False))
-            if text.strip():
-                final_text = text
+    events = runner.run_async(user_id="orgflow", session_id=session.id, new_message=message)
+    try:
+        async for event in events:
+            text = ""
+            if event.content and event.content.parts:
+                text = "".join(p.text or "" for p in event.content.parts if not getattr(p, "thought", False))
+                if text.strip():
+                    final_text = text
+            if event.error_code and not text.strip():
+                # ADK reports a failed model call (429, 403) as an event and may then keep the run
+                # open, so stop here instead of waiting for the time limit
+                raise GeminiCallError(f"{event.error_code}: {event.error_message}")
+    finally:
+        await events.aclose()  # lets ADK cancel its run now rather than when garbage collected
     return final_text
 
 

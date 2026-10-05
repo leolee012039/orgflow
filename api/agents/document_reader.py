@@ -8,7 +8,7 @@ from google.adk import Agent
 from google.genai import types
 from pydantic import BaseModel
 
-from agents.runtime import LOW_THINKING, MODEL, AgentResult, pdf_part, run_agent
+from agents.runtime import LOW_THINKING, gemini, AgentResult, pdf_part, run_agent
 
 INSTRUCTION = """You transcribe documents for OrgFlow.
 
@@ -22,7 +22,7 @@ class Transcript(BaseModel):
 
 
 def build_agent() -> Agent:
-    return Agent(name="document_reader", model=MODEL, instruction=INSTRUCTION,
+    return Agent(name="document_reader", model=gemini(), instruction=INSTRUCTION,
                  output_schema=Transcript, generate_content_config=LOW_THINKING)
 
 
