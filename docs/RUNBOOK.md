@@ -4,7 +4,7 @@ For the judging period (Oct 19 - Nov 6, 2026, and to Dec 4 if shortlisted).
 
 - Project: `aibul-510701`. API: Cloud Run `orgflow-api` (asia-east1). Web: Firebase Hosting `aibul-510701.web.app`.
 - Owner: Leo (GCP admin). Backup: [name].
-- Last known good revision: [fill in after every deploy]. Git tag: `last-good`.
+- Last known good revision: `orgflow-api-00012-r7w` (2026-10-06, commit da31f6f). Git tag: `last-good`.
 
 ## 1. The API or the website is down (uptime alert)
 
