@@ -114,6 +114,10 @@ class FormField(BaseModel):
 
 StepType = Literal["approval", "ai_review", "task", "notification"]
 
+MAX_STEPS = 30  # the planner builds at most a handful; the sample's longest has 7
+MAX_CHAIN_WORKFLOWS = 30  # 10 departments x 3 workflows
+
+
 class Step(BaseModel):
     id: str
     type: StepType
@@ -130,7 +134,7 @@ class Workflow(BaseModel):
     fields: list[FormField] = Field(default_factory=list)  # empty: the original purchase request form
     required_fields: list[str]
     rules: list[Rule] = Field(default_factory=list)
-    steps: list[Step]
+    steps: list[Step] = Field(..., max_length=MAX_STEPS)
     unresolved_actors: list[str] = Field(default_factory=list)
     amount_tiers: list[AmountTier] = Field(default_factory=list)
     starts_from: Optional[str] = None
@@ -145,6 +149,8 @@ class Workflow(BaseModel):
 # -----------------------------------------------------------------------------
 
 MAX_FORM_NUMBER = 1e15  # no real amount or percentage is larger; bigger ones break float comparisons
+MAX_FORM_FIELDS = 30
+MAX_FORM_TEXT = 2000
 
 class RequestForm(BaseModel):
     """What someone submits to start a workflow: who, from which department, plus the workflow's own fields."""
@@ -154,8 +160,16 @@ class RequestForm(BaseModel):
     department: str = ""
 
     @model_validator(mode="after")
-    def _numbers_are_finite(self):
-        for name, value in (self.model_extra or {}).items():
+    def _values_are_small(self):
+        """A form holds a few short values: text, numbers or yes/no, nothing nested or huge."""
+        extra = self.model_extra or {}
+        if len(extra) > MAX_FORM_FIELDS:
+            raise ValueError(f"A request may have at most {MAX_FORM_FIELDS} fields")
+        for name, value in [*extra.items(), ("requester", self.requester), ("department", self.department)]:
+            if value is not None and not isinstance(value, (str, int, float, bool)):
+                raise ValueError(f"{name} must be text, a number or true/false")
+            if isinstance(value, str) and len(value) > MAX_FORM_TEXT:
+                raise ValueError(f"{name} is longer than {MAX_FORM_TEXT} characters")
             # "not <" also catches infinity and NaN
             if isinstance(value, (int, float)) and not isinstance(value, bool) and not abs(value) < MAX_FORM_NUMBER:
                 raise ValueError(f"{name} must be a number below {MAX_FORM_NUMBER:,.0f}")

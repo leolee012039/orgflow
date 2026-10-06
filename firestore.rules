@@ -2,7 +2,8 @@ rules_version = '2';
 
 // A company workspace belongs to the person who created it. They can add built
 // workflows, cases and decisions, share it read-only (shared == true), unshare or delete it. Nobody
-// else can change it.
+// else can change it. A shared workspace opens for anyone with its link (get), but only the
+// owner can list workspaces, so nobody can browse what others shared.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /workspaces/{workspaceId} {
@@ -13,7 +14,8 @@ service cloud.firestore {
         return signedIn() && request.auth.uid == resource.data.owner;
       }
 
-      allow read: if resource.data.shared == true || isOwner();
+      allow get: if resource.data.shared == true || isOwner();
+      allow list: if isOwner();
       allow create: if signedIn()
         && request.resource.data.owner == request.auth.uid
         && request.resource.data.shared == false;
@@ -21,7 +23,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['built', 'cases', 'decisions', 'shared', 'updatedAt'])
         && request.resource.data.shared is bool
         && (!('decisions' in request.resource.data)
-            || (request.resource.data.decisions is list && request.resource.data.decisions.size() <= 200));
+            || (request.resource.data.decisions is list && request.resource.data.decisions.size() <= 50));
       allow delete: if isOwner();
     }
   }

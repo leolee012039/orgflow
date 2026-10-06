@@ -120,3 +120,17 @@ Found 2026-10-05 by an adversarial review of the decisions change; each case was
 1. **The requester's own unit head is still sometimes listed as an approver to confirm.** In one of two university runs, 「隸屬院長或一級行政單位主管」 came back as an approver to confirm instead of `requester.manager`, although the architect's instruction now names that wording. Gemini's answer varies between runs; the decision feature lets a person settle it ("the requester's department head").
 2. **Two departments that hand work to each other draw a clipped label.** On the university map, 總務處 → 主計室 and 主計室 → 總務處 overlap: one label is cut and the return arrow loops above the box.
 - Status: open, cosmetic and run-to-run variation; not blocking the submission.
+
+
+## 15. Submission audit (2026-10-06)
+
+An external read-only audit of f66a35f found what an anonymous or greedy caller could make OrgFlow spend, and gaps in settings, sharing and operations.
+
+1. **`/api/run_chain` reached Gemini without an account and without a limit**, with the reviewer's check and the form taken from the request. Fixed: without an account, Gemini reviews only the sample's own checks, up to `ORGFLOW_ANON_RUN_LIMIT` a day; anything else gets the plain-code check, so cases still run. Forms are limited to 30 fields of text, numbers or yes/no, 2,000 characters each; workflows to 30 steps and a chain to 30 workflows. `/api/run`, unused by the web app, is gone.
+2. **Only `/api/analyze` counted against the daily limit.** Fixed: map, plan, build and case runs count against `ORGFLOW_STAGE_LIMIT` (300) per signed-in user.
+3. **Sign-in was off unless turned on.** It was on in production, but a redeploy without the setting would have opened every endpoint. Fixed: on unless `ORGFLOW_REQUIRE_AUTH=0`, and on Cloud Run the API refuses to start with sign-in off or `ALLOWED_ORIGINS` missing.
+4. **The sample PDFs let anyone build a workflow with Gemini** by asking for one the sample doesn't include. Fixed: without an account, the sample builds only from its saved answers; anything else answers 401.
+5. **Anyone could list every shared workspace.** Fixed: the rules allow reading one shared workspace by its link, and listing only one's own.
+6. **Guard problems quoting the documents went to Cloud Logging.** Fixed: logs keep the number of problems.
+7. Also fixed: an emergency switch (`ORGFLOW_GEMINI_OFF=1`) pauses every live Gemini call; the test guard now fails a test that reaches Gemini instead of letting the fallback hide it; Docker installs the locked versions; `.dockerignore`; security headers on Hosting; complete `.env.example` files; the archived SPEC is marked as such; CI on GitHub Actions; DEPLOY_CHECKLIST.md and RUNBOOK.md.
+- Still open, by choice: limits are counted in memory per instance (approximate, documented); uploads are read before the sign-in check, because only the documents tell whether they are the sample; a workflow with several AI checks reviews them all with the first check's wording; commit emails become public with the repository.

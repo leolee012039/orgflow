@@ -160,6 +160,9 @@ def _parse_json(text: str) -> dict[str, Any]:
 
 
 async def run_agent(agent: Agent, parts: list[types.Part], timeout_s: float = CALL_TIMEOUT_S) -> AgentResult:
+    if os.getenv("ORGFLOW_GEMINI_OFF") == "1":  # emergency switch, see docs/RUNBOOK.md
+        log_event("gemini_call", agent=agent.name, model=MODEL, cached=False, latency_ms=0, ok=False, error="paused")
+        return AgentResult(data=None, error="Gemini is paused by the operator", latency_ms=0)
     use_cache = os.getenv("ORGFLOW_DEV_CACHE") == "1"
     key = _cache_key(agent, parts)
     cache_file = CACHE_DIR / f"{key}.json"

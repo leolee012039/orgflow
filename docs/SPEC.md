@@ -1,3 +1,5 @@
+> **Archived build brief (2026-10-04).** Kept unchanged as a record. The implementation has moved on: see README.md and the code for the current endpoints, sign-in, limits and deployment.
+
 # OrgFlow build brief (paste this whole file into Gemini)
 
 You are the engineer building **OrgFlow** for the Google Cloud AI Builder Cup 2026. I am Leo, the product owner. Read this whole brief before doing anything. Your first action: create the repo folder and save this brief, unchanged, as `docs/SPEC.md` so you can re-read it in later sessions.

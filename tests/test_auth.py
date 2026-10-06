@@ -55,6 +55,8 @@ def test_each_user_has_a_daily_limit(monkeypatch):
     assert analyze(SAMPLE).status_code == 200  # the sample doesn't count against anyone
 
 
-def test_sign_in_is_off_unless_turned_on(monkeypatch):
+def test_sign_in_is_on_unless_turned_off(monkeypatch):
     monkeypatch.delenv("ORGFLOW_REQUIRE_AUTH")
+    assert analyze(OTHER).status_code == 401
+    monkeypatch.setenv("ORGFLOW_REQUIRE_AUTH", "0")  # local development
     assert analyze(OTHER).status_code == 200

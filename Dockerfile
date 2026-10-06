@@ -8,9 +8,10 @@ WORKDIR /app
 # Copy uv binary for rapid dependency resolution
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install dependencies from project root
-COPY pyproject.toml uv.lock* ./
-RUN uv pip install --system --no-cache -r pyproject.toml
+# Install exactly the versions in uv.lock (fails if the lockfile is missing)
+COPY pyproject.toml uv.lock ./
+RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
+ && uv pip install --system --no-cache -r requirements.txt
 
 # Copy API source code
 COPY api/ .

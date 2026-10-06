@@ -377,14 +377,14 @@ def test_run_chain_endpoint_needs_a_built_start():
     assert client.post("/api/run_chain", json=body).status_code == 422
 
 
-def test_run_endpoint_runs_one_department(monkeypatch):
+def test_run_chain_endpoint_stops_where_a_department_stops(monkeypatch):
     monkeypatch.setattr(request_reviewer, "make_reviewer", lambda check, fields: (
         lambda f: AIReviewResponse(decision="PASS", reasons=[])))
-    body = {"workflow": fixture(f"workflows/{OPERATIONS}.json"), "organization": fixture("organization.json"),
-            "request": {**PURCHASE, "estimated_cost": 8000}, "manual_handoffs_before": 4}
-    trace = client.post("/api/run", json=body).json()
+    body = {"workflows": [fixture(f"workflows/{OPERATIONS}.json")], "organization": fixture("organization.json"),
+            "start_id": OPERATIONS, "request": {**PURCHASE, "estimated_cost": 8000}}
+    trace = client.post("/api/run_chain", json=body).json()
     assert trace["status"] == "NEEDS_HUMAN_REVIEW"
-    assert "not in the org chart" in trace["steps"][-1]["reason"]
+    assert "not in the org chart" in trace["legs"][0]["trace"]["steps"][-1]["reason"]
 
 
 def test_reviewer_sees_the_whole_case(monkeypatch):

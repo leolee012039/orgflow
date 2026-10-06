@@ -114,14 +114,15 @@ async def run_guarded_stage(
         if second.data is not None:
             value, repair_problems = validate(second.data)
             if value is not None:
-                log_event("guard", stage=stage, origin="repaired", latency_ms=latency, problems=problems)
+                log_event("guard", stage=stage, origin="repaired", latency_ms=latency, problem_count=len(problems))
                 return StageResult(value, "repaired", latency, problems)
             problems = problems + repair_problems
         else:
             problems = problems + [second.error or "no answer"]
 
     origin = "fixture" if fixture is not None else "unverified"
-    log_event("guard", stage=stage, origin=origin, latency_ms=latency, problems=problems[:10])
+    # Problems quote the documents, so the log keeps only how many there were
+    log_event("guard", stage=stage, origin=origin, latency_ms=latency, problem_count=len(problems))
     return StageResult(fixture() if fixture is not None else None, origin, latency, problems)
 
 
@@ -252,10 +253,23 @@ def find_gaps(workflow: Workflow, org_chart_text: str) -> list[dict[str, Any]]:
     return gaps
 
 
+def is_sample_workflow(wf: Workflow) -> bool:
+    """Whether this is one of the bundled sample's saved workflows, with the checks Gemini reviews unchanged."""
+    if not re.fullmatch(r"[a-z0-9_]+", wf.opportunity_id):
+        return False
+    rel = f"novagear/workflows/{wf.opportunity_id}.json"
+    if not os.path.exists(os.path.join(FIXTURES_DIR, rel)):
+        return False
+    saved = Workflow.model_validate(load_fixture(rel))
+    return (wf.required_fields == saved.required_fields
+            and [(s.type, s.check) for s in wf.steps] == [(s.type, s.check) for s in saved.steps])
+
+
 async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandidate,
-                         upstream: Optional[Workflow] = None) -> StageResult[Workflow]:
+                         upstream: Optional[Workflow] = None, allow_live: bool = True) -> StageResult[Workflow]:
     """Compile one department's planned workflow. When it starts from another department's
-    built workflow, it may only use the data that arrives with the case."""
+    built workflow, it may only use the data that arrives with the case. With allow_live
+    False (an anonymous caller with the sample) only a saved answer is used."""
     doc_text = await documents_text(docs)
     labelled, org_json, planned_json = docs.labelled(), org.model_dump(by_alias=True), planned.model_dump()
     upstream_fields = fields_of(upstream) if upstream is not None else None
@@ -274,6 +288,8 @@ async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandida
         saved = _fixture(docs, f"workflows/{planned.id}.json", Workflow)
         if saved is not None and validate(saved().model_dump())[0] is not None:
             fixture = saved
+    if fixture is None and not allow_live:
+        return StageResult(None, "sign_in_required", 0, ["Sign in to build a workflow the sample doesn't include."])
     result = await run_guarded_stage(
         stage="workflow",
         first_call=lambda: workflow_architect.design(labelled, org_json, planned_json, upstream_json),
@@ -289,7 +305,7 @@ async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandida
         result.extras["gaps"] = find_gaps(wf, await document_text(docs.org_chart))
         tiers, tier_problems = verified_amount_tiers(wf.amount_tiers, doc_text, form_fields(wf))
         if tier_problems:
-            log_event("amount_tiers_dropped", count=len(wf.amount_tiers), problems=tier_problems[:5])
+            log_event("amount_tiers_dropped", count=len(wf.amount_tiers), problem_count=len(tier_problems))
         wf.amount_tiers = tiers  # the runner gets only tiers that passed the checks
         result.extras["amount_gaps"] = find_amount_gaps(tiers)
     return result

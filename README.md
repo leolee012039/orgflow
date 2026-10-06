@@ -77,8 +77,9 @@ Cloud Logging: one structured JSON event per Gemini call, guard result and case
 
 ## Privacy and limits
 
-- Uploaded PDFs are read in memory and not stored. Firestore keeps what OrgFlow derived from them, under the signer's account.
-- Analyzing your own documents needs a Google sign-in and is limited to 30 analyses per person per day. The NovaGear sample opens from Gemini's checked, saved reading, so it opens at once; uploaded documents are always read live.
+- Uploaded PDFs are read in memory and not stored. Firestore keeps what OrgFlow derived from them, under the signer's account. Logs record events, timings and counts, not document text.
+- Analyzing your own documents needs a Google sign-in and is limited to about 30 analyses and 300 later steps per person per day (counted per server instance). The NovaGear sample opens from Gemini's checked, saved reading, so it opens at once; uploaded documents are always read live.
+- Without an account, the sample builds only from its saved answers, and its cases get Gemini's review a few hundred times a day; a changed workflow gets the plain-code check instead. One setting pauses every Gemini call in an emergency ([docs/RUNBOOK.md](docs/RUNBOOK.md)).
 - Approvals are simulated: OrgFlow does not yet send requests to real approvers.
 - Very long documents can take longer than the 90 s limit per stage. Handoffs that the policies give to "any unit" are not mapped yet. Known issues are tracked in [docs/ISSUES.md](docs/ISSUES.md).
 
@@ -96,24 +97,28 @@ cd web && npm install
 NEXT_PUBLIC_API_BASE=http://localhost:8080 npm run dev
 ```
 
-`api/.env`: `GOOGLE_GENAI_USE_VERTEXAI=True`, `GOOGLE_CLOUD_PROJECT=<your project>`, `GOOGLE_CLOUD_LOCATION=global`, `GEMINI_MODEL=gemini-3.8-flash`. Sign-in is optional locally: without the `NEXT_PUBLIC_FIREBASE_*` settings in `web/.env.local` the app runs without accounts, and the API only requires a token when `ORGFLOW_REQUIRE_AUTH=1`.
+`api/.env`: `GOOGLE_GENAI_USE_VERTEXAI=True`, `GOOGLE_CLOUD_PROJECT=<your project>`, `GOOGLE_CLOUD_LOCATION=global`, `GEMINI_MODEL=gemini-3.8-flash`. Sign-in is on unless `ORGFLOW_REQUIRE_AUTH=0`, which is meant for local development only: without the `NEXT_PUBLIC_FIREBASE_*` settings in `web/.env.local` (see `web/.env.example`) the app runs without accounts. Every setting is listed in `api/.env.example`.
 
 ## Tests and evaluation
 
 ```bash
-uv run --group dev pytest -q                                              # 149 tests, no Gemini calls
+uv run --group dev pytest -q                                              # 159 tests, no Gemini calls
 uv run --group dev --with pymupdf python scripts/eval_documents.py         # all six document sets, live Gemini
 ```
 
-Tests replace every agent with a fake or a saved answer and fail if one tries to call Gemini. The evaluation downloads the real documents, runs every stage live, builds every linked workflow, runs cases just below, at and above every threshold, and writes [docs/EVAL.md](docs/EVAL.md).
+Tests replace every agent with a fake or a saved answer and fail if one tries to call Gemini; `tests/test_abuse.py` checks what an anonymous or greedy caller can make OrgFlow spend. GitHub Actions runs the tests, type check and lint on every push. The evaluation downloads the real documents, runs every stage live, builds every linked workflow, runs cases just below, at and above every threshold, and writes [docs/EVAL.md](docs/EVAL.md).
 
 ## Deploy
 
 ```bash
-gcloud run deploy orgflow-api --source . --region asia-east1 --allow-unauthenticated --max-instances 2 --memory 1Gi
+# --update-env-vars keeps settings already on the service; ^@^ makes @ the separator, because ALLOWED_ORIGINS has commas
+gcloud run deploy orgflow-api --source . --region asia-east1 --allow-unauthenticated --max-instances 2 --memory 1Gi \
+  --update-env-vars "^@^GOOGLE_GENAI_USE_VERTEXAI=True@GOOGLE_CLOUD_PROJECT=<project>@GOOGLE_CLOUD_LOCATION=global@GEMINI_MODEL=gemini-3.8-flash@ORGFLOW_REQUIRE_AUTH=1@FIREBASE_PROJECT_ID=<project>@ALLOWED_ORIGINS=https://<project>.web.app,https://<project>.firebaseapp.com"
 cd web && NEXT_PUBLIC_API_BASE=<Cloud Run URL> npm run build && cd ..
 firebase deploy --only hosting,firestore:rules
 ```
+
+On Cloud Run the API refuses to start when sign-in is turned off or `ALLOWED_ORIGINS` is missing, so a revision with incomplete settings never takes traffic. After each deploy, follow [docs/DEPLOY_CHECKLIST.md](docs/DEPLOY_CHECKLIST.md); when something goes wrong, [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Repository
 
@@ -124,6 +129,6 @@ web/            Next.js app: the console (map, workflows, cases, documents)
 tests/          pytest suite
 scripts/        evaluation and sample PDF generators
 demo_assets/    sample PDFs: NovaGear (English), Xiangying Fitness (Traditional Chinese)
-docs/           EVAL.md, ISSUES.md, SPEC.md
+docs/           EVAL.md, ISSUES.md, DEPLOY_CHECKLIST.md, RUNBOOK.md, SPEC.md (the archived build brief)
 firestore.rules Firestore security rules
 ```

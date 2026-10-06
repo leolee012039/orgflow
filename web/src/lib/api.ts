@@ -14,7 +14,7 @@ import type {
   WorkflowPlan,
 } from "./types";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000").replace(/\/$/, "");
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080").replace(/\/$/, "");
 
 /** An API error with the guard's findings, when the service sends them. */
 export class ApiError extends Error {

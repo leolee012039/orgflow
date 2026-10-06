@@ -1,0 +1,14 @@
+.env
+.env*
+**/.env
+.venv/
+.cache/
+.pytest_cache/
+**/__pycache__/
+.git/
+.github/
+web/
+docs/
+tests/
+scripts/
+demo_assets/

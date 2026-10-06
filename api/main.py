@@ -8,9 +8,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def check_cloud_run_settings(env=os.environ) -> list[str]:
+    """Settings Cloud Run must have; always empty anywhere else (K_SERVICE is set by Cloud Run)."""
+    if not env.get("K_SERVICE"):
+        return []
+    problems = []
+    if env.get("ORGFLOW_REQUIRE_AUTH", "1") == "0":
+        problems.append("ORGFLOW_REQUIRE_AUTH must not be 0 on Cloud Run")
+    if not env.get("ALLOWED_ORIGINS"):
+        problems.append("ALLOWED_ORIGINS is not set")
+    return problems
+
+
+# A revision with incomplete settings fails to start, so Cloud Run keeps serving the previous one
+_problems = check_cloud_run_settings()
+if _problems:
+    raise RuntimeError("Cloud Run settings are incomplete: " + "; ".join(_problems))
+
 import auth  # noqa: E402
 import pipeline  # noqa: E402  (reads environment variables at import)
 from schemas import (  # noqa: E402
+    MAX_CHAIN_WORKFLOWS,
     MAX_DECISIONS,
     Decision,
     DepartmentMap,
@@ -80,15 +99,17 @@ def stage_response(result, stage: str, by_alias: bool = False) -> dict:
 
 async def read_documents(request: Request, org_chart: UploadFile,
                          policies: list[UploadFile]) -> tuple[pipeline.Docs, Optional[str]]:
-    """The org chart, the policies, and the signed-in user (needed for anything but a sample)."""
+    """The org chart, the policies, and the caller: a signed-in user (needed for anything but
+    the sample), auth.LOCAL when sign-in is off, or None for an anonymous sample."""
     if len(policies) > MAX_POLICIES:
         raise HTTPException(413, f"Upload at most {MAX_POLICIES} policies at a time.")
     docs = pipeline.Docs(
         org_chart=await read_pdf(org_chart, "org_chart"),
         policies=[await read_pdf(p, f"policy {i}") for i, p in enumerate(policies, 1)],
     )
-    uid = auth.require_user(request, pipeline.is_sample(docs))
-    return docs, uid
+    if pipeline.is_sample(docs):
+        return docs, auth.optional_user(request)
+    return docs, auth.require_user(request, False) or auth.LOCAL
 
 
 def parse_json_field(model, raw: str, field: str):
@@ -101,7 +122,8 @@ def parse_json_field(model, raw: str, field: str):
 @app.post("/api/analyze")
 async def analyze(request: Request, org_chart: UploadFile = File(...), policies: list[UploadFile] = File(default=[])):
     docs, uid = await read_documents(request, org_chart, policies)
-    auth.count_health_check(uid)  # an analysis starts here
+    if not pipeline.is_sample(docs):
+        auth.count_analysis(uid)  # an analysis starts here; the sample opens from saved answers
     result = await pipeline.analyze_organization(docs)
     return stage_response(result, "organization", by_alias=True)
 
@@ -110,7 +132,8 @@ async def analyze(request: Request, org_chart: UploadFile = File(...), policies:
 async def department_map(request: Request, org_chart: UploadFile = File(...),
                          policies: list[UploadFile] = File(default=[]), organization: str = Form(...)):
     org = parse_json_field(Organization, organization, "organization")
-    docs, _ = await read_documents(request, org_chart, policies)
+    docs, uid = await read_documents(request, org_chart, policies)
+    auth.count_stage(uid)
     result = await pipeline.map_departments(docs, org)
     return stage_response(result, "department_map", by_alias=True)
 
@@ -120,7 +143,8 @@ async def plan(request: Request, org_chart: UploadFile = File(...), policies: li
                organization: str = Form(...), department_map: str = Form(...)):
     org = parse_json_field(Organization, organization, "organization")
     dmap = parse_json_field(DepartmentMap, department_map, "department_map")
-    docs, _ = await read_documents(request, org_chart, policies)
+    docs, uid = await read_documents(request, org_chart, policies)
+    auth.count_stage(uid)
     result = await pipeline.plan_workflows(docs, org, dmap)
     return stage_response(result, "workflow_plan")
 
@@ -131,29 +155,17 @@ async def build(request: Request, org_chart: UploadFile = File(...), policies: l
     org = parse_json_field(Organization, organization, "organization")
     candidate = parse_json_field(WorkflowCandidate, planned, "planned")
     upstream_wf = None if upstream.strip() in ("", "null") else parse_json_field(Workflow, upstream, "upstream")
-    docs, _ = await read_documents(request, org_chart, policies)
-    result = await pipeline.build_workflow(docs, org, candidate, upstream_wf)
+    docs, uid = await read_documents(request, org_chart, policies)
+    auth.count_stage(uid)
+    # Without an account, the sample builds only from its saved answers: no Gemini call
+    result = await pipeline.build_workflow(docs, org, candidate, upstream_wf, allow_live=uid is not None)
+    if result.origin == "sign_in_required":
+        raise HTTPException(401, auth.SIGN_IN_MESSAGE)
     return stage_response(result, "workflow")
 
 
-class RunBody(BaseModel):
-    workflow: Workflow
-    organization: Organization
-    request: RequestForm
-    manual_handoffs_before: Optional[int] = None
-    decisions: list[Decision] = Field(default_factory=list, max_length=MAX_DECISIONS)
-
-
-@app.post("/api/run")
-async def run(body: RunBody):
-    handoffs = body.manual_handoffs_before if body.manual_handoffs_before is not None else 4
-    trace = await pipeline.run_request(body.workflow, body.organization, body.request, handoffs,
-                                       decisions=body.decisions)
-    return trace.model_dump()
-
-
 class ChainBody(BaseModel):
-    workflows: list[Workflow]
+    workflows: list[Workflow] = Field(..., max_length=MAX_CHAIN_WORKFLOWS)
     organization: Organization
     start_id: str
     request: RequestForm
@@ -163,9 +175,17 @@ class ChainBody(BaseModel):
 
 
 @app.post("/api/run_chain")
-async def run_chain(body: ChainBody):
+async def run_chain(request: Request, body: ChainBody):
     if not any(w.opportunity_id == body.start_id for w in body.workflows):
         raise HTTPException(422, f"No built workflow '{body.start_id}' to start from.")
+    uid = auth.optional_user(request)
+    if uid is not None:
+        auth.count_stage(uid)
+        live = True
+    else:
+        # Without an account, Gemini reviews only the sample's own checks, a few hundred times a
+        # day; anything else gets the plain-code check, so the case still runs
+        live = all(pipeline.is_sample_workflow(w) for w in body.workflows) and auth.anonymous_review_allowed()
     trace = await pipeline.run_chain_request(body.workflows, body.organization, body.start_id, body.request,
-                                             body.handoffs_before, decisions=body.decisions)
+                                             body.handoffs_before, live_review=live, decisions=body.decisions)
     return trace.model_dump()
