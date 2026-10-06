@@ -162,8 +162,9 @@ export function UploadStep({
         <a href={`/demo/${SAMPLE_FILES.orgChart}`} target="_blank" rel="noreferrer" className="font-medium text-ai hover:underline">
           see the org chart
         </a>
-        ). It works without an account. Analyzing your own documents needs a Google sign-in, so your work is saved to
-        you. The PDFs themselves are not saved.
+        ). It works without an account and opens at once: Gemini&apos;s reading of it was checked and saved. Your own
+        documents are read live, which takes about a minute, and need a Google sign-in so your work is saved to you.
+        The PDFs themselves are not saved.
       </p>
       {error && <ErrorNote message={error} />}
     </div>

@@ -1,6 +1,6 @@
 // Mirrors api/schemas.py. The API adds origin and latency_ms to each AI stage.
 
-export type Origin = "live" | "repaired" | "fixture";
+export type Origin = "live" | "repaired" | "saved" | "fixture";
 export type WithMeta<T> = T & { origin: Origin; latency_ms: number };
 
 export interface Evidence {

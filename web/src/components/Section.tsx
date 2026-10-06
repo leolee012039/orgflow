@@ -76,7 +76,9 @@ export function ErrorNote({
 /** Honest provenance for each AI answer. */
 export function OriginNote({ origin, latencyMs }: { origin: Origin; latencyMs: number }) {
   const text =
-    origin === "fixture"
+    origin === "saved"
+      ? "Gemini's reading of this sample was checked and saved, so it opens at once. Your own documents are read live."
+      : origin === "fixture"
       ? "Gemini didn't return a usable answer in time, so this is a saved, prevalidated result."
       : origin === "repaired"
         ? `Gemini answered in ${seconds(latencyMs)}, after one correction requested by the checks.`

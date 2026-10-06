@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "api"))
 os.environ.pop("ORGFLOW_DEV_CACHE", None)
+os.environ["ORGFLOW_SAMPLE_LIVE"] = "1"  # measure Gemini on the sample too, not its saved answers
 
 import pipeline  # noqa: E402
 import runner  # noqa: E402

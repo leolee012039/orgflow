@@ -4,9 +4,12 @@ Each stage asks an agent once, checks the answer with plain code, and asks the
 agent once more with the list of problems if the check fails. A timeout skips
 the repair, because a second slow call would break the time budget.
 
-If both answers fail, a bundled sample falls back to its prevalidated fixture so
-the demo never stops. Anyone else's documents get no fixture: the stage returns
-"unverified" and the API says so, instead of showing the sample.
+The bundled sample opens from its saved answers: Gemini's reading of it, checked
+by the same guards and saved, so it opens at once and looks the same every time
+(ORGFLOW_SAMPLE_LIVE=1 reads it live, as the evaluation does; then a failed stage
+falls back to the saved answer). Anyone else's documents are always read live and
+get no saved answer: a stage that fails returns "unverified" and the API says so,
+instead of showing the sample.
 
 The stages follow the company from the top down: the organization, then what each
 department does and hands to the others, then the workflows each department could
@@ -61,11 +64,14 @@ from schemas import (
 
 T = TypeVar("T")
 
+# The sample is read live only when asked: live answers vary from run to run and can take a minute
+SAMPLE_LIVE = os.getenv("ORGFLOW_SAMPLE_LIVE") == "1"
+
 
 @dataclass
 class StageResult(Generic[T]):
     value: Optional[T]
-    origin: str  # "live" | "repaired" | "fixture" | "unverified"
+    origin: str  # "live" | "repaired" | "saved" (the sample) | "fixture" (sample fallback) | "unverified"
     latency_ms: int
     problems: list[str] = field(default_factory=list)
     extras: dict[str, Any] = field(default_factory=dict)
@@ -89,6 +95,9 @@ async def run_guarded_stage(
     validate: Callable[[Any], tuple[Optional[T], list[str]]],
     fixture: Optional[Callable[[], T]],
 ) -> StageResult[T]:
+    if fixture is not None and not SAMPLE_LIVE:
+        log_event("guard", stage=stage, origin="saved", latency_ms=0)
+        return StageResult(fixture(), "saved", 0)
     first = await first_call()
     latency = first.latency_ms
     if first.data is not None:
