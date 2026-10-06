@@ -114,3 +114,9 @@ Found 2026-10-05 by an adversarial review of the decisions change; each case was
 
 - Seen 2026-10-05 evening: the organization or plan stage of three real universities stopped at 60 s, and the NovaGear organization call took 81 s once (it usually takes 9-20 s). No 429s: Gemini was simply slow, and the 20 s hedge doesn't help when both calls take 40 s or more.
 - Status: **partly fixed.** The limit is 90 s (`GEMINI_TIMEOUT_S`), in line with the page's "long documents take up to two minutes". With it, National Taiwan University and National Changhua University of Education pass; National Taitung University's 18-page organization regulations still ran past 90 s in that run (47 s earlier the same day).
+
+## 14. Seen while recording the demo (2026-10-06)
+
+1. **The requester's own unit head is still sometimes listed as an approver to confirm.** In one of two university runs, 「隸屬院長或一級行政單位主管」 came back as an approver to confirm instead of `requester.manager`, although the architect's instruction now names that wording. Gemini's answer varies between runs; the decision feature lets a person settle it ("the requester's department head").
+2. **Two departments that hand work to each other draw a clipped label.** On the university map, 總務處 → 主計室 and 主計室 → 總務處 overlap: one label is cut and the return arrow loops above the box.
+- Status: open, cosmetic and run-to-run variation; not blocking the submission.
