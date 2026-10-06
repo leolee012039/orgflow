@@ -16,8 +16,8 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
 PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "aibul-510701")
-DAILY_LIMIT = int(os.getenv("ORGFLOW_DAILY_LIMIT", "30"))  # health checks per user per day
-SIGN_IN_MESSAGE = "Sign in to check your own documents. The NovaGear sample works without an account."
+DAILY_LIMIT = int(os.getenv("ORGFLOW_DAILY_LIMIT", "30"))  # analyses per user per day
+SIGN_IN_MESSAGE = "Sign in to analyze your own documents. The NovaGear sample works without an account."
 
 _transport = google_requests.Request()
 _checks_today: dict[tuple[str, date], int] = {}  # per instance; Cloud Run runs at most two
@@ -51,10 +51,10 @@ def require_user(request: Request, sample: bool) -> Optional[str]:
 
 
 def count_health_check(uid: Optional[str]) -> None:
-    """Each user may start DAILY_LIMIT health checks a day."""
+    """Each user may start DAILY_LIMIT analyses a day."""
     if uid is None:
         return
     key = (uid, date.today())
     if _checks_today.get(key, 0) >= DAILY_LIMIT:
-        raise HTTPException(429, f"You have run {DAILY_LIMIT} health checks today, the daily limit. Try again tomorrow.")
+        raise HTTPException(429, f"You have started {DAILY_LIMIT} analyses today, the daily limit. Try again tomorrow.")
     _checks_today[key] = _checks_today.get(key, 0) + 1

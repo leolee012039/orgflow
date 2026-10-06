@@ -45,3 +45,4 @@ desktop.ini
 
 # Local Gemini response cache (ORGFLOW_DEV_CACHE=1)
 .cache/
+!.env.example
