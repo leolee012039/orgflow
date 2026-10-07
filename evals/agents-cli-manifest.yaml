@@ -1,0 +1,6 @@
+# agents-cli treats evals/ as its own small project, so evaluating OrgFlow's agents changes nothing
+# in the app. The agents themselves live in ../api/agents; apps/ only serves them for evaluation.
+name: orgflow-evals
+agent_directory: apps/request_reviewer
+language: python
+deployment_target: none

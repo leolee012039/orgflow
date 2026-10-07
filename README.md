@@ -106,6 +106,8 @@ uv run --group dev pytest -q                                              # 159 
 uv run --group dev --with pymupdf python scripts/eval_documents.py         # all six document sets, live Gemini
 ```
 
+The Request Reviewer, the agent that runs inside every case, is also evaluated with Google's agents-cli: 12 of 12 decisions right, and 12 of 12 at 5/5 from a Gemini judge grading it against its own contract ([evals/README.md](evals/README.md)).
+
 Tests replace every agent with a fake or a saved answer and fail if one tries to call Gemini; `tests/test_abuse.py` checks what an anonymous or greedy caller can make OrgFlow spend. GitHub Actions runs the tests, type check and lint on every push. The evaluation downloads the real documents, runs every stage live, builds every linked workflow, runs cases just below, at and above every threshold, and writes [docs/EVAL.md](docs/EVAL.md).
 
 ## Deploy

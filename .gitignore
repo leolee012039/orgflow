@@ -46,3 +46,7 @@ desktop.ini
 # Local Gemini response cache (ORGFLOW_DEV_CACHE=1)
 .cache/
 !.env.example
+
+# agents-cli evaluation runs and ADK session files
+evals/**/artifacts/
+**/.adk/

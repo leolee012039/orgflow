@@ -1,0 +1,14 @@
+# Request Reviewer evaluation (run from evals/, see evals/README.md)
+metrics_to_run:
+  - decision_matches    # plain code: the decision a careful person would make, case by case
+  - reviewer_contract   # LLM judge (Gemini on Vertex AI) against the reviewer's own contract, scored 1-5 as 0.2-1.0
+
+custom_metrics:
+  - name: decision_matches
+    custom_function_file: metrics.py   # resolved next to this file; runs locally, no judge
+  - name: reviewer_contract
+    custom_function_file: judge.py     # runs locally and calls Gemini with the project's credentials
+
+# Not used: the managed instruction_following metric grades against the user prompt alone, without the
+# reviewer's instructions, and marked down answers that list only the problems, as those instructions
+# require. Its judge model also answered 429 for most cases on 2026-10-07.
