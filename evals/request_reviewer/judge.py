@@ -14,7 +14,7 @@ import threading
 from google import genai
 from google.genai import types
 
-PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "aibul-510701")
+PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")  # set before running, see evals/README.md
 MODEL = os.getenv("JUDGE_MODEL", "gemini-3.8-flash")
 _local = threading.local()
 

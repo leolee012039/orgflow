@@ -1,6 +1,6 @@
 """Test firestore.rules with the Firebase Rules test API: no emulator, no data touched.
 
-    uv run python scripts/test_firestore_rules.py [project]
+    uv run python scripts/test_firestore_rules.py [project]   (default: the project in .firebaserc)
 
 Each case gives the request, the existing document and whether the rules must allow it.
 """
@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PROJECT = sys.argv[1] if len(sys.argv) > 1 else "aibul-510701"
+PROJECT = sys.argv[1] if len(sys.argv) > 1 else json.loads((ROOT / ".firebaserc").read_text(encoding="utf-8"))["projects"]["default"]
 PATH = "/databases/(default)/documents/workspaces/w1"
 
 GOOD = {

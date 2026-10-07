@@ -17,7 +17,7 @@ from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
-PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "aibul-510701")
+PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT", "")
 DAILY_LIMIT = int(os.getenv("ORGFLOW_DAILY_LIMIT", "30"))  # analyses per user per day
 STAGE_LIMIT = int(os.getenv("ORGFLOW_STAGE_LIMIT", "300"))  # map, plan, build and case runs per user per day
 ANON_RUN_LIMIT = int(os.getenv("ORGFLOW_ANON_RUN_LIMIT", "300"))  # Gemini reviews in anonymous sample cases

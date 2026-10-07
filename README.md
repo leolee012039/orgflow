@@ -131,6 +131,6 @@ web/            Next.js app: the console (map, workflows, cases, documents)
 tests/          pytest suite
 scripts/        evaluation and sample PDF generators
 demo_assets/    sample PDFs: NovaGear (English), Xiangying Fitness (Traditional Chinese)
-docs/           EVAL.md, ISSUES.md, DEPLOY_CHECKLIST.md, RUNBOOK.md, SPEC.md (the archived build brief)
+docs/           EVAL.md, ISSUES.md, DEPLOY_CHECKLIST.md, RUNBOOK.md, MOVE_PROJECT.md, SPEC.md (the archived build brief)
 firestore.rules Firestore security rules
 ```

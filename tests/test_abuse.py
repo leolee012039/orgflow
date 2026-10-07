@@ -139,9 +139,12 @@ def test_signed_in_builds_count_against_a_daily_limit(monkeypatch):
 
 def test_cloud_run_needs_its_settings():
     assert main.check_cloud_run_settings({}) == []  # local development and tests
-    ok = {"K_SERVICE": "orgflow-api", "ALLOWED_ORIGINS": "https://aibul-510701.web.app"}
+    ok = {"K_SERVICE": "orgflow-api", "ALLOWED_ORIGINS": "https://my-project.web.app", "FIREBASE_PROJECT_ID": "my-project"}
     assert main.check_cloud_run_settings(ok) == []
-    assert main.check_cloud_run_settings({"K_SERVICE": "orgflow-api"}) == ["ALLOWED_ORIGINS is not set"]
+    assert main.check_cloud_run_settings({"K_SERVICE": "orgflow-api"}) == [
+        "ALLOWED_ORIGINS is not set", "FIREBASE_PROJECT_ID is not set"]
+    without_firebase = {k: v for k, v in ok.items() if k != "FIREBASE_PROJECT_ID"}
+    assert main.check_cloud_run_settings({**without_firebase, "GOOGLE_CLOUD_PROJECT": "my-project"}) == []
     assert main.check_cloud_run_settings({**ok, "ORGFLOW_REQUIRE_AUTH": "0"}) == [
         "ORGFLOW_REQUIRE_AUTH must not be 0 on Cloud Run"]
 

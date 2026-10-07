@@ -18,6 +18,8 @@ def check_cloud_run_settings(env=os.environ) -> list[str]:
         problems.append("ORGFLOW_REQUIRE_AUTH must not be 0 on Cloud Run")
     if not env.get("ALLOWED_ORIGINS"):
         problems.append("ALLOWED_ORIGINS is not set")
+    if not (env.get("FIREBASE_PROJECT_ID") or env.get("GOOGLE_CLOUD_PROJECT")):
+        problems.append("FIREBASE_PROJECT_ID is not set")  # without it every sign-in fails
     return problems
 
 
