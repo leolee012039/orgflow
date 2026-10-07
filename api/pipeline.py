@@ -196,16 +196,31 @@ async def analyze_organization(docs: Docs) -> StageResult[Organization]:
     )
 
 
+NO_WORK = "no_work_described"  # the documents name departments but say nothing about their work
+
+
+def _describes_no_work(problems: list[str]) -> bool:
+    """The guard found no department the documents give any work to: an org chart of names
+    and titles only, with no duties and no policy."""
+    if "No department profiles" in problems:
+        return True
+    no_work = sum("lists no work" in p for p in problems)
+    return no_work > 0 and no_work * 2 >= len(problems)
+
+
 async def map_departments(docs: Docs, org: Organization) -> StageResult[DepartmentMap]:
     doc_text = await documents_text(docs)
     labelled, org_json = docs.labelled(), org.model_dump(by_alias=True)
-    return await run_guarded_stage(
+    result = await run_guarded_stage(
         stage="department_map",
         first_call=lambda: department_analyst.analyze(labelled, org_json),
         repair_call=lambda previous, problems: department_analyst.repair(labelled, org_json, previous, problems),
         validate=lambda data: validate_department_map(data, org, doc_text, department_analyst.MAX_DEPARTMENTS),
         fixture=_fixture(docs, "department_map.json", DepartmentMap),
     )
+    if result.value is None and _describes_no_work(result.problems):
+        return StageResult(None, NO_WORK, result.latency_ms, result.problems)
+    return result
 
 
 async def plan_workflows(docs: Docs, org: Organization, dmap: DepartmentMap) -> StageResult[WorkflowPlan]:

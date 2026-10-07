@@ -20,6 +20,7 @@ from sample_docs import (
     DOC_TEXT,
     DOCS,
     OPERATIONS,
+    ORG_PDF,
     PAYMENT,
     PROCUREMENT,
     all_workflows,
@@ -330,6 +331,33 @@ def test_exactly_ten_percent_discount_stops_before_any_approval():
 
 client = TestClient(main.app)
 ORG_JSON = json.dumps(fixture("organization.json"))
+OTHER_ORG_PDF = ORG_PDF + b"\n% another company's file\n"  # same text, not the sample: no saved answers
+
+
+def test_an_org_chart_of_names_only_gets_a_plain_answer(monkeypatch):
+    # No duties and no policy: nothing says what the departments do
+    async def no_work(*args, **kwargs):
+        return AgentResult({"departments": [], "handoffs": []}, None, 3000)
+
+    monkeypatch.setattr(department_analyst, "analyze", no_work)
+    monkeypatch.setattr(department_analyst, "repair", no_work)
+    resp = client.post("/api/map", files=upload_files(OTHER_ORG_PDF, []), data={"organization": ORG_JSON})
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert detail["message"] == main.NO_WORK_MESSAGE and detail["problems"] == []
+
+
+def test_other_map_failures_keep_the_general_answer(monkeypatch):
+    async def bad_quote(*args, **kwargs):
+        dmap = fixture("department_map.json")
+        dmap["handoffs"][0]["evidence"]["quote"] = "A sentence that appears in no document at all."
+        return AgentResult(dmap, None, 3000)
+
+    monkeypatch.setattr(department_analyst, "analyze", bad_quote)
+    monkeypatch.setattr(department_analyst, "repair", bad_quote)
+    resp = client.post("/api/map", files=upload_files(OTHER_ORG_PDF, []), data={"organization": ORG_JSON})
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["message"] != main.NO_WORK_MESSAGE
 
 
 def test_map_plan_and_build_endpoints(monkeypatch):

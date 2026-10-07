@@ -84,8 +84,15 @@ STAGE_NAMES = {"organization": "the organization", "department_map": "the depart
                "workflow_plan": "the department workflow plans", "workflow": "the workflow"}
 
 
+NO_WORK_MESSAGE = ("This org chart shows who is in each department, but nothing in the documents says what "
+                   "the departments do or where their work goes, so OrgFlow can't map them. Add a policy or "
+                   "job descriptions, such as purchasing, refund or leave rules, and analyze again.")
+
+
 def stage_response(result, stage: str, by_alias: bool = False) -> dict:
     """The stage's JSON, or a 422 that says plainly why nothing is shown."""
+    if result.value is None and result.origin == pipeline.NO_WORK:
+        raise HTTPException(422, {"message": NO_WORK_MESSAGE, "problems": []})
     if result.value is None:
         raise HTTPException(422, {
             "message": f"OrgFlow couldn't verify Gemini's reading of {STAGE_NAMES[stage]} against your documents, "
