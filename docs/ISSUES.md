@@ -134,3 +134,10 @@ An external read-only audit of f66a35f found what an anonymous or greedy caller 
 6. **Guard problems quoting the documents went to Cloud Logging.** Fixed: logs keep the number of problems.
 7. Also fixed: an emergency switch (`ORGFLOW_GEMINI_OFF=1`) pauses every live Gemini call; the test guard now fails a test that reaches Gemini instead of letting the fallback hide it; Docker installs the locked versions; `.dockerignore`; security headers on Hosting; complete `.env.example` files; the archived SPEC is marked as such; CI on GitHub Actions; DEPLOY_CHECKLIST.md and RUNBOOK.md.
 - Still open, by choice: limits are counted in memory per instance (approximate, documented); uploads are read before the sign-in check, because only the documents tell whether they are the sample; a workflow with several AI checks reviews them all with the first check's wording; commit emails become public with the repository.
+
+## 16. Firestore rules: no checks on what a workspace holds (2026-10-07)
+
+- Found with the Firebase security rules auditor checklist (score 4 of 5: no unauthorized access). Create checked only the owner and the share flag, so a workspace could be created with any fields and sizes, and with more decisions than an update allows. Any field but `shared` and `decisions` could take any type: an owner could turn `built` into text and break the page for the people it is shared with. Nothing limited name length or the number of workflows and cases.
+- Status: **fixed.** Create and update share one check: only the fields the web app writes, their types, and the app's limits (30 workflows, 30 cases, 50 decisions, a 200-character name). `scripts/test_firestore_rules.py` runs 27 cases through the Firebase Rules test API, with no emulator and no data touched; the same rules also passed against the real saved workspace.
+- Note for testing: the Rules test API reads an ISO date string as a timestamp, so `analyzedAt` accepts either. Creating unlimited workspaces can't be limited in rules; each analysis has a daily limit instead.
+
