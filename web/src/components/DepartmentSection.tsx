@@ -160,12 +160,12 @@ export function DepartmentSection({
           ) : (
             <ul className="flex flex-col gap-1.5">
               {receives.map((h) => (
-                <li key={`in-${h.from}`}>
+                <li key={`in-${h.from}-${h.what}`}>
                   Receives {h.what} from {h.from}
                 </li>
               ))}
               {sends.map((h) => (
-                <li key={`out-${h.to}`}>
+                <li key={`out-${h.to}-${h.what}`}>
                   Hands {h.what} to {h.to}
                 </li>
               ))}

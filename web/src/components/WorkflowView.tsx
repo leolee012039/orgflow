@@ -274,7 +274,7 @@ export function Findings({
   return (
     <div className="flex flex-col gap-4">
       {gaps.map((gap) => (
-        <GapCard key={gap.actor} gap={gap} org={org} rule={ruleOf(gap.step_id)} workflow={workflow} />
+        <GapCard key={`${gap.step_id}-${gap.actor}`} gap={gap} org={org} rule={ruleOf(gap.step_id)} workflow={workflow} />
       ))}
       {amountGaps.map((finding) => (
         <AmountGapCard key={`${finding.kind}-${finding.field}-${finding.amount}`} finding={finding} workflow={workflow} />

@@ -7,7 +7,10 @@ import type { BuiltWorkflow, Documents, Organization, WorkflowCandidate } from "
 
 export type BuildState = { status: "building" } | { status: "error"; message: string; problems: string[] };
 
-/** Building one company's workflows, one at a time or every linked one at once.
+/** "Build all" sends at most this many builds at once: more slow every Gemini answer, and one past 90 s fails. */
+const BUILD_AT_ONCE = 3;
+
+/** Building one company's workflows, one at a time or every planned one at once.
  *
  * Mount it once per company (the page keys the console by company): it keeps the built workflows in a ref
  * so parallel builds see each other's results, and drops builds that finish after the company is closed.
@@ -57,14 +60,14 @@ export function useBuilds({
   }
 
   async function buildAll() {
-    // Upstream first: a workflow is built once its upstream is built, side by side with others that are ready
+    // Upstream first: a workflow is built once its upstream is built, side by side with a few others that are ready
     const upstreamBuilt = (c: WorkflowCandidate) => {
       const up = upstreamOf(c, candidates, builtRef.current);
       return !up || Boolean(builtRef.current[up.id]);
     };
     let pending = buildOrder(candidates, builtRef.current);
     while (pending.length && !gone.current) {
-      const ready = pending.filter(upstreamBuilt);
+      const ready = pending.filter(upstreamBuilt).slice(0, BUILD_AT_ONCE);
       if (!ready.length) break;
       await Promise.all(ready.map(build));
       pending = pending.filter((c) => !ready.includes(c));

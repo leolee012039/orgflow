@@ -16,14 +16,9 @@ export function upstreamOf(candidate: WorkflowCandidate, plan: WorkflowCandidate
   return options.find((w) => built[w.id]) ?? options[0] ?? null;
 }
 
-/** The planned workflow that picks up a candidate's result: in the department it hands to, starting from it. */
-export function downstreamOf(candidate: WorkflowCandidate, plan: WorkflowCandidate[]): WorkflowCandidate | null {
-  if (!candidate.hands_to) return null;
-  return plan.find((w) => w.department === candidate.hands_to && w.starts_from === candidate.department) ?? null;
-}
-
-/** What "Build all" builds: each department's first workflow, the workflows they start from, and the workflows
- * that pick up their results, so every chain is complete. Upstream comes first. */
+/** What "Build all" builds: every planned workflow not built yet, each after the workflow it starts from.
+ * All of them, not only each department's first: a problem can sit in any department's second or third
+ * workflow, and the page can only report problems in what is built. */
 export function buildOrder(plan: WorkflowCandidate[], built: Built): WorkflowCandidate[] {
   const wanted = new Map<string, WorkflowCandidate>();
   const add = (candidate: WorkflowCandidate, seen: Set<string>) => {
@@ -32,12 +27,8 @@ export function buildOrder(plan: WorkflowCandidate[], built: Built): WorkflowCan
     const upstream = upstreamOf(candidate, plan, built);
     if (upstream) add(upstream, seen);
     wanted.set(candidate.id, candidate);
-    const downstream = downstreamOf(candidate, plan);
-    if (downstream) add(downstream, seen);
   };
-  const firstPerDepartment = new Map<string, WorkflowCandidate>();
-  for (const w of plan) if (!firstPerDepartment.has(w.department)) firstPerDepartment.set(w.department, w);
-  for (const w of firstPerDepartment.values()) add(w, new Set());
+  for (const w of plan) add(w, new Set());
   return [...wanted.values()].filter((w) => !built[w.id]);
 }
 

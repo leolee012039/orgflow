@@ -98,13 +98,10 @@ def load(source: str) -> bytes:
 
 
 def build_order(plan: list) -> list:
-    """What "Build all" builds in the web app: each department's first workflow, the workflows they start
-    from and the workflows that pick up their results, upstream first (web/src/lib/chain.ts)."""
+    """What "Build all" builds in the web app: every planned workflow, each after the workflow it starts
+    from (web/src/lib/chain.ts)."""
     def upstream(c):
         return next((w for w in plan if c.starts_from and w.department == c.starts_from and w.hands_to == c.department), None)
-
-    def downstream(c):
-        return next((w for w in plan if c.hands_to and w.department == c.hands_to and w.starts_from == c.department), None)
 
     wanted: dict = {}
 
@@ -116,14 +113,8 @@ def build_order(plan: list) -> list:
         if up:
             add(up, seen)
         wanted[c.id] = c
-        down = downstream(c)
-        if down:
-            add(down, seen)
 
-    first: dict = {}
     for w in plan:
-        first.setdefault(w.department, w)
-    for w in first.values():
         add(w, set())
     return list(wanted.values())
 
