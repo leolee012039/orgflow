@@ -3,6 +3,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
+    "site": "orgflowai",
     "public": "web/out",
     "cleanUrls": true,
     "ignore": [

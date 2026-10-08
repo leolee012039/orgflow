@@ -6,7 +6,7 @@ OrgFlow reads a company's org chart and policies, maps how work moves from depar
 
 Built for the Google Cloud AI Builder Cup 2026 (theme: Future of Work and Enterprise Productivity).
 
-- **Live app:** https://aibul-510701.web.app (the NovaGear sample works without an account)
+- **Live app:** https://orgflowai.web.app (the NovaGear sample works without an account)
 - **Demo video:** added with the submission
 - **Evaluation on real documents:** [docs/EVAL.md](docs/EVAL.md)
 
@@ -120,7 +120,9 @@ cd web && NEXT_PUBLIC_API_BASE=<Cloud Run URL> npm run build && cd ..
 firebase deploy --only hosting,firestore:rules
 ```
 
-On Cloud Run the API refuses to start when sign-in is turned off or `ALLOWED_ORIGINS` is missing, so a revision with incomplete settings never takes traffic. After each deploy, follow [docs/DEPLOY_CHECKLIST.md](docs/DEPLOY_CHECKLIST.md); when something goes wrong, [docs/RUNBOOK.md](docs/RUNBOOK.md).
+`firebase.json` deploys to the Hosting site `orgflowai`. In your own project, change `hosting.site` to your site (or remove it to use the project's default site), list that site's addresses in `ALLOWED_ORIGINS`, and add them to Firebase Authentication's authorized domains.
+
+On Cloud Run the API refuses to start when sign-in is turned off, or `ALLOWED_ORIGINS` or the project is missing, so a revision with incomplete settings never takes traffic. After each deploy, follow [docs/DEPLOY_CHECKLIST.md](docs/DEPLOY_CHECKLIST.md); when something goes wrong, [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Repository
 

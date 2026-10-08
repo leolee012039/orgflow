@@ -2,9 +2,9 @@
 
 For the judging period (Oct 19 - Nov 6, 2026, and to Dec 4 if shortlisted).
 
-- Project: `aibul-510701`. API: Cloud Run `orgflow-api` (asia-east1). Web: Firebase Hosting `aibul-510701.web.app`.
+- Project: `ai-builder-510613` (moved from `aibul-510701` on 2026-10-08). API: Cloud Run `orgflow-api` (asia-east1). Web: Firebase Hosting `orgflowai.web.app`.
 - Owner: Leo (GCP admin). Backup: [name].
-- Last known good revision: `orgflow-api-00013-9mw` (2026-10-07, commit 4fede1d). Git tag: `last-good`.
+- Last known good revision: `orgflow-api-00001-c6f` (2026-10-08, commit 4955292). Git tag: `last-good`.
 
 ## 1. The API or the website is down (uptime alert)
 
@@ -48,5 +48,5 @@ Firebase console, Hosting, Release history: roll back to the previous release.
 
 ## Monitoring to set up once
 
-- Uptime checks (Cloud Monitoring): HTTPS `orgflow-api-623155627308.asia-east1.run.app/api/health`, every 5 minutes, timeout 30 s (a cold start takes about 10 s), response contains `"ok":true`; a second one for `aibul-510701.web.app/`. Alert by email.
+- Uptime checks (Cloud Monitoring): HTTPS `orgflow-api-492748170140.asia-east1.run.app/api/health`, every 5 minutes, timeout 30 s (a cold start takes about 10 s), response contains `"ok":true`; a second one for `orgflowai.web.app/`. Alert by email.
 - Budget (Cloud Billing): alerts at 50%, 90% and 100%, linked to the same email channel.
