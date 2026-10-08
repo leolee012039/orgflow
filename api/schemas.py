@@ -1,5 +1,5 @@
 from typing import Annotated, Literal, Optional, Union
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Origin indicator for responses
 OriginType = Literal["live", "repaired", "fixture"]
@@ -134,7 +134,7 @@ class Workflow(BaseModel):
     fields: list[FormField] = Field(default_factory=list)  # empty: the original purchase request form
     required_fields: list[str]
     rules: list[Rule] = Field(default_factory=list)
-    steps: list[Step] = Field(..., max_length=MAX_STEPS)
+    steps: list[Step]
     unresolved_actors: list[str] = Field(default_factory=list)
     amount_tiers: list[AmountTier] = Field(default_factory=list)
     starts_from: Optional[str] = None
@@ -143,6 +143,15 @@ class Workflow(BaseModel):
     explanation: str
     # Set by code, never by Gemini: the built workflow this one was built to receive cases from
     upstream_id: Optional[str] = None
+
+    # A validator, not Field(max_length=...): Workflow is the architect's answer format, and Gemini
+    # answers 400 INVALID_ARGUMENT to a format with maxItems
+    @field_validator("steps")
+    @classmethod
+    def _steps_fit(cls, steps: list[Step]) -> list[Step]:
+        if len(steps) > MAX_STEPS:
+            raise ValueError(f"a workflow has at most {MAX_STEPS} steps")
+        return steps
 
 # -----------------------------------------------------------------------------
 # 4. Request Form & Execution Trace Schemas

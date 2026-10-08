@@ -141,3 +141,9 @@ An external read-only audit of f66a35f found what an anonymous or greedy caller 
 - Status: **fixed.** Create and update share one check: only the fields the web app writes, their types, and the app's limits (30 workflows, 30 cases, 50 decisions, a 200-character name). `scripts/test_firestore_rules.py` runs 27 cases through the Firebase Rules test API, with no emulator and no data touched; the same rules also passed against the real saved workspace.
 - Note for testing: the Rules test API reads an ISO date string as a timestamp, so `analyzedAt` accepts either. Creating unlimited workspaces can't be limited in rules; each analysis has a daily limit instead.
 
+
+## 17. Every live workflow build failed with 400 INVALID_ARGUMENT (2026-10-08)
+
+- Found by running a gym's org chart with four policies end to end after moving to the new project: the map and the plan were built live, then every build answered `400 INVALID_ARGUMENT: Request contains an invalid argument`, the repair too, and the page showed nothing built. The NovaGear sample built live the same way failed too, so the documents were not the cause.
+- Cause: on 6 Oct the step limit was written as `Field(max_length=30)` on `Workflow.steps`, which puts `maxItems` in the architect's answer format, and Gemini rejects a format with `maxItems`. Three direct calls confirmed it: the format as is fails, the same format without `maxItems` works. The sample was never affected (it builds from saved answers), and tests never call Gemini, so nothing noticed for two days.
+- Status: **fixed.** The limit is a validator, checked after the answer arrives. `tests/test_answer_formats.py` fails if any agent's answer format contains `maxItems`, and checks the limit still holds; both fail on the old code. NovaGear built live again in 8 s.
