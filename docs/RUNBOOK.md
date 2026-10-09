@@ -4,7 +4,7 @@ For the judging period (Oct 19 - Nov 6, 2026, and to Dec 4 if shortlisted).
 
 - Project: `ai-builder-510613` (moved from `aibul-510701` on 2026-10-08). API: Cloud Run `orgflow-api` (asia-east1). Web: Firebase Hosting `orgflowai.web.app`.
 - Owner: Leo (GCP admin). Backup: [name].
-- Last known good revision: `orgflow-api-00002-zbw` (2026-10-08, commit 6444d4d). Git tag: `last-good`.
+- Last known good revision: `orgflow-api-00003-dz4` (2026-10-09, commit 822a873). Git tag: `last-good`.
 
 ## 1. The API or the website is down (uptime alert)
 
