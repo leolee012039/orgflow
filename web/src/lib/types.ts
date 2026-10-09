@@ -150,7 +150,10 @@ export interface AmountGap {
   unclear_side?: "below" | "above";
 }
 
-export type BuiltWorkflow = WithMeta<Workflow & { gaps: Gap[]; amount_gaps: AmountGap[] }>;
+/** amount_levels_unchecked: the policy's amount levels didn't pass the checks, so exact amounts weren't looked at */
+export type BuiltWorkflow = WithMeta<
+  Workflow & { gaps: Gap[]; amount_gaps: AmountGap[]; amount_levels_unchecked?: boolean }
+>;
 
 export type StepResult = "PASSED" | "SKIPPED" | "DONE" | "RETURNED" | "HUMAN_REVIEW";
 
@@ -172,7 +175,8 @@ export interface Trace {
   request_id: string;
   status: TraceStatus;
   steps: StepTrace[];
-  metrics: { manual_handoffs_before: number; human_approvals: number; ai_checks: number };
+  /** ai_checks: checks Gemini answered; code_checks: checks plain code made instead (absent in cases saved before 9 Oct) */
+  metrics: { manual_handoffs_before: number; human_approvals: number; ai_checks: number; code_checks?: number };
 }
 
 export interface ChainLeg {

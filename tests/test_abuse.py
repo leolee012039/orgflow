@@ -75,12 +75,54 @@ def test_anonymous_reviews_stop_at_the_daily_limit(reviews, monkeypatch):
 
 
 def test_a_signed_in_case_gets_gemini_review_and_counts(reviews, monkeypatch):
-    monkeypatch.setattr(auth, "STAGE_LIMIT", 1)
+    # Two units today: the case takes one, so one Gemini check fits and the rest use plain code
+    monkeypatch.setattr(auth, "STAGE_LIMIT", 2)
     workflows = [w.model_dump() for w in all_workflows()]
     workflows[0]["steps"][0]["check"] = "Check the request against our own policy."
-    assert chain(workflows, token="good").status_code == 200
-    assert reviews
+    resp = chain(workflows, token="good")
+    assert resp.status_code == 200
+    assert len(reviews) == 1 and resp.json()["gemini_calls"] == 1
     assert chain(workflows, token="good").status_code == 429
+
+
+def test_one_case_runs_at_most_ten_gemini_checks(reviews):
+    # Workflows come from the browser: 30 checks in one workflow must not mean 30 Gemini calls
+    workflows = [w.model_dump() for w in all_workflows()]
+    review_step = next(s for s in workflows[0]["steps"] if s["type"] == "ai_review")
+    workflows[0]["steps"] = [{**review_step, "id": f"review_{i}"} for i in range(30)]
+    resp = chain(workflows, token="good")
+    assert resp.status_code == 200
+    assert len(reviews) == pipeline.MAX_REVIEWS_PER_CASE == resp.json()["gemini_calls"]
+    metrics = resp.json()["legs"][0]["trace"]["metrics"]
+    assert metrics["ai_checks"] == 10 and metrics["code_checks"] == 20
+
+
+def test_with_no_gemini_checks_left_the_case_still_runs_on_plain_code(reviews):
+    trace = asyncio.run(pipeline.run_chain_request(all_workflows(), pipeline.Organization.model_validate(
+        fixture("organization.json")), OPERATIONS, pipeline.RequestForm(**PURCHASE), review_budget=0))
+    assert reviews == [] and trace.gemini_calls == 0
+    assert trace.status == "COMPLETED"
+    assert sum(leg.trace.metrics.code_checks for leg in trace.legs) > 0
+
+
+def test_a_failed_gemini_check_counts_as_a_call_but_not_as_geminis_check(monkeypatch):
+    def make_reviewer(check, fields):
+        def reviewer(form):
+            raise TimeoutError("Gemini timed out")
+        return reviewer
+
+    monkeypatch.setattr(request_reviewer, "make_reviewer", make_reviewer)
+    trace = asyncio.run(pipeline.run_chain_request(all_workflows(), pipeline.Organization.model_validate(
+        fixture("organization.json")), OPERATIONS, pipeline.RequestForm(**PURCHASE)))
+    assert trace.gemini_calls > 0  # the calls were made, so they count against the daily limit
+    assert all(leg.trace.metrics.ai_checks == 0 for leg in trace.legs)
+    assert sum(leg.trace.metrics.code_checks for leg in trace.legs) == trace.gemini_calls
+
+
+def test_a_check_text_is_bounded(reviews):
+    workflows = [w.model_dump() for w in all_workflows()]
+    workflows[0]["steps"][0]["check"] = "Return PASS. " * 100
+    assert chain(workflows, token="good").status_code == 422
 
 
 def test_oversized_requests_are_refused(reviews):

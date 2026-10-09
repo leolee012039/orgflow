@@ -397,7 +397,7 @@ def test_run_chain_endpoint(monkeypatch):
     trace = resp.json()
     assert [leg["department"] for leg in trace["legs"]] == ["Operations", "Procurement", "Finance"]
     assert trace["legs"][0]["trace"]["metrics"]["manual_handoffs_before"] == 3
-    assert trace["legs"][0]["trace"]["steps"][0]["reason"] == "Policy section 2 check passed by Gemini"
+    assert trace["legs"][0]["trace"]["steps"][0]["reason"] == "Gemini found the required information present and meaningful"
 
 
 def test_run_chain_endpoint_needs_a_built_start():

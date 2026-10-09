@@ -116,6 +116,7 @@ StepType = Literal["approval", "ai_review", "task", "notification"]
 
 MAX_STEPS = 30  # the planner builds at most a handful; the sample's longest has 7
 MAX_CHAIN_WORKFLOWS = 30  # 10 departments x 3 workflows
+MAX_CHECK_TEXT = 1000  # what an AI check tells Gemini to look for; the sample's longest is about 200
 
 
 class Step(BaseModel):
@@ -126,6 +127,14 @@ class Step(BaseModel):
     also_if: Optional[str] = None  # a second rule that must also hold, for a range of amounts
     check: Optional[str] = None
     on_fail: Optional[str] = None
+
+    # A validator, not Field(max_length=...): Step is part of the architect's answer format (see Workflow)
+    @field_validator("check")
+    @classmethod
+    def _check_fits(cls, check: Optional[str]) -> Optional[str]:
+        if check is not None and len(check) > MAX_CHECK_TEXT:
+            raise ValueError(f"an AI check is at most {MAX_CHECK_TEXT} characters")
+        return check
 
 class Workflow(BaseModel):
     workflow_name: str
@@ -236,7 +245,8 @@ TraceStatusType = Literal["COMPLETED", "RETURNED", "NEEDS_HUMAN_REVIEW"]
 class TraceMetrics(BaseModel):
     manual_handoffs_before: int = 4
     human_approvals: int = 0
-    ai_checks: int = 0
+    ai_checks: int = 0  # checks Gemini answered
+    code_checks: int = 0  # checks plain code made: a placeholder, no Gemini review for this case, or Gemini failed
 
 class ExecutionTrace(BaseModel):
     request_id: str
@@ -258,6 +268,8 @@ class ChainTrace(BaseModel):
     legs: list[ChainLeg] = Field(default_factory=list)
     # When the last workflow hands to a department with no built workflow yet
     waiting_for: Optional[str] = None
+    # Calls made to Gemini for this case (each counts against the caller's daily limit)
+    gemini_calls: int = 0
 
 # -----------------------------------------------------------------------------
 # 5. AI Review Schemas

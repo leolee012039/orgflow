@@ -120,7 +120,7 @@ export function CompanyConsole({
   function addCase(record: CaseRecord) {
     const next = [record, ...cases].slice(0, MAX_CASES);
     setCases(next);
-    onCases(next);
+    if (editable) onCases(next); // someone viewing a shared company sees their cases here, unsaved
   }
 
   // Save as PDF prints the full report: open its folded sections first, and fold them back after
@@ -276,7 +276,7 @@ export function CompanyConsole({
               />
             )}
             {section === "cases" && (
-              <CasesView plan={candidates} built={built} org={org} cases={cases} onCase={addCase} onResolve={openInWorkflows} />
+              <CasesView plan={candidates} built={built} org={org} cases={cases} editable={editable} onCase={addCase} onResolve={openInWorkflows} />
             )}
             {section === "documents" && <DocumentsView workspace={workspace} docs={docs} editable={editable} onDocs={onDocs} />}
           </div>

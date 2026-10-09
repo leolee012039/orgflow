@@ -185,6 +185,7 @@ export function DepartmentCanvas({
     const s = status(name, plan, built, decisions);
     return (
       <button
+        key={name}
         type="button"
         onClick={() => onSelect(name)}
         aria-pressed={selected === name}

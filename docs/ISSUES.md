@@ -155,3 +155,25 @@ An external read-only audit of f66a35f found what an anonymous or greedy caller 
 - Still open: when a policy names a role that exists elsewhere in the company (one branch has an operations supervisor, the other doesn't), the workflow routes to that role without saying so.
 - Building everything sent up to a dozen builds at once, and on a slow afternoon several Gemini answers took 80-90 s (one past the 90 s limit). "Build all" now sends at most 3 at a time. A failed build shows on its department and can be built again.
 - The same run showed React's duplicate-key warning: the printed report keyed handoffs by department only, so two different handoffs between the same departments collided. Keys now include what is handed over. Rerun: 9 of 12 built, both planted problems found, plus one nobody planted (the Tainan branch has no T3 Fitness Manager, whom its training policy requires), and no warnings.
+
+## 19. Review with ECC's reviewers (2026-10-09)
+
+Four reviewers (FastAPI, React, security, silent failures) read the code; each item below was checked against the code before it was listed.
+- **Cost:** a signed-in `/api/run_chain` accepts up to 30 client-written workflows of 30 steps, and every `ai_review` step calls Gemini with a check text of any length: one request, one unit of the daily limit, up to 900 Gemini calls.
+- **Gemini failures blamed on the documents:** a 400/403/429 from Vertex is repaired once (a second doomed call), then answered as 422 "check that the PDFs contain selectable text", with the raw error (project and model details) in `problems`; failed calls are logged at INFO, so nothing can alert. This is how the 6-8 Oct build failure stayed hidden.
+- **Amounts:** a blank number field is sent as 0 (`Number("")`), and a non-numeric amount makes every amount rule "not met", so its approvals are skipped and the case completes. A rule's field need not be required.
+- **Sign-in check blocks the server:** `verify_firebase_token` runs synchronously inside async handlers and fetches Google's certificates on every call, uncached.
+- **Silent saves:** saving cases and decisions swallows errors; the page keeps showing "Decided" after a failed save.
+- **Shared links:** a viewer can run cases on a shared workspace; the page shows them as saved, the write is rejected silently.
+- **"No problems" overclaims:** the card counts only built workflows, ignores failed or unbuilt ones, and amount levels dropped by the checks (all or nothing) leave no trace on the page.
+- **"Gemini ran N checks"** counts plain-code fallback checks as Gemini's.
+- Lower: PDF parsing on the event loop; a stage can outlast Cloud Run's 300 s; New analysis doesn't cancel a running one; no sign-out on phones; the logo link changes only the URL; a live-region timer announces every second; no CSP; unpinned uv image.
+- Status: **fixed**, except the "Lower" line, which stays open by choice.
+  - A case runs at most 10 Gemini checks, and each counts against the caller's daily limit; an AI check's text is at most 1,000 characters; a placeholder in a required field is caught by plain code before Gemini is asked.
+  - When Gemini doesn't answer (paused, timed out, an API error) there is no repair call, the answer is 503 "Gemini didn't answer just now … nothing is wrong with your documents", and failed calls are logged as WARNING.
+  - A case whose amount is blank, a word or NaN is returned to the requester; the web form keeps a blank amount blank.
+  - Google's certificates are cached for an hour (10 s timeout), non-JWT tokens are refused without a fetch, and the sign-in check runs off the event loop.
+  - Failed saves of workflows, cases and decisions say so; only the owner's changes are saved, and a shared company's Cases page says its cases aren't saved.
+  - "No problems" counts only built workflows and says how many aren't built; workflows whose amount levels didn't pass are listed.
+  - Gemini's checks and plain code's are counted apart, and a code check is stamped "Checked by code".
+  - Checked: 183 tests (tests/test_review_fixes.py and new cases in test_abuse.py), an adversarial review of the diff (no blockers), and a local live run: Xiangying Fitness built 7 of 7 workflows and found both planted problems in both branches; a blank amount was returned; a full case completed; with Gemini paused the page showed the new message and the API answered 503. The same run found a missing key on the department map's chips, now fixed.

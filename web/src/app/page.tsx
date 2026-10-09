@@ -143,18 +143,25 @@ function Home() {
     }
   }
 
+  // Only the owner's changes are saved: a shared company opened by its link is read-only
+  const ownsSaved = view.status === "ready" && Boolean(view.saved && user && view.saved.owner === user.uid);
+
+  /** Save in the background and say so when it fails: every save writes the whole list, so the next change
+   * saves this one too. */
+  function save(saving: Promise<unknown>, what: string) {
+    saving.then(
+      () => setView((v) => (v.status === "ready" && v.saved?.id === savedId ? { ...v, saveError: undefined } : v)),
+      () =>
+        setView((v) =>
+          v.status === "ready" && v.saved?.id === savedId
+            ? { ...v, saveError: `The latest ${what} aren't saved yet. They'll be saved with your next change.` }
+            : v,
+        ),
+    );
+  }
+
   function onBuilt(built: Record<string, BuiltWorkflow>) {
-    if (savedId) {
-      saveBuilt(savedId, built).then(
-        () => setView((v) => (v.status === "ready" && v.saved?.id === savedId ? { ...v, saveError: undefined } : v)),
-        () =>
-          setView((v) =>
-            v.status === "ready" && v.saved?.id === savedId
-              ? { ...v, saveError: "The latest workflows aren't saved yet. They'll be saved with the next one you build." }
-              : v,
-          ),
-      );
-    }
+    if (savedId && ownsSaved) save(saveBuilt(savedId, built), "workflows");
     setView((v) =>
       v.status === "ready"
         ? { ...v, workspace: { ...v.workspace, built }, saved: v.saved ? { ...v.saved, built } : null }
@@ -163,12 +170,12 @@ function Home() {
   }
 
   function onCases(cases: CaseRecord[]) {
-    if (savedId) saveCases(savedId, cases).catch(() => undefined);
+    if (savedId && ownsSaved) save(saveCases(savedId, cases), "cases");
     setView((v) => (v.status === "ready" ? { ...v, workspace: { ...v.workspace, cases } } : v));
   }
 
   function onDecisions(decisions: Decision[]) {
-    if (savedId) saveDecisions(savedId, decisions).catch(() => undefined);
+    if (savedId && ownsSaved) save(saveDecisions(savedId, decisions), "decisions");
     setView((v) => (v.status === "ready" ? { ...v, workspace: { ...v.workspace, decisions } } : v));
   }
 

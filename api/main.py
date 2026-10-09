@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Optional
 
@@ -91,10 +92,17 @@ NO_WORK_MESSAGE = ("This org chart shows who is in each department, but nothing 
                    "job descriptions, such as purchasing, refund or leave rules, and analyze again.")
 
 
+GEMINI_UNAVAILABLE_MESSAGE = ("Gemini didn't answer just now, so OrgFlow couldn't read your documents. "
+                              "Nothing is wrong with them: try again in a minute.")
+
+
 def stage_response(result, stage: str, by_alias: bool = False) -> dict:
-    """The stage's JSON, or a 422 that says plainly why nothing is shown."""
+    """The stage's JSON, or an error that says plainly why nothing is shown: 503 when Gemini didn't answer
+    (the details stay in the logs), 422 when its answer didn't match the documents."""
     if result.value is None and result.origin == pipeline.NO_WORK:
         raise HTTPException(422, {"message": NO_WORK_MESSAGE, "problems": []})
+    if result.value is None and result.unavailable:
+        raise HTTPException(503, {"message": GEMINI_UNAVAILABLE_MESSAGE, "problems": []})
     if result.value is None:
         raise HTTPException(422, {
             "message": f"OrgFlow couldn't verify Gemini's reading of {STAGE_NAMES[stage]} against your documents, "
@@ -116,9 +124,10 @@ async def read_documents(request: Request, org_chart: UploadFile,
         org_chart=await read_pdf(org_chart, "org_chart"),
         policies=[await read_pdf(p, f"policy {i}") for i, p in enumerate(policies, 1)],
     )
+    # Checking a sign-in can wait on Google's certificates: off the event loop, so other requests carry on
     if pipeline.is_sample(docs):
-        return docs, auth.optional_user(request)
-    return docs, auth.require_user(request, False) or auth.LOCAL
+        return docs, await asyncio.to_thread(auth.optional_user, request)
+    return docs, await asyncio.to_thread(auth.require_user, request, False) or auth.LOCAL
 
 
 def parse_json_field(model, raw: str, field: str):
@@ -187,14 +196,19 @@ class ChainBody(BaseModel):
 async def run_chain(request: Request, body: ChainBody):
     if not any(w.opportunity_id == body.start_id for w in body.workflows):
         raise HTTPException(422, f"No built workflow '{body.start_id}' to start from.")
-    uid = auth.optional_user(request)
+    uid = await asyncio.to_thread(auth.optional_user, request)
+    budget = pipeline.MAX_REVIEWS_PER_CASE
     if uid is not None:
         auth.count_stage(uid)
         live = True
+        # Each Gemini check counts against the daily limit too, so a case can't run more than is left
+        budget = min(budget, auth.stage_units_left(uid))
     else:
         # Without an account, Gemini reviews only the sample's own checks, a few hundred times a
         # day; anything else gets the plain-code check, so the case still runs
         live = all(pipeline.is_sample_workflow(w) for w in body.workflows) and auth.anonymous_review_allowed()
     trace = await pipeline.run_chain_request(body.workflows, body.organization, body.start_id, body.request,
-                                             body.handoffs_before, live_review=live, decisions=body.decisions)
+                                             body.handoffs_before, live_review=live, decisions=body.decisions,
+                                             review_budget=budget)
+    auth.spend_stage_units(uid, trace.gemini_calls)
     return trace.model_dump()

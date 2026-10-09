@@ -1,4 +1,5 @@
 import logging
+import math
 from typing import Any, Callable, Optional, Sequence, Union
 from amount_coverage import amount_findings, find_amount_gaps
 from guard import _compact, extract_tokens, normalize_amounts
@@ -96,16 +97,35 @@ def resolve_actor(actor_name: str, form: RequestForm, org: Organization, workflo
     # Not found in organization
     return False, None, f"Role '{actor_name}' is missing from the org chart → human review"
 
+def placeholder_field(form: RequestForm, required_fields: Optional[list[str]] = None) -> Optional[str]:
+    """Which required field holds a placeholder ("N/A", "TBD"), said plainly, or None."""
+    values = form.model_dump()
+    for field in required_fields or []:
+        value = values.get(field)
+        if isinstance(value, str) and value.strip().lower() in PLACEHOLDER_JUSTIFICATIONS:
+            return f"{field.replace('_', ' ')} is a placeholder ('{value.strip()}')"
+    return None
+
+
+def is_number(value: Any) -> bool:
+    """A finite number, or text that reads as one. A blank, a word or NaN is not."""
+    if isinstance(value, bool) or value is None:
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
 def plain_code_ai_review(form: RequestForm, required_fields: Optional[list[str]] = None) -> tuple[bool, str]:
     """
     Fallback plain-code completeness review.
     Required text is not a placeholder, and a business justification has at least 3 words.
     """
     values = form.model_dump()
-    for field in required_fields or []:
-        value = values.get(field)
-        if isinstance(value, str) and value.strip().lower() in PLACEHOLDER_JUSTIFICATIONS:
-            return False, f"fallback check: {field.replace('_', ' ')} is a placeholder ('{value.strip()}')"
+    placeholder = placeholder_field(form, required_fields)
+    if placeholder:
+        return False, f"fallback check: {placeholder}"
 
     if "business_justification" in values:
         justification = values["business_justification"]
@@ -229,7 +249,8 @@ def run_workflow(
     trace_steps: list[StepTrace] = []
     rules_by_id = {r.id: r for r in workflow.rules}
     human_approvals = 0
-    ai_checks = 0
+    ai_checks = 0  # checks Gemini answered
+    code_checks = 0  # checks plain code made instead: a placeholder, no reviewer, or Gemini failed
 
     # -------------------------------------------------------------------------
     # 1. Required fields check
@@ -254,6 +275,31 @@ def run_workflow(
                     actor="system",
                     result="RETURNED",
                     reason=f"Missing required field(s): {', '.join(missing_fields)}",
+                )
+            ],
+            metrics=TraceMetrics(manual_handoffs_before=manual_handoffs_before, human_approvals=0, ai_checks=0),
+        )
+
+    # An amount a step depends on must be a number: a blank, a word or NaN would make every rule on it
+    # "not met" and skip its approvals, and the case would complete with no one approving
+    used_rules = {rule_id for s in workflow.steps for rule_id in (s.only_if, s.also_if) if rule_id}
+    not_numbers = sorted({
+        rule.when.field for rule_id, rule in rules_by_id.items()
+        if rule_id in used_rules and isinstance(rule.when.value, (int, float)) and not isinstance(rule.when.value, bool)
+        and not is_number(form_dict.get(rule.when.field))
+    })
+    if not_numbers:
+        logger.info("Runner: %s not a number -> RETURNED", not_numbers)
+        return ExecutionTrace(
+            request_id=form.request_id,
+            status="RETURNED",
+            steps=[
+                StepTrace(
+                    step_id="submission_check",
+                    type="task",
+                    actor="system",
+                    result="RETURNED",
+                    reason=f"Missing or not a number: {', '.join(f.replace('_', ' ') for f in not_numbers)}",
                 )
             ],
             metrics=TraceMetrics(manual_handoffs_before=manual_handoffs_before, human_approvals=0, ai_checks=0),
@@ -353,6 +399,7 @@ def run_workflow(
                     manual_handoffs_before=manual_handoffs_before,
                     human_approvals=human_approvals,
                     ai_checks=ai_checks,
+                    code_checks=code_checks,
                 ),
             )
 
@@ -372,25 +419,32 @@ def run_workflow(
             )
 
         elif step.type == "ai_review":
-            ai_checks += 1
             decision_pass = False
             review_reason = ""
+            placeholder = placeholder_field(form, workflow.required_fields)
 
-            # Try AI reviewer if provided
-            if ai_reviewer is not None:
+            if placeholder:
+                # A placeholder never passes, whatever text in the request tells Gemini: plain code is the
+                # floor, and the case needs no Gemini call to find it
+                code_checks += 1
+                review_reason = f"Checked by code: {placeholder}"
+            elif ai_reviewer is not None:
                 try:
                     res = ai_reviewer(form)
+                    ai_checks += 1
                     if res.decision == "PASS":
                         decision_pass = True
-                        review_reason = "Policy section 2 check passed by Gemini"
+                        review_reason = "Gemini found the required information present and meaningful"
                     else:
                         decision_pass = False
                         review_reason = f"Gemini review requested human review: {', '.join(res.reasons)}"
                 except Exception as e:
                     logger.warning("AI Reviewer failed (%s); using fallback check", e)
+                    code_checks += 1
                     decision_pass, review_reason = plain_code_ai_review(form, workflow.required_fields)
             else:
                 # Use pure code fallback
+                code_checks += 1
                 decision_pass, review_reason = plain_code_ai_review(form, workflow.required_fields)
 
             if decision_pass:
@@ -423,6 +477,7 @@ def run_workflow(
                         manual_handoffs_before=manual_handoffs_before,
                         human_approvals=human_approvals,
                         ai_checks=ai_checks,
+                        code_checks=code_checks,
                     ),
                 )
 
@@ -458,6 +513,7 @@ def run_workflow(
             manual_handoffs_before=manual_handoffs_before,
             human_approvals=human_approvals,
             ai_checks=ai_checks,
+            code_checks=code_checks,
         ),
     )
 

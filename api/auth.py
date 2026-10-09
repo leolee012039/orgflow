@@ -9,8 +9,9 @@ instance that restarts starts again from zero, and two instances count separatel
 """
 
 import os
+import time
 from datetime import date
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import HTTPException, Request
 from google.auth import exceptions as google_auth_exceptions
@@ -19,12 +20,35 @@ from google.oauth2 import id_token
 
 PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT", "")
 DAILY_LIMIT = int(os.getenv("ORGFLOW_DAILY_LIMIT", "30"))  # analyses per user per day
-STAGE_LIMIT = int(os.getenv("ORGFLOW_STAGE_LIMIT", "300"))  # map, plan, build and case runs per user per day
+# Units per user per day: one per map, plan, build and case run, and one per Gemini check a case runs
+STAGE_LIMIT = int(os.getenv("ORGFLOW_STAGE_LIMIT", "300"))
 ANON_RUN_LIMIT = int(os.getenv("ORGFLOW_ANON_RUN_LIMIT", "300"))  # Gemini reviews in anonymous sample cases
 SIGN_IN_MESSAGE = "Sign in to analyze your own documents. The NovaGear sample works without an account."
 LOCAL = "local"  # the caller when sign-in is turned off
+MAX_TOKEN_CHARS = 4096  # a Firebase ID token is about 1,000
 
-_transport = google_requests.Request()
+
+class _CachedCertsRequest(google_requests.Request):
+    """google-auth fetches Google's signing certificates on every check; keep them for an hour, and wait at
+    most 10 s for them, so a sign-in check is a signature check and not a round trip to Google."""
+
+    CERTS_TTL_S = 3600
+
+    def __init__(self):
+        super().__init__()
+        self._certs: dict[str, tuple[float, Any]] = {}
+
+    def __call__(self, url, method="GET", body=None, headers=None, timeout=None, **kwargs):
+        cacheable = method == "GET" and body is None
+        if cacheable and (hit := self._certs.get(url)) and hit[0] > time.monotonic():
+            return hit[1]
+        response = super().__call__(url, method=method, body=body, headers=headers, timeout=timeout or 10, **kwargs)
+        if cacheable and response.status == 200:
+            self._certs[url] = (time.monotonic() + self.CERTS_TTL_S, response)
+        return response
+
+
+_transport = _CachedCertsRequest()
 _checks_today: dict[tuple[str, date], int] = {}  # per instance; Cloud Run runs at most two
 _stages_today: dict[tuple[str, date], int] = {}
 _anon_runs: dict[date, int] = {}
@@ -36,6 +60,8 @@ def auth_required() -> bool:
 
 def verify_token(token: str) -> Optional[str]:
     """The user id in a valid Firebase ID token for this project, or None."""
+    if token.count(".") != 2 or len(token) > MAX_TOKEN_CHARS:  # not a JWT: no need to ask Google
+        return None
     try:
         claims = id_token.verify_firebase_token(token, _transport, audience=PROJECT_ID)
     except ValueError:
@@ -75,8 +101,24 @@ def _forget_old_days(counts: dict) -> None:
         del counts[key]
 
 
+def stage_units_left(uid: Optional[str]) -> int:
+    """How many of today's STAGE_LIMIT units a user has left."""
+    if uid is None or uid == LOCAL:
+        return STAGE_LIMIT
+    _forget_old_days(_stages_today)
+    return max(STAGE_LIMIT - _stages_today.get((uid, date.today()), 0), 0)
+
+
+def spend_stage_units(uid: Optional[str], units: int) -> None:
+    """Count work already done, such as a case's Gemini checks. Never refuses: the work has run."""
+    if uid is None or uid == LOCAL or units <= 0:
+        return
+    key = (uid, date.today())
+    _stages_today[key] = _stages_today.get(key, 0) + units
+
+
 def count_stage(uid: Optional[str]) -> None:
-    """Each signed-in user may call the costly stages STAGE_LIMIT times a day."""
+    """Each signed-in user may spend STAGE_LIMIT units a day on the costly stages; this one costs one."""
     if uid is None or uid == LOCAL:
         return
     _forget_old_days(_stages_today)

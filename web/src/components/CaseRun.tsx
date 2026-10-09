@@ -103,7 +103,8 @@ function CaseForm({
                   step="any"
                   className={`${inputClass} tabular-nums`}
                   value={values[f.name] ?? ""}
-                  onChange={(e) => set(f.name, Number(e.target.value))}
+                  // Blank stays blank, not 0: the case is then returned for the missing amount
+                  onChange={(e) => set(f.name, e.target.value === "" ? "" : Number(e.target.value))}
                 />
                 {tryValues(wf, f.name, gapsFor(f.name)).length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -153,10 +154,15 @@ function CaseForm({
 
 type Tone = "ok" | "ai" | "muted" | "alert";
 
+/** An AI check plain code made instead of Gemini: no Gemini review for this case, or Gemini didn't answer */
+const byCode = (step: StepTrace) => /^(fallback check|Completeness verified by fallback|Checked by code)/.test(step.reason);
+
 function stampFor(step: StepTrace): { text: string; tone: Tone } {
   switch (step.result) {
     case "PASSED":
-      return step.type === "ai_review" ? { text: "Checked", tone: "ai" } : { text: "Approved", tone: "ok" };
+      if (step.type !== "ai_review") return { text: "Approved", tone: "ok" };
+      // Gemini's check is blue; a check plain code made instead says so
+      return byCode(step) ? { text: "Checked by code", tone: "ok" } : { text: "Checked", tone: "ai" };
     case "DONE":
       return { text: "Done", tone: "ok" };
     case "SKIPPED":
@@ -215,8 +221,8 @@ function explain(step: StepTrace, wf: BuiltWorkflow, request: CaseRequest): stri
     return step.reason.replace(/^Gemini review requested human review: /, "Gemini flagged: ").replace(/^fallback check: /, "Checked by code: ");
   }
   if (step.type === "ai_review" && step.result === "PASSED") {
-    return step.reason.includes("fallback")
-      ? "Required information is present (checked by code because Gemini was unavailable)."
+    return byCode(step)
+      ? "Required information is present. Plain code checked it: Gemini didn't review this case."
       : "Gemini confirmed the required information is present and meaningful.";
   }
   return step.reason;
@@ -358,6 +364,7 @@ function ChainOutcome({
   );
   const approvals = trace.legs.reduce((n, l) => n + l.trace.metrics.human_approvals, 0);
   const checks = trace.legs.reduce((n, l) => n + l.trace.metrics.ai_checks, 0);
+  const codeChecks = trace.legs.reduce((n, l) => n + (l.trace.metrics.code_checks ?? 0), 0);
   const handoffs = trace.legs.reduce((n, l) => n + l.trace.metrics.manual_handoffs_before, 0);
   if (trace.status === "COMPLETED") {
     return (
@@ -370,7 +377,8 @@ function ChainOutcome({
           {trace.waiting_for ? `It is ready for ${trace.waiting_for}, which has no workflow built yet.` : `${request.requester} has been notified.`}
         </p>
         <p className="text-muted">
-          People gave {approvals} {approvals === 1 ? "approval" : "approvals"} and Gemini ran {checks} {checks === 1 ? "check" : "checks"}.
+          People gave {approvals} {approvals === 1 ? "approval" : "approvals"} and Gemini ran {checks} {checks === 1 ? "check" : "checks"}
+          {codeChecks > 0 ? `; plain code made ${codeChecks} more ${codeChecks === 1 ? "check" : "checks"}` : ""}.
           {handoffs > 0 ? ` By hand, this work changes hands ${handoffs} times today.` : ""}
         </p>
         {followed > 0 && (

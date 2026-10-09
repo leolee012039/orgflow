@@ -33,7 +33,7 @@ export function problemsOf(workspace: Workspace, decisions: Decision[]): Problem
       const d = approverDecision(decisions, b.opportunity_id, g.actor);
       out.push({
         decided: d && `${standInName(d.role_id, org)} approves in place of ${g.actor}`,
-        key: `${c.id}-actor-${g.actor}`,
+        key: `${c.id}-actor-${g.step_id}-${g.actor}`,
         department: c.department,
         workflowId: c.id,
         workflow: c.name,
@@ -97,7 +97,14 @@ export function Overview({
     const top = panel.current?.getBoundingClientRect().top ?? 0;
     if (top > window.innerHeight * 0.6) requestAnimationFrame(() => panel.current?.scrollIntoView({ behavior: "smooth" }));
   };
-  const builtCount = Object.keys(built).length;
+  // "No problems" only covers what was checked: built workflows, and in them only amount levels that passed
+  const builtCount = plan.workflows.filter((c) => built[c.id]).length;
+  const unbuilt = plan.workflows.length - builtCount;
+  const unchecked = plan.workflows.filter((c) => built[c.id]?.amount_levels_unchecked);
+  const notCheckedYet =
+    unbuilt > 0
+      ? `${unbuilt} planned ${unbuilt === 1 ? "workflow isn't" : "workflows aren't"} built yet, so nothing in ${unbuilt === 1 ? "it" : "them"} is checked.`
+      : null;
 
   return (
     <div className="flex flex-col gap-10">
@@ -144,10 +151,16 @@ export function Overview({
             Nothing is checked yet. Build workflows, and plain code checks each one against the org chart and the
             policy&apos;s amount levels.
           </p>
-        ) : problems.length === 0 ? (
-          <p className="card flex items-center gap-2 px-5 py-4 text-ok">
-            <CheckIcon /> No problems in the {builtCount} built workflows.
-          </p>
+        ) : problems.length === 0 && unchecked.length === 0 ? (
+          notCheckedYet ? (
+            <p className="card px-5 py-4 text-muted">
+              No problems in the {builtCount} built {builtCount === 1 ? "workflow" : "workflows"}. {notCheckedYet}
+            </p>
+          ) : (
+            <p className="card flex items-center gap-2 px-5 py-4 text-ok">
+              <CheckIcon /> No problems in the {builtCount} built {builtCount === 1 ? "workflow" : "workflows"}.
+            </p>
+          )
         ) : (
           <ul className="card divide-y divide-line overflow-hidden">
             {problems.map((p) => (
@@ -175,6 +188,29 @@ export function Overview({
                 </button>
               </li>
             ))}
+            {unchecked.map((c) => (
+              <li key={`${c.id}-unchecked`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-rule-soft text-rule">
+                  <AlertIcon />
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="font-medium">
+                    The policy&apos;s amount levels couldn&apos;t be matched to its wording, so exact amounts aren&apos;t checked
+                  </span>
+                  <span className="truncate text-sm text-muted">
+                    {c.department}, {c.name}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenWorkflow(c.id)}
+                  className="col-start-2 w-fit text-sm font-medium text-ai hover:underline sm:col-start-auto"
+                >
+                  Open the workflow →
+                </button>
+              </li>
+            ))}
+            {notCheckedYet && <li className="px-5 py-3 text-sm text-muted">{notCheckedYet}</li>}
           </ul>
         )}
       </section>

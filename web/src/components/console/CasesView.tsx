@@ -14,6 +14,7 @@ export function CasesView({
   built,
   org,
   cases,
+  editable = true,
   onCase,
   onResolve,
 }: {
@@ -21,6 +22,8 @@ export function CasesView({
   built: Record<string, BuiltWorkflow>;
   org: Organization;
   cases: CaseRecord[];
+  /** False for a company shared by link: cases still run, but only the owner's are saved */
+  editable?: boolean;
   onCase: (record: CaseRecord) => void;
   /** Open the workflow where a stopped case needs a decision */
   onResolve?: (workflowId: string) => void;
@@ -36,7 +39,14 @@ export function CasesView({
           Build a workflow first. Then you can submit a case here and watch it move from department to department.
         </div>
       ) : (
-        <CaseRun plan={plan} built={built} org={org} nextNumber={next} onCase={onCase} onResolve={onResolve} />
+        <div className="flex flex-col gap-3">
+          {!editable && (
+            <p role="note" className="rounded-xl border border-line bg-paper px-4 py-3 text-sm text-muted">
+              This company was shared with you. Cases you run here are only on this page: they aren&apos;t saved.
+            </p>
+          )}
+          <CaseRun plan={plan} built={built} org={org} nextNumber={next} onCase={onCase} onResolve={onResolve} />
+        </div>
       )}
 
       <section className="flex flex-col gap-4">

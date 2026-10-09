@@ -111,7 +111,8 @@ def test_runner_usd_2400(org_data, workflow_data):
     assert steps_by_id["procurement"].result == "DONE"
     assert steps_by_id["notify_requester"].result == "DONE"
     assert trace.metrics.human_approvals == 2
-    assert trace.metrics.ai_checks == 1
+    # No reviewer was given, so plain code made the check: it isn't counted as Gemini's
+    assert trace.metrics.ai_checks == 0 and trace.metrics.code_checks == 1
 
 def test_runner_usd_5000_boundary(org_data, workflow_data):
     """USD 5,000: Manager + Finance PASSED (boundary); Director SKIPPED; COMPLETED"""
@@ -183,7 +184,9 @@ def test_runner_justification_na(org_data, workflow_data):
     steps_by_id = {s.step_id: s for s in trace.steps}
     assert "completeness_review" in steps_by_id
     assert steps_by_id["completeness_review"].result == "HUMAN_REVIEW"
-    assert "fallback check" in steps_by_id["completeness_review"].reason
+    # A placeholder is caught by plain code before any Gemini call
+    assert steps_by_id["completeness_review"].reason == "Checked by code: business justification is a placeholder ('N/A')"
+    assert trace.metrics.code_checks == 1 and trace.metrics.ai_checks == 0
     # Approval steps did not run
     assert "manager_approval" not in steps_by_id
 

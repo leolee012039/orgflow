@@ -66,6 +66,9 @@ T = TypeVar("T")
 
 # The sample is read live only when asked: live answers vary from run to run and can take a minute
 SAMPLE_LIVE = os.getenv("ORGFLOW_SAMPLE_LIVE") == "1"
+# Gemini checks one case may run. A real chain has a handful (the sample's longest has 3); workflows are sent by
+# the browser, so without a limit one request could carry hundreds of checks
+MAX_REVIEWS_PER_CASE = 10
 
 
 @dataclass
@@ -75,6 +78,8 @@ class StageResult(Generic[T]):
     latency_ms: int
     problems: list[str] = field(default_factory=list)
     extras: dict[str, Any] = field(default_factory=dict)
+    # Gemini didn't answer (paused, timed out, an API error): not the documents' fault, so not a 422
+    unavailable: bool = False
 
 
 @dataclass
@@ -108,7 +113,8 @@ async def run_guarded_stage(
     else:
         problems = [first.error or "no answer"]
 
-    if first.error is None or not first.error.startswith("timed out"):
+    # Repair only an answer that failed the checks: when Gemini didn't answer, a second call fails the same way
+    if not first.unavailable:
         second = await repair_call(first.data, problems)
         latency += second.latency_ms
         if second.data is not None:
@@ -122,8 +128,10 @@ async def run_guarded_stage(
 
     origin = "fixture" if fixture is not None else "unverified"
     # Problems quote the documents, so the log keeps only how many there were
-    log_event("guard", stage=stage, origin=origin, latency_ms=latency, problem_count=len(problems))
-    return StageResult(fixture() if fixture is not None else None, origin, latency, problems)
+    log_event("guard", severity="WARNING", stage=stage, origin=origin, latency_ms=latency,
+              problem_count=len(problems), gemini_unavailable=first.unavailable)
+    return StageResult(fixture() if fixture is not None else None, origin, latency, problems,
+                       unavailable=first.unavailable)
 
 
 def _sha256(data: bytes) -> str:
@@ -320,7 +328,10 @@ async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandida
         result.extras["gaps"] = find_gaps(wf, await document_text(docs.org_chart))
         tiers, tier_problems = verified_amount_tiers(wf.amount_tiers, doc_text, form_fields(wf))
         if tier_problems:
-            log_event("amount_tiers_dropped", count=len(wf.amount_tiers), problem_count=len(tier_problems))
+            log_event("amount_tiers_dropped", severity="WARNING", count=len(wf.amount_tiers),
+                      problem_count=len(tier_problems))
+            # Say so: without tiers no exact amount is checked, and the page must not call that "no problems"
+            result.extras["amount_levels_unchecked"] = True
         wf.amount_tiers = tiers  # the runner gets only tiers that passed the checks
         result.extras["amount_gaps"] = find_amount_gaps(tiers)
     return result
@@ -344,13 +355,38 @@ async def run_request(workflow: Workflow, org: Organization, form: RequestForm,
     return trace
 
 
+class _ReviewBudget:
+    """The Gemini checks a case may still run. Past the limit the runner uses the plain-code check."""
+
+    def __init__(self, calls: int):
+        self.left = max(calls, 0)
+        self.used = 0
+
+    def reviewer_for(self, workflow: Workflow):
+        reviewer = _reviewer_for(workflow)
+        if reviewer is None:
+            return None
+
+        def review(form: RequestForm):
+            if self.left <= 0:
+                raise RuntimeError("this case has used its Gemini checks")
+            self.left -= 1
+            self.used += 1
+            return reviewer(form)
+        return review
+
+
 async def run_chain_request(workflows: list[Workflow], org: Organization, start_id: str, form: RequestForm,
                             handoffs_before: Optional[dict[str, int]] = None,
-                            live_review: bool = True, decisions: Sequence[Decision] = ()) -> ChainTrace:
-    """Run a case through the chain of built workflows that starts at start_id."""
-    reviewer_for = _reviewer_for if live_review else None
+                            live_review: bool = True, decisions: Sequence[Decision] = (),
+                            review_budget: int = MAX_REVIEWS_PER_CASE) -> ChainTrace:
+    """Run a case through the chain of built workflows that starts at start_id. Gemini runs at most
+    review_budget checks (never more than MAX_REVIEWS_PER_CASE); trace.gemini_calls says how many it ran."""
+    budget = _ReviewBudget(min(review_budget, MAX_REVIEWS_PER_CASE))
+    reviewer_for = budget.reviewer_for if live_review else None
     trace = await asyncio.to_thread(run_chain, workflows, org, start_id, form, reviewer_for, handoffs_before,
                                     decisions)
-    log_event("run_chain", request_id=trace.request_id, status=trace.status,
+    trace.gemini_calls = budget.used
+    log_event("run_chain", request_id=trace.request_id, status=trace.status, gemini_calls=budget.used,
               legs=[f"{leg.workflow_id}:{leg.trace.status}" for leg in trace.legs], waiting_for=trace.waiting_for)
     return trace

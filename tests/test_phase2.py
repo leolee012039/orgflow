@@ -173,10 +173,26 @@ def test_stage_fixture_when_repair_also_fails():
 
 
 def test_stage_timeout_skips_repair():
-    result, calls = _stage([AgentResult(None, "timed out after 25s", 25000),
+    result, calls = _stage([AgentResult(None, "timed out after 25s", 25000, unavailable=True),
                             AgentResult(_org(), None, 10)])
     assert result.origin == "fixture"
     assert calls == ["first"]
+
+
+def test_a_gemini_error_skips_repair_and_says_gemini_is_unavailable():
+    # 6-8 Oct: Gemini answered 400 to every build, the repair failed the same way, and the page blamed the PDFs
+    error = AgentResult(None, "ClientError: 400 INVALID_ARGUMENT", 300, unavailable=True)
+    first, repair, calls = _fake([error, AgentResult(_org(), None, 10)])
+    result = asyncio.run(pipeline.run_guarded_stage(
+        stage="organization", first_call=first, repair_call=repair,
+        validate=lambda d: validate_organization_output(d, DOC_TEXT), fixture=None))
+    assert calls == ["first"]
+    assert result.value is None and result.unavailable
+
+
+def test_an_answer_that_fails_the_checks_is_not_called_unavailable():
+    result, _ = _stage([AgentResult(None, "model returned invalid JSON", 10), AgentResult({"company": "x"}, None, 10)])
+    assert not result.unavailable
 
 
 # --- /api/analyze -----------------------------------------------------------------

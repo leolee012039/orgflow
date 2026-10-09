@@ -57,10 +57,14 @@ class AgentResult:
     error: Optional[str]
     latency_ms: int
     cached: bool = False
+    # Gemini didn't answer: paused, timed out or an API error. An answer that isn't valid JSON is not this:
+    # a repair can fix that one
+    unavailable: bool = False
 
 
-def log_event(event: str, **fields: Any) -> None:
-    print(json.dumps({"severity": "INFO", "event": event, **fields}), flush=True)
+def log_event(event: str, severity: str = "INFO", **fields: Any) -> None:
+    """One JSON line for Cloud Logging. WARNING when something failed, so a log-based alert can see it."""
+    print(json.dumps({"severity": severity, "event": event, **fields}), flush=True)
 
 
 def pdf_part(label: str, pdf_bytes: bytes) -> list[types.Part]:
@@ -161,8 +165,9 @@ def _parse_json(text: str) -> dict[str, Any]:
 
 async def run_agent(agent: Agent, parts: list[types.Part], timeout_s: float = CALL_TIMEOUT_S) -> AgentResult:
     if os.getenv("ORGFLOW_GEMINI_OFF") == "1":  # emergency switch, see docs/RUNBOOK.md
-        log_event("gemini_call", agent=agent.name, model=MODEL, cached=False, latency_ms=0, ok=False, error="paused")
-        return AgentResult(data=None, error="Gemini is paused by the operator", latency_ms=0)
+        log_event("gemini_call", severity="WARNING", agent=agent.name, model=MODEL, cached=False, latency_ms=0,
+                  ok=False, error="paused")
+        return AgentResult(data=None, error="Gemini is paused by the operator", latency_ms=0, unavailable=True)
     use_cache = os.getenv("ORGFLOW_DEV_CACHE") == "1"
     key = _cache_key(agent, parts)
     cache_file = CACHE_DIR / f"{key}.json"
@@ -174,21 +179,22 @@ async def run_agent(agent: Agent, parts: list[types.Part], timeout_s: float = CA
     call_id = uuid.uuid4().hex[:8]
     start = time.perf_counter()
     hedged = False
+    unavailable = False
     try:
         text, hedged = await _run_hedged(agent, parts, timeout_s)
         data = _parse_json(text)
         error = None
     except asyncio.TimeoutError:
-        data, error = None, f"timed out after {timeout_s:.0f}s"
+        data, error, unavailable = None, f"timed out after {timeout_s:.0f}s", True
     except json.JSONDecodeError as exc:
         data, error = None, f"model returned invalid JSON: {exc}"
-    except Exception as exc:  # network, quota, auth: the guard falls back to a fixture
-        data, error = None, f"{type(exc).__name__}: {exc}"
+    except Exception as exc:  # network, quota, auth, a request Gemini rejects: the guard falls back to a fixture
+        data, error, unavailable = None, f"{type(exc).__name__}: {exc}", True
     latency_ms = int((time.perf_counter() - start) * 1000)
 
-    log_event("gemini_call", call_id=call_id, agent=agent.name, model=MODEL, cached=False,
-              latency_ms=latency_ms, hedged=hedged, ok=error is None, error=error)
+    log_event("gemini_call", severity="INFO" if error is None else "WARNING", call_id=call_id, agent=agent.name,
+              model=MODEL, cached=False, latency_ms=latency_ms, hedged=hedged, ok=error is None, error=error)
     if use_cache and data is not None:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cache_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    return AgentResult(data=data, error=error, latency_ms=latency_ms)
+    return AgentResult(data=data, error=error, latency_ms=latency_ms, unavailable=unavailable)
