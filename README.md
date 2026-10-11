@@ -102,7 +102,7 @@ NEXT_PUBLIC_API_BASE=http://localhost:8080 npm run dev
 ## Tests and evaluation
 
 ```bash
-uv run --group dev pytest -q                                              # 159 tests, no Gemini calls
+uv run --group dev pytest -q                                              # 183 tests, no Gemini calls
 uv run --group dev --with pymupdf python scripts/eval_documents.py         # all six document sets, live Gemini
 ```
 
