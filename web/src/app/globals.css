@@ -97,13 +97,24 @@ body {
   }
 }
 
-/* Save as PDF: a white page, and cards that don't split across pages */
+/* Save as PDF: A4, white, page numbers at the foot, colours kept, no screen shadows */
 @media print {
   @page {
-    margin: 16mm;
+    size: A4;
+    margin: 15mm 14mm 17mm;
+    @bottom-right {
+      content: "OrgFlow  " counter(page) " / " counter(pages);
+      font: 8pt system-ui, sans-serif;
+      color: #6b7285;
+    }
   }
   body {
     background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .card {
+    box-shadow: none;
   }
 }
 

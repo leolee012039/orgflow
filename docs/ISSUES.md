@@ -177,3 +177,8 @@ Four reviewers (FastAPI, React, security, silent failures) read the code; each i
   - "No problems" counts only built workflows and says how many aren't built; workflows whose amount levels didn't pass are listed.
   - Gemini's checks and plain code's are counted apart, and a code check is stamped "Checked by code".
   - Checked: 183 tests (tests/test_review_fixes.py and new cases in test_abuse.py), an adversarial review of the diff (no blockers), and a local live run: Xiangying Fitness built 7 of 7 workflows and found both planted problems in both branches; a blank amount was returned; a full case completed; with Gemini paused the page showed the new message and the API answered 503. The same run found a missing key on the department map's chips, now fixed.
+
+## 20. "Save as PDF" printed the screen, not a report (2026-10-12)
+
+- Found by Leo. The printout was the console's own markup: no summary of what was found, the department map reduced to one line of text, boxes split across pages and headings left alone at the foot of a page, and "▼ 1 more passage" / "▼ See the workflow" printed as if they could be clicked. Eleven pages for the sample, with the problems spread through them.
+- Status: **fixed.** `PrintReport` is its own layout: page 1 has the company, the documents read, the four numbers, how work moves (drawn as rows of departments), and every place a case stops with what was decided; then one page per department with each workflow written out in full. Nothing to click, quotes, rules and steps never split, page numbers at the foot. Checked on the sample with and without decisions, and on Xiangying Fitness in Chinese.

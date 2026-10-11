@@ -7,7 +7,6 @@ import { layers } from "./DepartmentCanvas";
 import { useBuilds } from "@/lib/useBuilds";
 import type { BuiltWorkflow, CaseRecord, Decision, Documents, WorkflowCandidate } from "@/lib/types";
 import { MAX_CASES, type Workspace } from "@/lib/workspaces";
-import { DepartmentSection } from "../DepartmentSection";
 import { DocumentNames } from "../Quote";
 import { PrintButton } from "../ReportActions";
 import { primaryClass } from "../Section";
@@ -15,6 +14,7 @@ import { AlertIcon, BuildingIcon, CheckIcon, FlowIcon, MapIcon } from "../Icons"
 import { CasesView } from "./CasesView";
 import { DocumentsView } from "./DocumentsView";
 import { Overview } from "./Overview";
+import { PrintReport } from "./PrintReport";
 import { SECTIONS, Shell, type Section } from "./Shell";
 import { WorkflowsView } from "./WorkflowsView";
 
@@ -25,32 +25,6 @@ function initialSection(): Section {
   if (typeof window === "undefined") return "overview";
   const hash = window.location.hash.slice(1);
   return SECTIONS.some((s) => s.id === hash) ? (hash as Section) : "overview";
-}
-
-/** The whole company on paper, for Save as PDF: every department with its workflows and problems. */
-function PrintReport({ workspace }: { workspace: Workspace }) {
-  const { departmentMap: map, organization: org, plan, built } = workspace;
-  const { columns } = layers(map.departments.map((d) => d.name), map.handoffs);
-  return (
-    <div className="hidden print:block">
-      <p className="mt-6">How work moves: {map.handoffs.map((h) => `${h.from} → ${h.to} (${h.what})`).join("; ") || "no handoffs found"}.</p>
-      <p className="text-sm text-muted">Departments in the order work flows: {columns.map((c) => c.join(", ")).join(" → ")}.</p>
-      {map.departments.map((profile) => (
-        <DepartmentSection
-          key={profile.name}
-          profile={profile}
-          map={map}
-          org={org}
-          candidates={plan.workflows.filter((c) => c.department === profile.name)}
-          built={built}
-          states={{}}
-          blockedBy={() => undefined}
-          canBuild={false}
-          onBuild={() => undefined}
-        />
-      ))}
-    </div>
-  );
 }
 
 /** One company in the console: overview with the department map, workflows, cases and documents. */
@@ -159,7 +133,8 @@ export function CompanyConsole({
       >
         <div className="flex flex-col gap-8">
           {notice}
-          <header className="flex flex-col gap-6">
+          {/* The printed report has its own first page with these numbers */}
+          <header className="flex flex-col gap-6 print:hidden">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="flex min-w-0 flex-col gap-1">
                 <p className="text-sm text-muted">

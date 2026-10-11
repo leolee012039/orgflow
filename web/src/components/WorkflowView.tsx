@@ -312,7 +312,7 @@ export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps
           </p>
           <ul className="flex flex-col gap-5">
             {workflow.rules.map((rule) => (
-              <li key={rule.id} className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-start">
+              <li key={rule.id} className="grid break-inside-avoid gap-3 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-start">
                 <code className="w-fit rounded-md bg-rule-soft px-2 py-1 font-mono text-sm text-rule">
                   {ruleExpression(rule, workflow)}
                 </code>
@@ -331,7 +331,7 @@ export function WorkflowView({ workflow, gaps, org }: { workflow: Workflow; gaps
             const missing = workflow.unresolved_actors.includes(step.actor);
             const decision = missing ? approverDecision(decisions, workflow.opportunity_id, step.actor) : undefined;
             return (
-              <li key={step.id} className="grid grid-cols-[2rem_1fr] gap-x-4 border-l border-line pb-6 pl-0 last:pb-0">
+              <li key={step.id} className="grid break-inside-avoid grid-cols-[2rem_1fr] gap-x-4 border-l border-line pb-6 pl-0 last:pb-0">
                 <span className="-ml-[0.8rem] flex h-6 w-6 items-center justify-center rounded-full border border-line bg-paper text-xs tabular-nums">
                   {i + 1}
                 </span>
