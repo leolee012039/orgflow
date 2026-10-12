@@ -127,6 +127,8 @@ Organization regulations (18 pages) and procurement rules with amounts in Chines
 
 Organization regulations in force from 1 August 2026 (some characters stored as look-alike code points) and research purchasing rules amended 2 April 2025, whose top approval level reads 「逾新臺幣150萬元以上」: "over" and "at or above" at once.
 
+**Correction (2026-10-12):** the finding at 1,500,000 below is a false alarm. The same document's table on page 8 gives 「150萬元（含）以上」 to the president or an authorized signer, and clause 2(3) says 「達新臺幣150萬元以上」, so exactly NT$1,500,000 has an approver. OrgFlow read clause 4's inconsistent wording but not the table. See [ISSUES.md](ISSUES.md) #21.
+
 - Organization: https://personnelweb.ncue.edu.tw/var/file/1/1001/attach/73/pta_24345_9114766_02987.pdf
 - Policy: https://generalweb.ncue.edu.tw/var/file/4/1004/img/131/838494933.pdf
 - Total time for every AI stage and build: 310.5 s
