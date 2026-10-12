@@ -210,6 +210,6 @@ An outside audit (OrgFlow_Submission_Readiness_and_Audit_Report) walked the live
   - Every command in RUNBOOK and DEPLOY_CHECKLIST names the project; MOVE_PROJECT includes the site in ALLOWED_ORIGINS.
   - Checked: 24 checks in a browser on a local build (desktop and phone), type check, lint, 183 tests, a production build.
 - Still open:
-  - Google's sign-in window shows `ai-builder-510613.firebaseapp.com`. Switching it to the site needs the redirect URI added in the Google Cloud console first (`web/.env.example` says how).
+  - ~~Google's sign-in window shows `ai-builder-510613.firebaseapp.com`.~~ Fixed the same day: Leo added `https://orgflowai.web.app/__/auth/handler` to the web client's redirect URIs, the site's `authDomain` is `orgflowai.web.app`, and Google's sign-in now reads "continue to orgflowai.web.app" (checked on the live site up to the account step).
   - Repeated step names on the routing slip ("Procurement Specialist Task" four times); a 404 page; the COOP warning comes from Google's sign-in page.
   - The submission items, the suspension's cause, monitoring and budget on the new project, and the runbook's backup contact are Leo's.
