@@ -50,5 +50,7 @@ Firebase console, Hosting, Release history: roll back to the previous release.
 
 ## Monitoring to set up once
 
+Set up on 12 October 2026 in `ai-builder-510613`: the email channel "OrgFlow alerts (Leo)", the uptime checks "OrgFlow API health" and "OrgFlow website", the alert policies "OrgFlow API is down" and "OrgFlow website is down", and the budget "OrgFlow (ai-builder-510613)" (NT$320) sending to the same channel. Moving to another project means setting them up again there.
+
 - Uptime checks (Cloud Monitoring): HTTPS `orgflow-api-492748170140.asia-east1.run.app/api/health`, every 5 minutes, timeout 30 s (a cold start takes about 10 s), response contains `"ok":true`; a second one for `orgflowai.web.app/`. Alert by email.
 - Budget (Cloud Billing): alerts at 50%, 90% and 100%, linked to the same email channel.
