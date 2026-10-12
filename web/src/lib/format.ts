@@ -83,7 +83,8 @@ export function documentName(doc: string, documents?: { orgChart: string; polici
   if (doc === "org_chart") return documents?.orgChart ?? "Organization chart";
   const n = /^policy_(\d+)$/.exec(doc);
   if (n) return documents?.policies[Number(n[1]) - 1] ?? `Policy ${n[1]}`;
-  return doc === "policy" ? "Policy" : doc;
+  if (doc === "policy") return documents?.policies.length === 1 ? documents.policies[0] : "One of the policies";
+  return doc;
 }
 
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;

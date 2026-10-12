@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SAMPLE_FILES } from "@/lib/api";
 import type { Workspace } from "@/lib/workspaces";
 import type { Documents } from "@/lib/types";
 import { OrgView } from "../OrgView";
@@ -33,7 +34,13 @@ export function DocumentsView({
           {files.map((f) => (
             <li key={f.label} className="grid gap-1 px-5 py-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
               <span className="text-sm text-muted">{f.label}</span>
-              <span className="break-all">{f.name}</span>
+              {workspace.sample && [SAMPLE_FILES.orgChart, ...SAMPLE_FILES.policies].includes(f.name) ? (
+                <a href={`/demo/${f.name}`} target="_blank" rel="noreferrer" className="break-all font-medium text-ai hover:underline">
+                  {f.name}
+                </a>
+              ) : (
+                <span className="break-all">{f.name}</span>
+              )}
             </li>
           ))}
         </ul>
@@ -67,7 +74,11 @@ export function DocumentsView({
 
       {workspace.departmentMap.handoffs.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Where each handoff is written</h2>
+          <h2 className="text-lg font-semibold">Handoffs between departments, with the passage that says so</h2>
+          <p className="-mt-2 max-w-prose text-sm text-muted">
+            These are the links on the department map. The relationships above come from reading the org chart, so the two
+            lists can differ.
+          </p>
           <ul className="flex flex-col gap-5">
             {workspace.departmentMap.handoffs.map((h) => (
               <li key={`${h.from}-${h.to}-${h.what}`} className="flex flex-col gap-2">

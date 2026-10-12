@@ -188,3 +188,28 @@ Four reviewers (FastAPI, React, security, silent failures) read the code; each i
 - Checked against the source while planning the commercial version. The research purchasing rules OrgFlow read (8 pages, Word-made, text layer, created 16 April 2025; the university has since removed the file) say in clause 4 「逾新臺幣100萬元未達150萬元…由總務長核定」 and 「逾新臺幣 150 萬元以上…」, but the table on page 8 says 「100萬元(不含)〜150萬元(不含) → 總務長」 and 「150萬元（含）以上 → 校長或授權人核准」, and clause 2(3) says 「達新臺幣150萬元以上」. The university's newer general purchasing documents agree (789801143.pdf, 969558089.pdf: 150萬元以上 → 校長).
 - So there is no gap: clause 4's wording is inconsistent and the table settles it. OrgFlow flagged the clause without reading the table: a false alarm, not "a real rule that leaves NT$1.5 million with no approver".
 - Status: **wording fixed** in README, EVAL.md and the deck (the "real" slide and the evaluation table); the video doesn't mention it. **Open in the product:** when wording is inconsistent, look for a table or another clause in the same document before asking a person.
+
+## 22. Submission audit: the site in use (2026-10-12)
+
+An outside audit (OrgFlow_Submission_Readiness_and_Audit_Report) walked the live site on a desktop and a phone, and read the operations docs.
+- Back or reload lost the whole analysis, its decisions and cases, without a word; section changes replaced the history entry, so one back left the app.
+- After "Decide who approves" there was no way back to the stopped case; the form was reset.
+- After building, nothing pointed to the two decisions waiting further down the page.
+- On a phone every section began with the same screen of number cards; the sample opened half way down the page; the fourth section was off screen behind a scrollbar.
+- A .txt or a 6 MB PDF was accepted when picked, and refused only after sign-in and upload; the grey button didn't say why.
+- The sample said "usually 30 to 45 seconds" and "This isn't saved", though it opens at once and is a sample.
+- Arrows on the department map crossed the labels; "3 handoffs" beside "Hand-offs done by hand: 11" read as a contradiction; two handoff lists of different lengths on Documents; a quote's source read "Policy" where the file name was known; no preview when the link is pasted.
+- The runbook and deploy checklist ran gcloud without `--project`, so a default left on the suspended project would fail or change the wrong one; MOVE_PROJECT set ALLOWED_ORIGINS to the project's default site, not the real one.
+- Status: **fixed.**
+  - Each section is a history entry. An analysis not saved to an account is kept for the tab (sessionStorage) and comes back after a reload, with the sample's documents; New analysis clears it.
+  - A stopped case stays on Cases with "Run it again".
+  - After building, a line says how many decisions wait, and it and the "Places a case stops" card scroll to them.
+  - The number cards show on Overview only; the sample starts at the top of the page; on a phone the four sections share one row.
+  - Files are checked when picked; the button says what it needs; the sample's wording is its own.
+  - Labels are drawn over the arrows; the cards say "Manual hand-offs per case, today, before OrgFlow"; the two lists on Documents say what each is, and the sample's files open; a quote from the only policy names it; Open Graph tags and a preview image.
+  - Every command in RUNBOOK and DEPLOY_CHECKLIST names the project; MOVE_PROJECT includes the site in ALLOWED_ORIGINS.
+  - Checked: 24 checks in a browser on a local build (desktop and phone), type check, lint, 183 tests, a production build.
+- Still open:
+  - Google's sign-in window shows `ai-builder-510613.firebaseapp.com`. Switching it to the site needs the redirect URI added in the Google Cloud console first (`web/.env.example` says how).
+  - Repeated step names on the routing slip ("Procurement Specialist Task" four times); a 404 page; the COOP warning comes from Google's sign-in page.
+  - The submission items, the suspension's cause, monitoring and budget on the new project, and the runbook's backup contact are Leo's.

@@ -59,16 +59,19 @@ function CaseForm({
   start,
   org,
   busy,
+  initial,
   onRun,
 }: {
   wf: BuiltWorkflow;
   start: WorkflowCandidate;
   org: Organization;
   busy: boolean;
+  /** The last case's request, so coming back to Cases keeps what was typed */
+  initial?: CaseRequest;
   onRun: (request: CaseRequest) => void;
 }) {
   const gapsFor = (field: string) => (wf.amount_gaps ?? []).filter((g) => g.field === field).map((g) => g.amount);
-  const [values, setValues] = useState<CaseRequest>(() => initialCase(wf, start, gapsFor("estimated_cost")));
+  const [values, setValues] = useState<CaseRequest>(() => initial ?? initialCase(wf, start, gapsFor("estimated_cost")));
   const set = (name: string, value: string | number) => setValues((v) => ({ ...v, [name]: value }));
   const longText = (f: FormField) => /justification|reason|description|purpose/i.test(f.name);
 
@@ -428,6 +431,7 @@ export function CaseRun({
   built,
   org,
   nextNumber = 1,
+  lastCase,
   onCase,
   onResolve,
 }: {
@@ -436,16 +440,20 @@ export function CaseRun({
   org: Organization;
   /** The number the next case gets: CASE-0001, CASE-0002 ... */
   nextNumber?: number;
+  /** The latest case: shown again when the page comes back, for instance after a decision */
+  lastCase?: CaseRecord;
   onCase?: (record: CaseRecord) => void;
   onResolve?: (workflowId: string) => void;
 }) {
   const { decisions } = useDecisions();
   const starts = useMemo(() => startPoints(plan, built), [plan, built]);
   const builtList = useMemo(() => orderedBuilt(plan, built), [plan, built]);
-  const [startId, setStartId] = useState<string | null>(null);
+  const lastHere = lastCase && starts.some((s) => s.id === lastCase.startId) ? lastCase : undefined;
+  const [startId, setStartId] = useState<string | null>(lastHere?.startId ?? null);
   const start = starts.find((s) => s.id === startId) ?? starts[0];
-  const [trace, setTrace] = useState<ChainTrace | null>(null);
-  const [lastRequest, setLastRequest] = useState<CaseRequest | null>(null);
+  const [trace, setTrace] = useState<ChainTrace | null>(lastHere?.trace ?? null);
+  const [lastRequest, setLastRequest] = useState<CaseRequest | null>(lastHere?.request ?? null);
+  const [restored, setRestored] = useState(Boolean(lastHere)); // a slip shown again isn't stamped again
   const [runKey, setRunKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -465,6 +473,7 @@ export function CaseRun({
     try {
       const result = await api.runChain(builtList, org, start.id, request, handoffsBefore, activeDecisions(decisions, builtList));
       setTrace(result);
+      setRestored(false);
       setRunKey((k) => k + 1);
       onCase?.({ id: request.request_id, at: new Date().toISOString(), startId: start.id, request, trace: result });
     } catch (e) {
@@ -486,6 +495,7 @@ export function CaseRun({
               onClick={() => {
                 setStartId(s.id);
                 setTrace(null);
+                setLastRequest(null);
               }}
               className="rounded-lg border border-line bg-sheet px-3 py-2 text-left text-sm shadow-[0_1px_2px_rgb(22_26_35/0.04)] hover:border-faint aria-pressed:border-ai aria-pressed:bg-ai-soft aria-pressed:font-medium aria-pressed:text-ai"
             >
@@ -502,12 +512,37 @@ export function CaseRun({
         . Plain code moves it along; Gemini only checks that the required information makes sense.
       </p>
       <div className="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        <CaseForm key={start.id} wf={wf} start={start} org={org} busy={busy} onRun={run} />
+        <CaseForm
+          key={start.id}
+          wf={wf}
+          start={start}
+          org={org}
+          busy={busy}
+          initial={lastRequest && lastHere?.startId === start.id ? lastRequest : undefined}
+          onRun={run}
+        />
         <div className="flex flex-col gap-4">
           {error && <ErrorNote message={error} />}
           {busy && <Working label="Running the case" />}
+          {trace && lastRequest && !busy && !caseResult(trace, builtList).ok && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-sheet px-4 py-3">
+              <span className="flex-1 text-sm text-muted">
+                {restored ? `${lastRequest.request_id} stopped here.` : "This case stopped."} Once you decide what the documents leave open, run it again
+                to see where it goes now.
+              </span>
+              <PrimaryButton onClick={() => run(lastRequest)}>Run it again</PrimaryButton>
+            </div>
+          )}
           {trace && lastRequest ? (
-            <ChainSlip key={runKey} trace={trace} built={builtList} org={org} request={lastRequest} onResolve={onResolve} />
+            <ChainSlip
+              key={runKey}
+              trace={trace}
+              built={builtList}
+              org={org}
+              request={lastRequest}
+              animate={!restored}
+              onResolve={onResolve}
+            />
           ) : (
             !busy && (
               <div className="rounded-xl border border-dashed border-faint/50 bg-sheet/60 px-5 py-10 text-muted">

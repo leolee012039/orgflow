@@ -141,7 +141,7 @@ export function Overview({
         </div>
       </div>
 
-      <section className="flex flex-col gap-4">
+      <section id="needs-attention" className="flex scroll-mt-6 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 className="text-lg font-semibold">Needs attention</h2>
           <Tag kind="rules" />

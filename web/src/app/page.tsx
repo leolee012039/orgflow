@@ -8,7 +8,7 @@ import { AlertIcon, BuildingIcon, FlowIcon, MapIcon } from "@/components/Icons";
 import { OwnerActions } from "@/components/ReportActions";
 import { ErrorNote, Tag, Working } from "@/components/Section";
 import { UploadStep, type DraftDocuments } from "@/components/UploadStep";
-import { AnalysisError, runAnalysis, type AnalysisStep } from "@/lib/api";
+import { AnalysisError, loadSampleDocuments, runAnalysis, type AnalysisStep } from "@/lib/api";
 import { accountsEnabled, signIn, signInMessage, useUser } from "@/lib/firebase";
 import type { BuiltWorkflow, CaseRecord, Decision, Documents } from "@/lib/types";
 import {
@@ -27,7 +27,7 @@ const STEPS: { id: AnalysisStep; label: string }[] = [
   { id: "plan", label: "Planning workflows for each department" },
 ];
 
-function Progress({ step }: { step: AnalysisStep }) {
+function Progress({ step, sample }: { step: AnalysisStep; sample: boolean }) {
   const current = STEPS.findIndex((s) => s.id === step);
   return (
     <ol className="card flex flex-col gap-4 p-5">
@@ -43,7 +43,11 @@ function Progress({ step }: { step: AnalysisStep }) {
           {i === current ? <Working label={s.label} /> : <span className={i < current ? "" : "text-muted"}>{s.label}</span>}
         </li>
       ))}
-      <p className="text-sm text-muted">Usually 30 to 45 seconds. Long documents take up to two minutes.</p>
+      <p className="text-sm text-muted">
+        {sample
+          ? "Opening the saved sample: it takes a second or two."
+          : "Usually 30 to 45 seconds. Long documents take up to two minutes."}
+      </p>
     </ol>
   );
 }
@@ -69,11 +73,34 @@ const LOOKS_FOR = [
 
 type View =
   | { status: "idle" }
-  | { status: "analyzing"; step: AnalysisStep }
+  | { status: "analyzing"; step: AnalysisStep; sample: boolean }
   | { status: "error"; message: string; problems: string[]; retry?: () => void }
   | { status: "loading" }
   | { status: "missing" }
   | { status: "ready"; workspace: WorkspaceData; saved: SavedWorkspace | null; saveError?: string };
+
+// An analysis that isn't saved to an account (the sample, or when saving failed) is kept for this
+// browser tab, so a reload or the back button doesn't lose it. New analysis clears it.
+const UNSAVED_KEY = "orgflow.unsaved";
+
+function readUnsaved(): WorkspaceData | null {
+  try {
+    const raw = sessionStorage.getItem(UNSAVED_KEY);
+    const workspace = raw ? (JSON.parse(raw) as WorkspaceData) : null;
+    return workspace?.organization && workspace.departmentMap && workspace.plan ? workspace : null;
+  } catch {
+    return null; // storage refused, or something else wrote there
+  }
+}
+
+function writeUnsaved(workspace: WorkspaceData | null) {
+  try {
+    if (workspace) sessionStorage.setItem(UNSAVED_KEY, JSON.stringify(workspace));
+    else sessionStorage.removeItem(UNSAVED_KEY);
+  } catch {
+    // A private window may refuse storage: the analysis still works, it just won't survive a reload
+  }
+}
 
 function Home() {
   const user = useUser();
@@ -101,6 +128,27 @@ function Home() {
     };
   }, [id, user, savedId]);
 
+  useEffect(() => {
+    if (id) return;
+    const unsaved = readUnsaved();
+    if (!unsaved) return;
+    let cancelled = false;
+    // The sample's documents come back too, so its workflows can still be built
+    (unsaved.sample ? loadSampleDocuments().catch(() => null) : Promise.resolve(null)).then((d) => {
+      if (cancelled) return;
+      if (d) setDocs(d);
+      setView((v) => (v.status === "idle" ? { status: "ready", workspace: unsaved, saved: null } : v));
+      document.title = `OrgFlow, ${unsaved.company}`;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (view.status === "ready") writeUnsaved(view.saved ? null : view.workspace);
+  }, [view]);
+
   async function analyze(d: Documents, sample: boolean) {
     let owner = user ?? null;
     if (!sample && accountsEnabled && !owner) {
@@ -112,10 +160,10 @@ function Home() {
       }
     }
     setDocs(d);
-    setView({ status: "analyzing", step: "organization" });
+    setView({ status: "analyzing", step: "organization", sample });
     let workspace: WorkspaceData;
     try {
-      const analysis = await runAnalysis(d, (step) => setView({ status: "analyzing", step }));
+      const analysis = await runAnalysis(d, (step) => setView({ status: "analyzing", step, sample }));
       workspace = {
         ...analysis,
         company: analysis.organization.company,
@@ -130,6 +178,7 @@ function Home() {
       return;
     }
     document.title = `OrgFlow, ${workspace.company}`;
+    window.scrollTo({ top: 0 }); // on a phone the button that started it is far down the page
     if (!owner) {
       setView({ status: "ready", workspace, saved: null });
       return;
@@ -180,6 +229,7 @@ function Home() {
   }
 
   function startOver() {
+    writeUnsaved(null);
     setView({ status: "idle" });
     window.history.replaceState(null, "", "/");
   }
@@ -202,7 +252,13 @@ function Home() {
           (!view.saved || view.saveError) && (
             <p role="status" className="rounded-xl border border-ai/20 bg-ai-soft px-4 py-3 text-sm text-ai print:hidden">
               {view.saveError ??
-                (accountsEnabled ? "This isn't saved. Sign in before your next analysis to keep it and share it." : "This isn't saved.")}
+                (view.workspace.sample
+                  ? accountsEnabled
+                    ? "This is the sample company. Sign in to analyze your own documents and save them."
+                    : "This is the sample company."
+                  : accountsEnabled
+                    ? "This isn't saved to an account: it stays in this tab until you start a new analysis. Sign in before your next analysis to keep it and share it."
+                    : "This isn't saved to an account: it stays in this tab until you start a new analysis.")}
             </p>
           )
         }
@@ -244,7 +300,7 @@ function Home() {
             </p>
           </div>
           {view.status === "analyzing" ? (
-            <Progress step={view.step} />
+            <Progress step={view.step} sample={view.sample} />
           ) : (
             <UploadStep docs={draft} onDocs={setDraft} onRun={analyze} busy={false} needsSignIn={needsSignIn} />
           )}

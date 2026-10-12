@@ -67,10 +67,20 @@ export function CompanyConsole({
   const byHand = candidates.reduce((n, c) => n + c.manual_handoffs, 0);
   const routed = candidates.filter((c) => built[c.id]).reduce((n, c) => n + c.manual_handoffs, 0);
 
+  // Each section is a history entry, so the browser's back button goes to the section before
   const setSection = (s: Section) => {
+    if (s !== section) window.history.pushState(null, "", `${window.location.pathname}${window.location.search}#${s}`);
     setSectionState(s);
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${s}`);
     window.scrollTo({ top: 0 });
+  };
+  useEffect(() => {
+    const onPop = () => setSectionState(initialSection());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const showProblems = () => {
+    setSection("overview");
+    requestAnimationFrame(() => document.getElementById("needs-attention")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
   const openInWorkflows = (id: string) => {
     setOpenWorkflow(id);
@@ -155,19 +165,20 @@ export function CompanyConsole({
                 )}
               </div>
             </div>
+            {section === "overview" && (
             <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
                 {
                   label: "Departments",
                   value: map.departments.length,
-                  note: `${map.handoffs.length} ${map.handoffs.length === 1 ? "handoff" : "handoffs"} between them`,
+                  note: `linked by ${map.handoffs.length} ${map.handoffs.length === 1 ? "kind of handoff" : "kinds of handoff"}`,
                   Icon: BuildingIcon,
                   tone: "bg-ai-soft text-ai",
                 },
                 {
-                  label: "Hand-offs done by hand",
+                  label: "Manual hand-offs per case",
                   value: byHand,
-                  note: `per case today, in ${candidates.length} ${candidates.length === 1 ? "process" : "processes"}`,
+                  note: `today, before OrgFlow, in ${candidates.length} ${candidates.length === 1 ? "process" : "processes"}`,
                   Icon: MapIcon,
                   tone: "bg-ai-soft text-ai",
                 },
@@ -182,7 +193,9 @@ export function CompanyConsole({
                   label: "Places a case stops",
                   value: problems,
                   note: problems
-                    ? `Each needs one decision${settled ? `, ${settled} made` : ""}`
+                    ? settled
+                      ? `open, ${settled} decided`
+                      : "each needs one decision"
                     : settled
                       ? `${settled} settled by your decisions`
                       : builtCount
@@ -191,24 +204,60 @@ export function CompanyConsole({
                   Icon: !problems && settled ? CheckIcon : AlertIcon,
                   tone: problems ? "bg-alert-soft text-alert" : settled ? "bg-ok-soft text-ok" : "bg-paper text-faint",
                   alert: problems > 0,
+                  onClick: problems + settled > 0 ? showProblems : undefined,
                 },
-              ].map(({ label, value, note, Icon, tone, alert }) => (
-                <div key={label} className="card flex items-center gap-3 px-3.5 py-3 sm:gap-3.5 sm:px-4 sm:py-3.5">
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${tone}`}>
-                    <Icon width="19" height="19" />
-                  </span>
-                  <div className="flex min-w-0 flex-col">
-                    <dt className="text-xs leading-tight text-muted sm:text-sm">{label}</dt>
-                    <dd className={`text-xl font-semibold tabular-nums ${alert ? "text-alert" : ""}`}>{value}</dd>
-                    <dd className="text-xs leading-snug text-faint">{note}</dd>
+              ].map(({ label, value, note, Icon, tone, alert, onClick }) => {
+                const inner = (
+                  <>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${tone}`}>
+                      <Icon width="19" height="19" />
+                    </span>
+                    <div className="flex min-w-0 flex-col">
+                      <dt className="text-xs leading-tight text-muted sm:text-sm">{label}</dt>
+                      <dd className={`text-xl font-semibold tabular-nums ${alert ? "text-alert" : ""}`}>{value}</dd>
+                      <dd className="text-xs leading-snug text-faint">{note}</dd>
+                    </div>
+                  </>
+                );
+                const className = "card flex items-center gap-3 px-3.5 py-3 text-left sm:gap-3.5 sm:px-4 sm:py-3.5";
+                // A dl may only hold dt/dd groups in divs; the clickable card is a div with a button role
+                return onClick ? (
+                  <div
+                    key={label}
+                    role="button"
+                    tabIndex={0}
+                    onClick={onClick}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onClick())}
+                    aria-label={`${label}: ${value}. Show them`}
+                    className={`${className} cursor-pointer hover:border-faint`}
+                  >
+                    {inner}
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <div key={label} className={className}>
+                    {inner}
+                  </div>
+                );
+              })}
             </dl>
-            {byHand > 0 && (
+            )}
+            {section === "overview" && byHand > 0 && (
               <p className="-mt-2 text-xs text-faint">
                 Hand-offs are counted by Gemini from your documents: how many times one case changes hands today.
               </p>
+            )}
+            {section === "overview" && problems > 0 && (
+              <button
+                type="button"
+                onClick={showProblems}
+                className="flex w-full items-center gap-3 rounded-xl border border-alert/25 bg-alert-soft px-4 py-3 text-left text-alert print:hidden"
+              >
+                <AlertIcon className="shrink-0" />
+                <span className="flex-1">
+                  {problems === 1 ? "1 place a case stops needs" : `${problems} places a case stops need`} your decision.
+                </span>
+                <span className="font-medium whitespace-nowrap">Review them ↓</span>
+              </button>
             )}
             {editable && !docs && unbuilt > 0 && (
               <p className="text-sm text-muted print:hidden">

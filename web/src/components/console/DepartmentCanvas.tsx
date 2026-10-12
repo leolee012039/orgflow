@@ -94,6 +94,8 @@ export function DepartmentCanvas({
       layer.setAttribute("width", String(container.scrollWidth));
       layer.setAttribute("height", String(container.scrollHeight));
       layer.replaceChildren();
+      // Labels go in after every connector, so no line is drawn across a label (each has a halo)
+      const labels: SVGTextElement[] = [];
       for (const h of map.handoffs) {
         const a = nodes.current.get(h.from)?.getBoundingClientRect();
         const b = nodes.current.get(h.to)?.getBoundingClientRect();
@@ -120,8 +122,9 @@ export function DepartmentCanvas({
           span.textContent = line;
           label.append(span);
         });
-        layer.append(label);
+        labels.push(label);
       }
+      layer.append(...labels);
       const defs = document.createElementNS(SVG_NS, "defs");
       defs.innerHTML =
         '<marker id="canvas-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" class="canvas-arrowhead"/></marker>';

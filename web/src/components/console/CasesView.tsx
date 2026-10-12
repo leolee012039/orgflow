@@ -45,7 +45,7 @@ export function CasesView({
               This company was shared with you. Cases you run here are only on this page: they aren&apos;t saved.
             </p>
           )}
-          <CaseRun plan={plan} built={built} org={org} nextNumber={next} onCase={onCase} onResolve={onResolve} />
+          <CaseRun plan={plan} built={built} org={org} nextNumber={next} lastCase={cases[0]} onCase={onCase} onResolve={onResolve} />
         </div>
       )}
 

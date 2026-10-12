@@ -12,6 +12,14 @@ const MAX_BYTES = 5 * 1024 * 1024;
 export type DraftDocuments = { orgChart?: File; policies: File[] };
 
 const size = (f: File) => `${Math.max(1, Math.round(f.size / 1024))} KB`;
+const isPdf = (f: File) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf");
+
+/** Why a file can't be used, said when it is picked rather than after signing in and uploading. */
+function refusal(f: File): string | null {
+  if (!isPdf(f)) return `${f.name} isn't a PDF. Choose a .pdf file.`;
+  if (f.size > MAX_BYTES) return `${f.name} is larger than 5 MB. Choose a smaller PDF.`;
+  return null;
+}
 
 function PickButton({ label, multiple, onFiles }: { label: string; multiple?: boolean; onFiles: (files: File[]) => void }) {
   const id = useId();
@@ -45,17 +53,18 @@ export function DocumentPicker({ docs, onDocs }: { docs: DraftDocuments; onDocs:
   const [warning, setWarning] = useState<string | null>(null);
 
   function addPolicies(files: File[]) {
-    const tooBig = files.filter((f) => f.size > MAX_BYTES);
+    const refused = files.map(refusal).filter((r): r is string => r !== null);
     const room = MAX_POLICIES - docs.policies.length;
-    const ok = files.filter((f) => f.size <= MAX_BYTES).slice(0, Math.max(room, 0));
-    setWarning(
-      tooBig.length
-        ? `${tooBig.map((f) => f.name).join(", ")} is larger than 5 MB.`
-        : files.length > ok.length
-          ? `Up to ${MAX_POLICIES} policies at a time.`
-          : null,
-    );
+    const usable = files.filter((f) => refusal(f) === null);
+    const ok = usable.slice(0, Math.max(room, 0));
+    setWarning(refused.length ? refused.join(" ") : usable.length > ok.length ? `Up to ${MAX_POLICIES} policies at a time.` : null);
     onDocs({ ...docs, policies: [...docs.policies, ...ok] });
+  }
+
+  function setOrgChart(f: File) {
+    const refused = refusal(f);
+    setWarning(refused);
+    if (!refused) onDocs({ ...docs, orgChart: f });
   }
 
   return (
@@ -72,7 +81,7 @@ export function DocumentPicker({ docs, onDocs }: { docs: DraftDocuments; onDocs:
         </p>
         <PickButton
           label={docs.orgChart ? "Replace org chart PDF" : "Choose org chart PDF"}
-          onFiles={([f]) => f && onDocs({ ...docs, orgChart: f })}
+          onFiles={([f]) => f && setOrgChart(f)}
         />
       </div>
       <div className="card flex flex-col gap-2.5 p-5">
@@ -106,8 +115,12 @@ export function DocumentPicker({ docs, onDocs }: { docs: DraftDocuments; onDocs:
           </ul>
         )}
         {docs.policies.length < MAX_POLICIES && <PickButton label="Add policy PDFs" multiple onFiles={addPolicies} />}
-        {warning && <p className="text-sm text-alert">{warning}</p>}
       </div>
+      {warning && (
+        <p role="alert" className="text-sm text-alert sm:col-span-2">
+          {warning}
+        </p>
+      )}
     </div>
   );
 }
@@ -152,6 +165,7 @@ export function UploadStep({
         >
           {needsSignIn ? "Sign in and analyze" : "Analyze the company"}
         </button>
+        {!docs.orgChart && <span className="text-sm text-muted sm:order-last">Choose an org chart PDF to analyze your own company.</span>}
         <button type="button" disabled={busy} onClick={runSample} className={docs.orgChart ? secondaryClass : primaryClass}>
           <SparkIcon />
           Try the NovaGear sample

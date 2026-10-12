@@ -21,6 +21,7 @@ function NavItem({
   icon: Icon,
   children,
   badge,
+  compact,
 }: {
   active?: boolean;
   onClick?: () => void;
@@ -28,15 +29,17 @@ function NavItem({
   icon: typeof MapIcon;
   children: ReactNode;
   badge?: ReactNode;
+  /** On a phone: icon over a short label, so four sections fit in one row */
+  compact?: boolean;
 }) {
   const className = `flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left whitespace-nowrap transition-colors ${
     active ? "bg-ai-soft font-medium text-ai" : "text-muted hover:bg-line/60 hover:text-ink"
-  }`;
+  } ${compact ? "max-lg:flex-col max-lg:gap-1 max-lg:px-1 max-lg:py-1.5 max-lg:text-xs max-lg:relative" : ""}`;
   const inner = (
     <>
       <Icon className={active ? "text-ai" : "text-faint"} />
       <span className="flex-1">{children}</span>
-      {badge}
+      {badge && <span className={compact ? "max-lg:absolute max-lg:top-0.5 max-lg:right-1" : ""}>{badge}</span>}
     </>
   );
   return href ? (
@@ -129,9 +132,16 @@ export function Shell({
                 <BuildingIcon width="14" height="14" />
                 <span className="truncate">{company}</span>
               </p>
-              <div className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+              <div className="grid grid-cols-4 gap-1 lg:flex lg:flex-col">
                 {SECTIONS.map((s) => (
-                  <NavItem key={s.id} icon={s.icon} active={section === s.id} onClick={() => onSection(s.id)} badge={badges[s.id]}>
+                  <NavItem
+                    key={s.id}
+                    icon={s.icon}
+                    active={section === s.id}
+                    onClick={() => onSection(s.id)}
+                    badge={badges[s.id]}
+                    compact
+                  >
                     {s.label}
                   </NavItem>
                 ))}

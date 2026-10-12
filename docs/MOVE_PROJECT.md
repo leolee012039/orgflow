@@ -23,16 +23,20 @@ gcloud firestore databases create --location=asia-east1 --project $P
 firebase apps:create WEB orgflow-web --project $P
 firebase apps:sdkconfig WEB --project $P
 
-# API. --set-env-vars replaces every setting, so nothing from the old project carries over
+# API. --set-env-vars replaces every setting, so nothing from the old project carries over.
+# SITE is the website's own name (https://$SITE.web.app): a site name belongs to the project that made it,
+# so a new project needs a new one. Leave it out of ALLOWED_ORIGINS and the site can't call the API.
+SITE=<new-site-name>
+gcloud config set project $P   # nothing below falls back to an old, suspended project
 gcloud run deploy orgflow-api --source . --region asia-east1 --project $P --allow-unauthenticated \
   --max-instances 2 --memory 1Gi --quiet \
-  --set-env-vars "^@^GOOGLE_GENAI_USE_VERTEXAI=True@GOOGLE_CLOUD_PROJECT=$P@GOOGLE_CLOUD_LOCATION=global@GEMINI_MODEL=gemini-3.8-flash@ORGFLOW_REQUIRE_AUTH=1@FIREBASE_PROJECT_ID=$P@ALLOWED_ORIGINS=https://$P.web.app,https://$P.firebaseapp.com"
+  --set-env-vars "^@^GOOGLE_GENAI_USE_VERTEXAI=True@GOOGLE_CLOUD_PROJECT=$P@GOOGLE_CLOUD_LOCATION=global@GEMINI_MODEL=gemini-3.8-flash@ORGFLOW_REQUIRE_AUTH=1@FIREBASE_PROJECT_ID=$P@ALLOWED_ORIGINS=https://$SITE.web.app,https://$P.web.app,https://$P.firebaseapp.com"
 API=$(gcloud run services describe orgflow-api --region asia-east1 --project $P --format="value(status.url)")
 
 # Website and Firestore rules: first set "default" in .firebaserc to the new project.
 # For an address other than $P.web.app, create a site and set "site" under "hosting" in firebase.json;
 # then add that site to ALLOWED_ORIGINS above and to Authentication's authorized domains.
-firebase hosting:sites:create <site> --project $P
+firebase hosting:sites:create $SITE --project $P
 cd web && NEXT_PUBLIC_API_BASE=$API npm run build && cd ..
 uv run python scripts/test_firestore_rules.py
 firebase deploy --only hosting,firestore:rules --project $P --non-interactive

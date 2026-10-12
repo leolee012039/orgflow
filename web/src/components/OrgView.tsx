@@ -61,7 +61,7 @@ export function OrgView({ org }: { org: Organization }) {
 
       {org.relationships.length > 0 && (
         <div className="flex flex-col gap-4">
-          <h3 className="font-semibold">Handoffs stated in the documents</h3>
+          <h3 className="font-semibold">Relationships the org chart reading found</h3>
           <ul className="flex flex-col gap-5">
             {org.relationships.map((rel, i) => (
               <li key={i} className="flex flex-col gap-2">
