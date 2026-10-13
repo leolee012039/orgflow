@@ -42,6 +42,25 @@ def test_english_wording():
     assert find_amount_gaps(no_more) == []
 
 
+def test_any_currency_between_the_word_and_the_amount():
+    # Larkspur Bay Logistics: "Below SGD 1,000" and "Above SGD 1,000" were read as no wording at all
+    for currency in ("SGD", "AUD", "EUR", "GBP", "MYR", "KRW", "S$", "A$", "NT$", "RM", "€", "₩"):
+        gap = tiers((None, 1000, f"Below {currency} 1,000: Customer Service Manager"),
+                    (1000, None, f"Above {currency} 1,000: Finance Manager"))
+        assert [f["kind"] for f in find_amount_gaps(gap)] == ["gap"], currency
+        covered = tiers((None, 1000, f"Up to {currency} 1,000: Manager"), (1000, None, f"Above {currency} 1,000: Director"))
+        assert find_amount_gaps(covered) == [], currency
+
+
+def test_a_currency_after_the_amount():
+    gap = tiers((None, 1000, "Below 1,000 SGD"), (1000, None, "Above 1,000 SGD"))
+    assert [f["kind"] for f in find_amount_gaps(gap)] == ["gap"]
+    overlap = tiers((None, 1000, "1,000 SGD or less"), (1000, None, "1,000 SGD or more"))
+    assert [f["kind"] for f in find_amount_gaps(overlap)] == ["overlap"]
+    covered = tiers((None, 1000, "Below 1,000 SGD"), (1000, None, "1,000 SGD or more"))
+    assert find_amount_gaps(covered) == []
+
+
 def test_wording_that_says_both_is_unclear_not_a_gap():
     # 「逾…以上」 says "over" and "at or above" at once: OrgFlow can't prove a gap from the
     # words, so it asks a person to confirm which level owns the amount

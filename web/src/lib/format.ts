@@ -1,10 +1,39 @@
 import type { FormField, Organization, Rule, StepType, Workflow } from "./types";
 
-export const money = (n: number, currency = "USD") => `${currency} ${n.toLocaleString("en-US")}`;
+export const money = (n: number, currency = "") => (currency ? `${currency} ${n.toLocaleString("en-US")}` : n.toLocaleString("en-US"));
 
-/** The policy's currency, read from the passages its rules quote. */
-export function currencyOf(rules: Rule[]): string {
-  return rules.some((r) => /新[臺台]幣|元|NT\$/.test(r.source)) ? "NT$" : "USD";
+// How a policy writes a currency, and the name OrgFlow shows for it
+const CURRENCY_NAMES: [RegExp, string][] = [
+  [/新[臺台]幣|[臺台]幣|NT\$|\bNTD\b|\bTWD\b|\d\s*元/g, "NT$"],
+  [/US\$|\bUSD\b/g, "USD"],
+  [/S\$|\bSGD\b/g, "SGD"],
+  [/A\$|\bAUD\b/g, "AUD"],
+  [/HK\$|港幣|\bHKD\b/g, "HKD"],
+  [/NZ\$|\bNZD\b/g, "NZD"],
+  [/C\$|\bCAD\b/g, "CAD"],
+  [/€|\bEUR\b/g, "EUR"],
+  [/£|\bGBP\b/g, "GBP"],
+  [/円|日圓|日元|\bJPY\b/g, "JPY"],
+  [/人民幣|\bRMB\b|\bCNY\b/g, "CNY"],
+  [/₩|\bKRW\b/g, "KRW"],
+  [/\bRM\s?\d|\bMYR\b/g, "MYR"],
+  [/₹|\bINR\b/g, "INR"],
+  [/₱|\bPHP\b/g, "PHP"],
+  [/฿|\bTHB\b/g, "THB"],
+  [/\bRp\s?\d|\bIDR\b/g, "IDR"],
+  [/₫|\bVND\b/g, "VND"],
+];
+
+/** The policy's currency: the one its quoted passages name most often. None found: no currency is shown,
+ * rather than a guess. */
+export function currencyOf(passages: string[]): string {
+  let best = "";
+  let most = 0;
+  for (const [pattern, name] of CURRENCY_NAMES) {
+    const count = passages.reduce((n, p) => n + (p.match(pattern)?.length ?? 0), 0);
+    if (count > most) [best, most] = [name, count];
+  }
+  return best;
 }
 
 /** The original NovaGear purchase request form, for workflows built without their own fields. */
@@ -33,7 +62,8 @@ export function formatValue(wf: Workflow, name: string, value: unknown): string 
     return String(value ?? "");
   if (isPercent(field)) return `${n}%`;
   const moneyRule = wf.rules.some((r) => r.when.field === name) || /cost|price|amount|payment/i.test(name);
-  return moneyRule ? money(n, currencyOf(wf.rules)) : n.toLocaleString("en-US");
+  const passages = [...wf.rules.map((r) => r.source), ...(wf.amount_tiers ?? []).map((t) => t.source)];
+  return moneyRule ? money(n, currencyOf(passages)) : n.toLocaleString("en-US");
 }
 
 /** Values worth trying for a number field: below, between and above the thresholds, and every gap. */

@@ -21,9 +21,12 @@ from typing import Optional
 from guard import _format_amount, normalize_amounts
 from schemas import AmountTier
 
-_CURRENCY = r"(?:新[臺台]幣|[臺台]幣|NT\$|NTD|TWD|USD|US\$|HK\$|S\$|RMB|JPY|人民幣|\$|¥|€|£)?"
+# Any currency between the word and the amount: an ISO code (SGD, AUD, EUR ...), a prefixed dollar (S$, NT$, A$),
+# RM and Rp, a symbol, or a Chinese or Japanese name. Words a policy writes there are never three capitals.
+_CURRENCY = (r"(?:新[臺台]幣|[臺台]幣|人民幣|港幣|日圓|日元|[A-Z]{1,3}\$|[A-Z]{3}(?![A-Za-z])|RM|Rp|"
+             r"\$|¥|€|£|₩|₹|₱|฿|₫|円)?")
 _TO_AMOUNT = rf"\s*{_CURRENCY}\s*"  # between a word like 未達 and the amount
-_FROM_AMOUNT = r"\s*(?:元|圓|dollars?)?\s*"  # between the amount and a word like 以上
+_FROM_AMOUNT = r"\s*(?:元|圓|円|dollars?|[A-Z]{3}(?![A-Za-z]))?\s*"  # between the amount and a word like 以上, or "SGD"
 # "not below", "no more than", "at or above" and 「等於或超過」 turn the plain word around
 _NOT = r"(?<!not )(?<!no )(?<!or )"
 _NUMBER = r"\d+(?:\.\d+)?"

@@ -161,3 +161,10 @@ Organization regulations in force from 1 August 2026 (some characters stored as 
 - Found by code: 國際合作交流委員會 to confirm in 國際暨兩岸事務處
 - First case that stopped: 科研採購分層核定與招標作業 at 1,500,000: 總務處, The policy's wording doesn't say which approval level covers exactly 1,500,000 → human review
 
+### Larkspur Bay Logistics (added 13 October 2026)
+
+A fictional freight company in Singapore, written for this test: an org chart and three policies (purchasing, customer credit notes, shipment handover) in English and Singapore dollars, with two problems planted. The PDFs and the answer key are in [demo_assets/sg](../demo_assets/sg). Read live with Gemini 3.8 Flash on the local app.
+
+- First run: 5 departments and all 5 handoffs the documents state; 10 of 10 planned workflows built, 82 s from upload; found the Regional Director the org chart doesn't have. Missed exactly SGD 1,000: the boundary reader didn't know "SGD" ([ISSUES.md](ISSUES.md) #23).
+- After the fix, three complete runs (130 to 155 s from upload to every workflow built, 8 of 8 each time): all three found both planted problems, shown as "The policy requires Regional Director approval, and the org chart has no Regional Director" and "No approval level covers exactly SGD 1,000". One more attempt stopped when Gemini took over 90 s on the department map; the page said so and a second try went through.
+
