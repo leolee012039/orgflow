@@ -1,0 +1,292 @@
+{
+  "workflows": [
+    {
+      "id": "sales_travel_expense_claim",
+      "department": "Sales",
+      "name": "Travel Expense Claim and Approval",
+      "trigger": "An Account Manager submits an expense claim with original bills within 30 days of a client visit.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "approved travel expense claim",
+      "basis": "policy",
+      "why": "Expense claims and paper receipts are manually submitted and routed across multiple approvers based on claim thresholds. Automating this routes claims to the proper managers instantly according to approval limits and delivers approved claims to Finance without manual handoffs.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "An Account Manager submits an expense claim within 30 days of the client visit, with the client, the total amount in rupees, the purpose of the trip and the original bills."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Below ₹25,000 Head of Sales"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Above ₹25,000 up to ₹1 lakh Head of Sales + Finance Controller"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Above ₹1 lakh Head of Sales + Finance Controller + Managing Director"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Approved claims are sent to Finance."
+        }
+      ]
+    },
+    {
+      "id": "sales_handover_signed_sow",
+      "department": "Sales",
+      "name": "Client Project Handover",
+      "trigger": "A client signs a statement of work with the sales team.",
+      "starts_from": null,
+      "hands_to": "Delivery",
+      "output": "signed statement of work with scope, milestones, and agreed rates",
+      "basis": "policy",
+      "why": "Statements of work are manually gathered and emailed or handed off to the Delivery department. Automating the handover standardizes the project requirements and notifies Delivery immediately to assign project management.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_4",
+          "quote": "When a client signs a statement of work, the Account Manager sends it to Delivery with the scope, the milestones and the agreed rates."
+        }
+      ]
+    },
+    {
+      "id": "delivery_project_initiation",
+      "department": "Delivery",
+      "name": "Project Manager Assignment",
+      "trigger": "Sales sends a signed statement of work with scope, milestones, and agreed rates.",
+      "starts_from": "Sales",
+      "hands_to": null,
+      "output": "Project Manager assignment",
+      "basis": "policy",
+      "why": "Received statements of work require manual tracking to ensure a Project Manager is assigned within three working days. Automating the intake ensures SLA tracking and direct notification to the designated Project Manager.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_4",
+          "quote": "The Head of Delivery assigns a Project Manager within three working days."
+        }
+      ]
+    },
+    {
+      "id": "delivery_purchase_request_approval",
+      "department": "Delivery",
+      "name": "Project Purchase Request",
+      "trigger": "A Project Manager raises a purchase request for goods or services for a client project.",
+      "starts_from": null,
+      "hands_to": "IT & Administration",
+      "output": "approved purchase request",
+      "basis": "policy",
+      "why": "Project purchase requests must go through multiple tiers of manual reviews and approvals based on cost thresholds. Automation directs the request through the appropriate approval ladder and forwards approved requests directly to IT & Administration.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "A Project Manager raises a purchase request with the item, the client project, the estimated cost in Indian rupees excluding GST, and the business reason. The Head of Delivery confirms the project need before the request goes for approval."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Up to Rs. 50,000/- Head of Delivery approval"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Above Rs. 50,000/- up to Rs. 5,00,000/- Head of Delivery approval + Finance Controller approval"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Above Rs. 5,00,000/- Head of Delivery approval + Finance Controller approval + Chief Financial Officer approval"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Approved purchase requests are sent to IT & Administration."
+        }
+      ]
+    },
+    {
+      "id": "delivery_milestone_acceptance_handover",
+      "department": "Delivery",
+      "name": "Milestone Acceptance Submission",
+      "trigger": "A client accepts a project milestone.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "signed milestone acceptance",
+      "basis": "policy",
+      "why": "Milestone acceptance documents are manually delivered by Project Managers to Finance for billing. Automating this handoff triggers immediate invoice generation without delay or missing documentation.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_4",
+          "quote": "When the client accepts a milestone, the Project Manager sends the signed milestone acceptance to Finance."
+        }
+      ]
+    },
+    {
+      "id": "hr_new_joiner_it_request",
+      "department": "Human Resources",
+      "name": "New Joiner IT Provisioning Request",
+      "trigger": "A candidate accepts an employment offer.",
+      "starts_from": null,
+      "hands_to": "IT & Administration",
+      "output": "new joiner request",
+      "basis": "policy",
+      "why": "HR manually compiles and transmits new hire details and IT specifications at least five days prior to joining. Automating the workflow sends required asset requests directly to IT & Administration upon offer acceptance.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When a candidate accepts an offer, the HR Executive sends a new joiner request to IT & Administration at least five working days before the joining date, with the employee's name, role, department, joining date and laptop requirements."
+        }
+      ]
+    },
+    {
+      "id": "hr_payroll_enrollment_handover",
+      "department": "Human Resources",
+      "name": "New Joiner Payroll Submission",
+      "trigger": "A new employee arrives on their joining date.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "employee joining details for payroll",
+      "basis": "policy",
+      "why": "Employee bank account, PAN, and salary details are manually gathered and handed to Finance on joining day. Automating this submission prevents payroll delays and manual data entry errors.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "On the joining date, HR sends the joining details to Finance: the employee's bank account, PAN and monthly salary."
+        }
+      ]
+    },
+    {
+      "id": "hr_receive_it_confirmation",
+      "department": "Human Resources",
+      "name": "IT Setup Confirmation Verification",
+      "trigger": "IT & Administration sends confirmation of laptop, email account, and access card setup.",
+      "starts_from": "IT & Administration",
+      "hands_to": null,
+      "output": "verified employee onboarding readiness",
+      "basis": "policy",
+      "why": "HR manually verifies setup completion communications before the employee's first day. Automating this process updates the onboarding checklist automatically and confirms joining readiness.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "The IT Executive sets up the laptop, the email account and the access card, and confirms to HR the day before the joining date."
+        }
+      ]
+    },
+    {
+      "id": "it_admin_procurement_po_issuance",
+      "department": "IT & Administration",
+      "name": "Procurement and Purchase Order Issuance",
+      "trigger": "Delivery sends an approved purchase request.",
+      "starts_from": "Delivery",
+      "hands_to": null,
+      "output": "issued purchase order",
+      "basis": "policy",
+      "why": "Sourcing three quotations and routing them for vendor selection is managed manually across staff. Automating the request receipt, quotation gathering, and purchase order generation accelerates procurement timelines.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Approved purchase requests are sent to IT & Administration. For purchases above Rs. 50,000/- the IT Executive obtains three written quotations from registered vendors. The Administration Manager selects the vendor and issues the purchase order."
+        }
+      ]
+    },
+    {
+      "id": "it_admin_forward_vendor_invoice",
+      "department": "IT & Administration",
+      "name": "Vendor Invoice Forwarding",
+      "trigger": "IT & Administration receives a vendor's GST invoice for delivered goods or services.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "forwarded vendor GST invoice",
+      "basis": "policy",
+      "why": "Vendor invoices are physically or manually forwarded between IT & Administration and Finance. Automating invoice forwarding reduces manual handling and avoids lost invoices.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "IT & Administration forwards each vendor's GST invoice to Finance."
+        }
+      ]
+    },
+    {
+      "id": "it_admin_employee_setup",
+      "department": "IT & Administration",
+      "name": "IT Setup and Access Provisioning",
+      "trigger": "Human Resources sends a new joiner request at least five working days before the joining date.",
+      "starts_from": "Human Resources",
+      "hands_to": "Human Resources",
+      "output": "setup confirmation",
+      "basis": "policy",
+      "why": "Hardware, email, and access card requests are tracked through unstructured manual communications. Automating provisioning triggers setup tasks and automatically sends readiness confirmation to HR the day before joining.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When a candidate accepts an offer, the HR Executive sends a new joiner request to IT & Administration at least five working days before the joining date, with the employee's name, role, department, joining date and laptop requirements."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "The IT Executive sets up the laptop, the email account and the access card, and confirms to HR the day before the joining date."
+        }
+      ]
+    },
+    {
+      "id": "finance_vendor_invoice_payment",
+      "department": "Finance",
+      "name": "Vendor Invoice Matching and Payment",
+      "trigger": "IT & Administration forwards a vendor's GST invoice.",
+      "starts_from": "IT & Administration",
+      "hands_to": null,
+      "output": "vendor payment",
+      "basis": "policy",
+      "why": "Accounts Executives manually match invoices against purchase orders and route invoices over Rs. 2,00,000 for Finance Controller approval. Automating the PO matching and approval routing ensures timely payments within the 30-day window.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "IT & Administration forwards each vendor's GST invoice to Finance. The Accounts Executive matches the invoice to the purchase order and pays the vendor within 30 days. Invoices above Rs. 2,00,000/- also need Finance Controller approval before payment."
+        }
+      ]
+    },
+    {
+      "id": "finance_travel_reimbursement_processing",
+      "department": "Finance",
+      "name": "Travel Reimbursement Processing",
+      "trigger": "Sales sends approved expense claims.",
+      "starts_from": "Sales",
+      "hands_to": null,
+      "output": "salary reimbursement payment",
+      "basis": "policy",
+      "why": "Finance manually checks paper bills and calculates salary additions for approved travel claims. Automation verifies documentation and attaches reimbursement directly to the employee's next monthly payroll disbursement.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "Approved claims are sent to Finance. The Accounts Executive checks the bills and pays the claim with the employee's next monthly salary."
+        }
+      ]
+    },
+    {
+      "id": "finance_client_milestone_invoicing",
+      "department": "Finance",
+      "name": "Client Milestone Invoicing",
+      "trigger": "Delivery sends a signed milestone acceptance.",
+      "starts_from": "Delivery",
+      "hands_to": null,
+      "output": "GST invoice to client",
+      "basis": "policy",
+      "why": "Milestone acceptance notices are manually received and monitored to meet the two-day billing SLA. Automating the intake auto-generates the GST invoice and tracks delivery to the client within two working days.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_4",
+          "quote": "Finance raises the GST invoice to the client within two working days of receiving the milestone acceptance."
+        }
+      ]
+    }
+  ]
+}

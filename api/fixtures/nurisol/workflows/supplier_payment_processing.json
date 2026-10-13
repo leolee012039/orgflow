@@ -1,0 +1,74 @@
+{
+  "workflow_name": "매입 대금 지급 처리",
+  "opportunity_id": "supplier_payment_processing",
+  "department": "재무팀",
+  "fields": [
+    {
+      "name": "item",
+      "label": "품목",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "수량",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "estimated_amount",
+      "label": "예상 금액(부가세 별도)",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "사유",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "item",
+    "quantity",
+    "estimated_amount",
+    "reason"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "구매 및 대금 지급 관련 필수 정보(품목, 수량, 예상 금액, 사유) 확인",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_verify_and_pay",
+      "type": "task",
+      "actor": "accounting_specialist",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_notification",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "물류팀",
+  "hands_to": null,
+  "output": "대금 지급 완료 내역",
+  "explanation": "구매 및 지출 결재 규정 제4조에 따라 물류팀으로부터 세금계산서가 인계되면 재무팀 회계 담당자가 발주서 대조 후 30일 이내에 대금을 지급합니다. 별도의 결재 승인 단계 없이 규정에 명시된 작업만을 회계 담당자가 수행하도록 구성했습니다.",
+  "upstream_id": "supplier_order_and_tax_invoice_processing"
+}

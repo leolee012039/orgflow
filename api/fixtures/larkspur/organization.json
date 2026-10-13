@@ -1,0 +1,173 @@
+{
+  "company": "Larkspur Bay Logistics Pte. Ltd.",
+  "departments": [
+    {
+      "name": "Sales",
+      "head_role_id": "sales_manager"
+    },
+    {
+      "name": "Operations",
+      "head_role_id": "operations_manager"
+    },
+    {
+      "name": "Procurement",
+      "head_role_id": "procurement_manager"
+    },
+    {
+      "name": "Finance",
+      "head_role_id": "finance_manager"
+    },
+    {
+      "name": "Customer Service",
+      "head_role_id": "customer_service_manager"
+    }
+  ],
+  "roles": [
+    {
+      "id": "managing_director",
+      "title": "Managing Director",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "Leads the company and the management team in Singapore."
+      ]
+    },
+    {
+      "id": "sales_manager",
+      "title": "Sales Manager",
+      "department": "Sales",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Leads the sales team and the company's largest customer accounts."
+      ]
+    },
+    {
+      "id": "account_executive",
+      "title": "Account Executive",
+      "department": "Sales",
+      "reports_to": "sales_manager",
+      "responsibilities": [
+        "Quotes freight rates and takes customer bookings."
+      ]
+    },
+    {
+      "id": "operations_manager",
+      "title": "Operations Manager",
+      "department": "Operations",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Runs the warehouse and trucking fleet and approves the department's purchase needs."
+      ]
+    },
+    {
+      "id": "shipment_coordinator",
+      "title": "Shipment Coordinator",
+      "department": "Operations",
+      "reports_to": "operations_manager",
+      "responsibilities": [
+        "Plans pick-ups and deliveries and raises operational purchase requests."
+      ]
+    },
+    {
+      "id": "procurement_manager",
+      "title": "Procurement Manager",
+      "department": "Procurement",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Chooses suppliers and signs purchase orders."
+      ]
+    },
+    {
+      "id": "buyer",
+      "title": "Buyer",
+      "department": "Procurement",
+      "reports_to": "procurement_manager",
+      "responsibilities": [
+        "Collects supplier quotations and places purchase orders."
+      ]
+    },
+    {
+      "id": "finance_manager",
+      "title": "Finance Manager",
+      "department": "Finance",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Owns budgets, payments and customer credit decisions."
+      ]
+    },
+    {
+      "id": "accounts_executive",
+      "title": "Accounts Executive",
+      "department": "Finance",
+      "reports_to": "finance_manager",
+      "responsibilities": [
+        "Invoices customers, matches supplier invoices to purchase orders and pays suppliers."
+      ]
+    },
+    {
+      "id": "customer_service_manager",
+      "title": "Customer Service Manager",
+      "department": "Customer Service",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Leads customer service and handles escalated customer complaints."
+      ]
+    },
+    {
+      "id": "customer_service_officer",
+      "title": "Customer Service Officer",
+      "department": "Customer Service",
+      "reports_to": "customer_service_manager",
+      "responsibilities": [
+        "Answers customers, logs complaints and raises credit requests."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Operations",
+      "to": "Procurement",
+      "description": "Approved purchase requests are sent to Procurement.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Approved purchase requests are sent to Procurement."
+      }
+    },
+    {
+      "from": "Procurement",
+      "to": "Finance",
+      "description": "Procurement forwards each supplier invoice to Finance.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Procurement forwards each supplier invoice to Finance."
+      }
+    },
+    {
+      "from": "Customer Service",
+      "to": "Finance",
+      "description": "Approved credit requests are sent to Finance.",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Approved credit requests are sent to Finance."
+      }
+    },
+    {
+      "from": "Sales",
+      "to": "Operations",
+      "description": "Account Executive sends the booking confirmation to Operations.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When a customer confirms a booking, the Account Executive sends the booking confirmation to Operations with the pick-up date, the cargo details and the agreed rate."
+      }
+    },
+    {
+      "from": "Operations",
+      "to": "Finance",
+      "description": "Operations sends the signed proof of delivery to Finance.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When the shipment is delivered, Operations sends the signed proof of delivery to Finance."
+      }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "workflow_name": "프로모션 계획 수립 및 전달",
+  "opportunity_id": "promotion_planning_and_submission",
+  "department": "마케팅팀",
+  "fields": [
+    {
+      "name": "promotion_period",
+      "label": "기간",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "discount_rate",
+      "label": "할인율",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "target_products",
+      "label": "대상 상품",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "promotion_period",
+    "discount_rate",
+    "target_products"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "기간, 할인율, 대상 상품이 누락 없이 작성되었는지 확인",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3",
+      "type": "task",
+      "actor": "marketer",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_4",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "상품기획팀",
+  "output": "프로모션 계획서",
+  "explanation": "조직도에 규정된 마케팅팀장의 프로모션 계획 승인 권한과 프로모션 진행 절차 1조에 명시된 필수 기재 항목(기간, 할인율, 대상 상품)을 반영했습니다. 마케터가 작성한 프로모션 계획을 AI 검토 및 부서장 승인을 거쳐 상품기획팀 전달 업무를 수행하도록 설계했습니다.",
+  "upstream_id": null
+}

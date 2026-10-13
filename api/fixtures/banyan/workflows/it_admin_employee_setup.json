@@ -1,0 +1,83 @@
+{
+  "workflow_name": "IT Setup and Access Provisioning",
+  "opportunity_id": "it_admin_employee_setup",
+  "department": "IT & Administration",
+  "fields": [
+    {
+      "name": "employee_name",
+      "label": "employee's name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "role",
+      "label": "role",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "employee_department",
+      "label": "department",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "joining_date",
+      "label": "joining date",
+      "type": "date",
+      "options": []
+    },
+    {
+      "name": "laptop_requirements",
+      "label": "laptop requirements",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "employee_name",
+    "role",
+    "employee_department",
+    "joining_date",
+    "laptop_requirements"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify all new joiner information and laptop requirements are complete",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_setup_laptop_access",
+      "type": "task",
+      "actor": "it_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Human Resources",
+  "hands_to": "Human Resources",
+  "output": "setup confirmation",
+  "explanation": "This workflow directly implements the Employee Onboarding Procedure where IT receives new joiner details from HR without requiring approvals. The IT Executive completes setup of the laptop, email account, and access card, followed by confirmation back to the requester.",
+  "upstream_id": "hr_new_joiner_it_request"
+}

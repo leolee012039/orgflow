@@ -1,0 +1,176 @@
+{
+  "workflows": [
+    {
+      "id": "xinyi_equipment_requisition_flow",
+      "department": "台北信義店",
+      "name": "台北信義店器材及用品請購簽核",
+      "trigger": "台北信義店提出分店器材或用品請購需求時觸發。",
+      "starts_from": null,
+      "hands_to": "採購部",
+      "output": "核准之器材及用品請購案",
+      "basis": "policy",
+      "why": "目前請購單需依金額以紙本逐級送簽，流程耗時且進度難以追蹤。自動化後能依預估金額自動分派對應主管簽核，核准後即時轉交採購部辦理。",
+      "manual_handoffs": 4,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "每件請購應載明申請人、所屬單位、品項、預估金額及採購理由。資料不全者，不得送簽。"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "預估金額 核准權限\n新臺幣二萬元以下 所屬單位主管核准\n逾新臺幣二萬元，未達新臺幣十萬元 所屬單位主管及財務經理核准\n逾新臺幣十萬元 所屬單位主管、財務經理及區經理核准後，陳總經理核定"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "請購案核准後，交由採購部辦理詢價、訂購及交貨驗收，並於驗收完成後通知申請人。"
+        }
+      ]
+    },
+    {
+      "id": "banqiao_equipment_requisition_flow",
+      "department": "新北板橋店",
+      "name": "新北板橋店器材及用品請購簽核",
+      "trigger": "新北板橋店提出分店器材或用品請購需求時觸發。",
+      "starts_from": null,
+      "hands_to": "採購部",
+      "output": "核准之器材及用品請購案",
+      "basis": "policy",
+      "why": "目前分店請購以紙本跨部門層轉審核，容易造成文件延宕與進度不明。透過系統依設定門檻自動路由簽核，可大幅加速審查並直接交付採購部採購。",
+      "manual_handoffs": 4,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "每件請購應載明申請人、所屬單位、品項、預估金額及採購理由。資料不全者，不得送簽。"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "預估金額 核准權限\n新臺幣二萬元以下 所屬單位主管核准\n逾新臺幣二萬元，未達新臺幣十萬元 所屬單位主管及財務經理核准\n逾新臺幣十萬元 所屬單位主管、財務經理及區經理核准後，陳總經理核定"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "請購案核准後，交由採購部辦理詢價、訂購及交貨驗收，並於驗收完成後通知申請人。"
+        }
+      ]
+    },
+    {
+      "id": "procurement_execution_xinyi",
+      "department": "採購部",
+      "name": "台北信義店器材採購執行與驗收",
+      "trigger": "收到台北信義店移交之核准請購案時觸發。",
+      "starts_from": "台北信義店",
+      "hands_to": null,
+      "output": "完成交貨驗收與驗收通知",
+      "basis": "policy",
+      "why": "目前採購部需手動確認簽核狀態並以人工通知申請人驗收結果，容易遺漏或延遲。自動化後可串接各階段進度紀錄，並在驗收完成時自動發送通知給申請人。",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "請購案核准後，交由採購部辦理詢價、訂購及交貨驗收，並於驗收完成後通知申請人。"
+        },
+        {
+          "doc": "org_chart",
+          "quote": "辦理詢價、訂購與交貨驗收。"
+        }
+      ]
+    },
+    {
+      "id": "procurement_execution_banqiao",
+      "department": "採購部",
+      "name": "新北板橋店器材採購執行與驗收",
+      "trigger": "收到新北板橋店移交之核准請購案時觸發。",
+      "starts_from": "新北板橋店",
+      "hands_to": null,
+      "output": "完成交貨驗收與驗收通知",
+      "basis": "policy",
+      "why": "目前接案後詢價、訂購與驗收通知皆仰賴人工傳達，難以即時掌握採購時效。導入自動化流程能系統化追蹤訂單驗收狀況，並及時回報申請單位。",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "請購案核准後，交由採購部辦理詢價、訂購及交貨驗收，並於驗收完成後通知申請人。"
+        },
+        {
+          "doc": "org_chart",
+          "quote": "辦理詢價、訂購與交貨驗收。"
+        }
+      ]
+    },
+    {
+      "id": "operations_store_supervision",
+      "department": "營運部",
+      "name": "分店營運排班與品質督導作業",
+      "trigger": "營運經理發起各分店營運督導或排班查核時觸發。",
+      "starts_from": null,
+      "hands_to": null,
+      "output": "分店營運督導紀錄與服務品質報告",
+      "basis": "org_chart",
+      "why": "各分店排班與服務品質追蹤目前採人工查核，耗時且缺乏整合數據。自動化可標準化督導與回報流程，提升營運管理效率。",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "org_chart",
+          "quote": "督導各分店營運、人力排班與服務品質。"
+        }
+      ]
+    },
+    {
+      "id": "finance_payment_accounting",
+      "department": "財務部",
+      "name": "付款辦理與帳務發票核對作業",
+      "trigger": "會計人員接獲付款憑證與發票核銷申請時觸發。",
+      "starts_from": null,
+      "hands_to": null,
+      "output": "付款完成紀錄與帳務發票核對清單",
+      "basis": "org_chart",
+      "why": "目前會計需逐筆手動核對發票與登錄帳務，作業繁瑣且容易出現人為錯誤。自動化能協助比對發票資訊與排程付款，加快帳務處理時效。",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "org_chart",
+          "quote": "辦理付款、帳務登錄與發票核對。"
+        }
+      ]
+    },
+    {
+      "id": "customer_service_inquiry_complaint",
+      "department": "會員服務部",
+      "name": "會員諮詢續約與客訴處理流程",
+      "trigger": "客服人員接獲會員諮詢、續約申請或客訴案件時觸發。",
+      "starts_from": null,
+      "hands_to": null,
+      "output": "會員諮詢客訴處理結果與續約紀錄",
+      "basis": "org_chart",
+      "why": "目前會員諮詢與客訴以人工手動記錄，案件追蹤與督導不易。透過系統化自動分派與進度追蹤，可加速客訴處理並提升續約轉換率。",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "org_chart",
+          "quote": "督導會員服務與客訴處理。"
+        },
+        {
+          "doc": "org_chart",
+          "quote": "處理會員諮詢、續約與客訴。"
+        }
+      ]
+    },
+    {
+      "id": "branches_equipment_incident_report",
+      "department": "各分店",
+      "name": "器材使用與損壞回報流程",
+      "trigger": "健身教練發現器材異常或損壞時填寫回報觸發。",
+      "starts_from": null,
+      "hands_to": null,
+      "output": "器材損壞回報紀錄與處置通知",
+      "basis": "org_chart",
+      "why": "目前器材故障主要以口頭或紙本回報，回報速度慢且容易遺漏檢修細節。自動化回報表單能立即通報店長，加速維修評估與後續請購決策。",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "org_chart",
+          "quote": "帶領會員訓練，回報器材使用與損壞情形。"
+        }
+      ]
+    }
+  ]
+}

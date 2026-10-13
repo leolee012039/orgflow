@@ -1,0 +1,74 @@
+{
+  "workflow_name": "Project Manager Assignment",
+  "opportunity_id": "delivery_project_initiation",
+  "department": "Delivery",
+  "fields": [
+    {
+      "name": "statement_of_work",
+      "label": "statement of work",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "scope",
+      "label": "scope",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "milestones",
+      "label": "milestones",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "agreed_rates",
+      "label": "agreed rates",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "statement_of_work",
+    "scope",
+    "milestones",
+    "agreed_rates"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify statement of work, scope, milestones, and agreed rates are provided",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_assign_pm",
+      "type": "task",
+      "actor": "head_of_delivery",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Sales",
+  "hands_to": null,
+  "output": "Project Manager assignment",
+  "explanation": "According to the Client Project Handover Procedure, when Sales sends a signed statement of work with the scope, milestones, and agreed rates, the Head of Delivery assigns a Project Manager within three working days. No approvals or monetary conditions are defined for this process, so after AI validation the assignment task is directly routed to the Head of Delivery followed by notification to the requester.",
+  "upstream_id": "sales_handover_signed_sow"
+}

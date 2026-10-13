@@ -1,0 +1,74 @@
+{
+  "workflow_name": "仕入先支払処理",
+  "opportunity_id": "keiri_supplier_payment",
+  "department": "経理部",
+  "fields": [
+    {
+      "name": "vendor_name",
+      "label": "仕入先名",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_number",
+      "label": "請求書番号",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_amount",
+      "label": "請求金額",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "invoice_date",
+      "label": "請求日",
+      "type": "date",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "vendor_name",
+    "invoice_number",
+    "invoice_amount",
+    "invoice_date"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "仕入先請求書の情報（仕入先名、請求書番号、請求金額、請求日）が正しく入力されているか確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_verify_and_pay",
+      "type": "task",
+      "actor": "keiri_tanto",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_notify",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "購買部",
+  "hands_to": null,
+  "output": "支払完了データ",
+  "explanation": "購買規程第5条に基づき、購買部から回付された請求書に対して経理担当が注文書と照合の上、翌月末に支払処理を行います。本手続には金額別の承認分岐は規定されていないため、AI確認、担当者処理、および完了通知で構成しています。",
+  "upstream_id": "kobai_invoice_to_keiri"
+}

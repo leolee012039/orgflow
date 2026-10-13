@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
-import { loadSampleDocuments, SAMPLE_FILES } from "@/lib/api";
+import { loadSampleDocuments } from "@/lib/api";
+import { DEFAULT_SAMPLE, SAMPLES } from "@/lib/samples";
 import type { Documents } from "@/lib/types";
 import { BuildingIcon, FileIcon, SparkIcon, UploadIcon } from "./Icons";
 import { ErrorNote, primaryClass, secondaryClass } from "./Section";
@@ -134,19 +135,21 @@ export function UploadStep({
 }: {
   docs: DraftDocuments;
   onDocs: (docs: DraftDocuments) => void;
-  onRun: (docs: Documents, sample: boolean) => void;
+  /** sampleId: a sample company, which opens from its saved reading; null: the visitor's own documents */
+  onRun: (docs: Documents, sampleId: string | null) => void;
   busy: boolean;
-  /** Your own documents need an account; the sample doesn't. */
+  /** Your own documents need an account; the samples don't. */
   needsSignIn: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const others = SAMPLES.filter((s) => s.id !== DEFAULT_SAMPLE.id);
 
-  async function runSample() {
+  async function runSample(id: string) {
     setError(null);
     try {
-      const sample = await loadSampleDocuments();
+      const sample = await loadSampleDocuments(id);
       onDocs(sample);
-      onRun(sample, true);
+      onRun(sample, id);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -160,33 +163,51 @@ export function UploadStep({
         <button
           type="button"
           disabled={!docs.orgChart || busy}
-          onClick={() => docs.orgChart && onRun({ orgChart: docs.orgChart, policies: docs.policies }, false)}
+          onClick={() => docs.orgChart && onRun({ orgChart: docs.orgChart, policies: docs.policies }, null)}
           className={docs.orgChart ? primaryClass : secondaryClass}
         >
           {needsSignIn ? "Sign in and analyze" : "Analyze the company"}
         </button>
         {!docs.orgChart && <span className="text-sm text-muted sm:order-last">Choose an org chart PDF to analyze your own company.</span>}
-        <button type="button" disabled={busy} onClick={runSample} className={docs.orgChart ? secondaryClass : primaryClass}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => runSample(DEFAULT_SAMPLE.id)}
+          className={docs.orgChart ? secondaryClass : primaryClass}
+        >
           <SparkIcon />
           Try the NovaGear sample
         </button>
       </div>
+      {others.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Samples from across Asia-Pacific</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Samples from across Asia-Pacific">
+            {others.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={busy}
+                onClick={() => runSample(s.id)}
+                title={`${s.company}: ${s.industry}, documents in ${s.language}`}
+                aria-label={`Open the ${s.market} sample, ${s.company}, ${s.industry}, documents in ${s.language}`}
+                className="flex flex-col rounded-lg border border-line bg-sheet px-3 py-2 text-left text-sm shadow-[0_1px_2px_rgb(22_26_35/0.04)] hover:border-ai disabled:opacity-60"
+              >
+                <span className="font-medium">{s.market}</span>
+                <span className="text-xs text-muted">{s.industry}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <p className="text-sm text-muted">
-        The sample is a fictional company with an org chart and {SAMPLE_FILES.policies.length} policies (
-        <a href={`/demo/${SAMPLE_FILES.orgChart}`} target="_blank" rel="noreferrer" className="font-medium text-ai hover:underline">
-          see the org chart
+        Each sample is a fictional company with an org chart and its policies, in its own language and currency (
+        <a href={`/demo/${DEFAULT_SAMPLE.orgChart}`} target="_blank" rel="noreferrer" className="font-medium text-ai hover:underline">
+          see NovaGear&apos;s org chart
         </a>
-        ). It works without an account and opens at once: Gemini&apos;s reading of it was checked and saved. Your own
+        ). They work without an account and open at once: Gemini&apos;s reading of each was checked and saved. Your own
         documents are read live, which takes about a minute, and need a Google sign-in so your work is saved to you.
         The PDFs themselves are not saved.
-      </p>
-      <p className="text-sm text-muted">
-        No documents of your own at hand? Download those of Banyan Lantern Technologies, a fictional software company in
-        India (
-        <a href="/demo/Banyan_Lantern_Technologies.zip" download className="font-medium text-ai hover:underline">
-          ZIP, 5 PDFs
-        </a>
-        ), and upload them to watch Gemini read a company it has never seen.
       </p>
       {error && <ErrorNote message={error} />}
     </div>

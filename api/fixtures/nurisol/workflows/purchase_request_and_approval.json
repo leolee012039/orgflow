@@ -1,0 +1,134 @@
+{
+  "workflow_name": "구매 요청 및 결재",
+  "opportunity_id": "purchase_request_and_approval",
+  "department": "상품기획팀",
+  "fields": [
+    {
+      "name": "item",
+      "label": "품목",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "수량",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "estimated_amount",
+      "label": "예상 금액(부가세 별도)",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "사유",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "quantity",
+    "estimated_amount",
+    "reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_finance_team_leader_approval",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">",
+        "value": 10000000
+      },
+      "source": "1,000만원 초과 5,000만원 이하 상품기획팀장, 재무팀장"
+    },
+    {
+      "id": "rule_vice_president_approval",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">",
+        "value": 50000000
+      },
+      "source": "5,000만원 초과 상품기획팀장, 재무팀장, 부사장"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "품목, 수량, 예상 금액, 사유 등 필수 작성 정보가 입력되었는지 확인한다.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_merchandising_team_leader_approval",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_finance_team_leader_approval",
+      "type": "approval",
+      "actor": "finance_team_leader",
+      "only_if": "rule_finance_team_leader_approval",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_vice_president_approval",
+      "type": "approval",
+      "actor": "부사장",
+      "only_if": "rule_vice_president_approval",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notification",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "부사장"
+  ],
+  "amount_tiers": [
+    {
+      "field": "estimated_amount",
+      "min": null,
+      "max": 10000000.0,
+      "source": "1,000만원 이하 상품기획팀장"
+    },
+    {
+      "field": "estimated_amount",
+      "min": 10000000.0,
+      "max": 50000000.0,
+      "source": "1,000만원 초과 5,000만원 이하 상품기획팀장, 재무팀장"
+    },
+    {
+      "field": "estimated_amount",
+      "min": 50000000.0,
+      "max": null,
+      "source": "5,000만원 초과 상품기획팀장, 재무팀장, 부사장"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "물류팀",
+  "output": "승인된 구매 요청서",
+  "explanation": "구매 및 지출 결재 규정에 명시된 품목, 수량, 예상 금액, 사유를 입력받아 결재를 진행합니다. 규정 제3조에 따라 상품기획팀장의 기본 승인 외에 예상 금액 기준에 맞춰 재무팀장과 부사장의 결재 단계를 조건부로 거치도록 설계하였습니다.",
+  "upstream_id": null
+}

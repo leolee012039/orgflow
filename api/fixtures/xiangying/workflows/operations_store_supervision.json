@@ -1,0 +1,81 @@
+{
+  "workflow_name": "分店營運排班與品質督導作業",
+  "opportunity_id": "operations_store_supervision",
+  "department": "營運部",
+  "fields": [
+    {
+      "name": "store_name",
+      "label": "分店名稱",
+      "type": "choice",
+      "options": [
+        "台北信義店",
+        "新北板橋店"
+      ]
+    },
+    {
+      "name": "inspection_date",
+      "label": "督導日期",
+      "type": "date",
+      "options": []
+    },
+    {
+      "name": "inspection_items",
+      "label": "督導項目與內容",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "store_name",
+    "inspection_date",
+    "inspection_items"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "review_supervision_plan",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "檢查分店名稱、督導日期與督導項目是否完整填寫",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "manager_approval",
+      "type": "approval",
+      "actor": "operations_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "conduct_store_inspection",
+      "type": "task",
+      "actor": "operations_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": null,
+  "output": "分店營運督導紀錄與服務品質報告",
+  "explanation": "依據組織圖職責說明，營運經理負責督導各分店營運、人力排班與服務品質。本流程以組織架構為基礎建立審核與督導任務，並於完成後通知發起人。",
+  "upstream_id": null
+}

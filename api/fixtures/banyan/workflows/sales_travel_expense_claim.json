@@ -1,0 +1,132 @@
+{
+  "workflow_name": "Travel Expense Claim and Approval",
+  "opportunity_id": "sales_travel_expense_claim",
+  "department": "Sales",
+  "fields": [
+    {
+      "name": "client",
+      "label": "Client",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "total_amount",
+      "label": "Total Amount in Rupees",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "trip_purpose",
+      "label": "Purpose of the Trip",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "original_bills",
+      "label": "Original Bills",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "client",
+    "total_amount",
+    "trip_purpose",
+    "original_bills"
+  ],
+  "rules": [
+    {
+      "id": "rule_requires_finance_controller",
+      "when": {
+        "field": "total_amount",
+        "op": ">",
+        "value": 25000
+      },
+      "source": "Above ₹25,000 up to ₹1 lakh Head of Sales + Finance Controller"
+    },
+    {
+      "id": "rule_requires_managing_director",
+      "when": {
+        "field": "total_amount",
+        "op": ">",
+        "value": 100000
+      },
+      "source": "Above ₹1 lakh Head of Sales + Finance Controller + Managing Director"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ai_review_expense_claim",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify client, total amount, trip purpose, and original bills are provided within 30 days of the client visit",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "approval_head_of_sales",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "approval_finance_controller",
+      "type": "approval",
+      "actor": "finance_controller",
+      "only_if": "rule_requires_finance_controller",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "approval_managing_director",
+      "type": "approval",
+      "actor": "managing_director",
+      "only_if": "rule_requires_managing_director",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notification_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "total_amount",
+      "min": null,
+      "max": 25000.0,
+      "source": "Below ₹25,000 Head of Sales"
+    },
+    {
+      "field": "total_amount",
+      "min": 25000.0,
+      "max": 100000.0,
+      "source": "Above ₹25,000 up to ₹1 lakh Head of Sales + Finance Controller"
+    },
+    {
+      "field": "total_amount",
+      "min": 100000.0,
+      "max": null,
+      "source": "Above ₹1 lakh Head of Sales + Finance Controller + Managing Director"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Finance",
+  "output": "approved travel expense claim",
+  "explanation": "This workflow faithfully implements the Travel and Expense Reimbursement Policy by collecting required claim details and original receipts. It enforces approval tiers by routing requests through the Head of Sales, Finance Controller, and Managing Director depending on the total claim threshold.",
+  "upstream_id": null
+}

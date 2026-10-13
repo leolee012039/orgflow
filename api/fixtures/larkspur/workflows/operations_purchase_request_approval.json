@@ -1,0 +1,136 @@
+{
+  "workflow_name": "Operational Purchase Request Approval",
+  "opportunity_id": "operations_purchase_request_approval",
+  "department": "Operations",
+  "fields": [
+    {
+      "name": "item",
+      "label": "Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated cost in Singapore dollars",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_reason",
+      "label": "Business reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "estimated_cost",
+    "business_reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_cost_above_5000",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 5000
+      },
+      "source": "Above SGD 5,000 up to SGD 50,000 Operations Manager approval + Finance Manager approval"
+    },
+    {
+      "id": "rule_cost_above_50000",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 50000
+      },
+      "source": "Above SGD 50,000 Operations Manager approval + Finance Manager approval + Regional Director approval"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify item, estimated cost in Singapore dollars, and business reason are provided",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_operations_manager_approval",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_finance_manager_approval",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_cost_above_5000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_regional_director_approval",
+      "type": "approval",
+      "actor": "Regional Director",
+      "only_if": "rule_cost_above_50000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_send_to_procurement",
+      "type": "task",
+      "actor": "operations_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_requester_notification",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "Regional Director"
+  ],
+  "amount_tiers": [
+    {
+      "field": "estimated_cost",
+      "min": null,
+      "max": 5000.0,
+      "source": "Up to SGD 5,000 Operations Manager approval"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 5000.0,
+      "max": 50000.0,
+      "source": "Above SGD 5,000 up to SGD 50,000 Operations Manager approval + Finance Manager approval"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 50000.0,
+      "max": null,
+      "source": "Above SGD 50,000 Operations Manager approval + Finance Manager approval + Regional Director approval"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Procurement",
+  "output": "Approved purchase request sent to Procurement",
+  "explanation": "This workflow executes the operational purchasing policy by capturing the required item, estimated cost, and business reason from the Shipment Coordinator. Sequential approvals are conducted starting with the Operations Manager, followed by the Finance Manager and Regional Director for thresholds exceeding SGD 5,000 and SGD 50,000 respectively, before handoff to Procurement.",
+  "upstream_id": null
+}

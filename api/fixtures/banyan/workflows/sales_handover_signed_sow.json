@@ -1,0 +1,76 @@
+{
+  "workflow_name": "Client Project Handover Procedure",
+  "opportunity_id": "sales_handover_signed_sow",
+  "department": "Sales",
+  "fields": [
+    {
+      "name": "statement_of_work",
+      "label": "statement of work",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "scope",
+      "label": "scope",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "milestones",
+      "label": "milestones",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "agreed_rates",
+      "label": "agreed rates",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "statement_of_work",
+    "scope",
+    "milestones",
+    "agreed_rates"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify that the statement of work, scope, milestones, and agreed rates are properly provided",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_send_to_delivery",
+      "type": "task",
+      "actor": "account_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "Delivery",
+  "output": "signed statement of work with scope, milestones, and agreed rates",
+  "explanation": "According to Section 1 of the Client Project Handover Procedure, the Account Manager sends the signed statement of work with the scope, milestones, and agreed rates to Delivery. The policy does not specify any internal approval step for the handover, so the workflow validates the required details and executes the handover task to Delivery before notifying the requester.",
+  "upstream_id": null
+}

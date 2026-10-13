@@ -1,0 +1,126 @@
+{
+  "workflow_name": "Persetujuan Keringanan Denda",
+  "opportunity_id": "persetujuan_keringanan_denda",
+  "department": "Layanan Nasabah",
+  "fields": [
+    {
+      "name": "nomor_kontrak",
+      "label": "nomor kontrak",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "jumlah_denda",
+      "label": "jumlah denda",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "jumlah_keringanan",
+      "label": "Jumlah keringanan",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "alasan_keterlambatan",
+      "label": "alasan keterlambatan",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "nomor_kontrak",
+    "jumlah_denda",
+    "jumlah_keringanan",
+    "alasan_keterlambatan"
+  ],
+  "rules": [
+    {
+      "id": "rule_di_bawah_2_juta",
+      "when": {
+        "field": "jumlah_keringanan",
+        "op": "<",
+        "value": 2000000
+      },
+      "source": "Di bawah Rp 2 juta Kepala Layanan Nasabah"
+    },
+    {
+      "id": "rule_di_atas_2_juta",
+      "when": {
+        "field": "jumlah_keringanan",
+        "op": ">",
+        "value": 2000000
+      },
+      "source": "Di atas Rp 2 juta Kepala Layanan Nasabah dan Kepala Keuangan"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Memeriksa kelengkapan nomor kontrak, jumlah denda, jumlah keringanan, dan alasan keterlambatan.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_approval_kepala_layanan_nasabah",
+      "type": "approval",
+      "actor": "kepala_layanan_nasabah",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approval_kepala_keuangan",
+      "type": "approval",
+      "actor": "kepala_keuangan",
+      "only_if": "rule_di_atas_2_juta",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_task_teruskan_keuangan",
+      "type": "task",
+      "actor": "petugas_layanan",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notification_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "jumlah_keringanan",
+      "min": null,
+      "max": 2000000.0,
+      "source": "Di bawah Rp 2 juta Kepala Layanan Nasabah"
+    },
+    {
+      "field": "jumlah_keringanan",
+      "min": 2000000.0,
+      "max": null,
+      "source": "Di atas Rp 2 juta Kepala Layanan Nasabah dan Kepala Keuangan"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Keuangan",
+  "output": "Keringanan denda yang disetujui",
+  "explanation": "Alur kerja ini mengotomatiskan pengajuan permohonan keringanan denda keterlambatan pembayaran berdasarkan Kebijakan Keringanan Denda Keterlambatan. Persetujuan dilakukan oleh Kepala Layanan Nasabah dan melibatkan Kepala Keuangan untuk nominal permohonan di atas Rp 2 juta sebelum diteruskan ke Divisi Keuangan.",
+  "upstream_id": null
+}

@@ -1,0 +1,220 @@
+{
+  "departments": [
+    {
+      "name": "Sales",
+      "summary": "Sales generates business by visiting clients, preparing proposals, and securing signed statements of work.",
+      "work": [
+        {
+          "task": "Visits clients and prepares proposals",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Visits clients, prepares proposals, collects signed statements of work and submits travel claims."
+          }
+        },
+        {
+          "task": "Signs statements of work with clients",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Leads the sales team, signs statements of work with clients and approves the team's travel claims."
+          }
+        },
+        {
+          "task": "Submits expense claims for client travel",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "An Account Manager submits an expense claim within 30 days of the client visit, with the client, the total amount in rupees, the purpose of the trip and the original bills."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delivery",
+      "summary": "Delivery manages and executes client software projects from initiation through milestone acceptance.",
+      "work": [
+        {
+          "task": "Assigns Project Managers to client projects",
+          "evidence": {
+            "doc": "policy_4",
+            "quote": "The Head of Delivery assigns a Project Manager within three working days."
+          }
+        },
+        {
+          "task": "Raises purchase requests for project needs",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "A Project Manager raises a purchase request with the item, the client project, the estimated cost in Indian rupees excluding GST, and the business reason."
+          }
+        },
+        {
+          "task": "Sends signed milestone acceptance",
+          "evidence": {
+            "doc": "policy_4",
+            "quote": "When the client accepts a milestone, the Project Manager sends the signed milestone acceptance to Finance."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Human Resources",
+      "summary": "Human Resources oversees recruitment, employee onboarding, policies, and personnel records.",
+      "work": [
+        {
+          "task": "Handles offer letters and joining formalities",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Handles offer letters, joining formalities and employee records."
+          }
+        },
+        {
+          "task": "Sends new joiner requests",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "When a candidate accepts an offer, the HR Executive sends a new joiner request to IT & Administration at least five working days before the joining date, with the employee's name, role, department, joining date and laptop requirements."
+          }
+        },
+        {
+          "task": "Sends joining details for payroll",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "On the joining date, HR sends the joining details to Finance: the employee's bank account, PAN and monthly salary."
+          }
+        }
+      ]
+    },
+    {
+      "name": "IT & Administration",
+      "summary": "IT & Administration manages office facilities, IT equipment and setup, and vendor purchasing.",
+      "work": [
+        {
+          "task": "Obtains quotations and issues purchase orders",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "For purchases above Rs. 50,000/- the IT Executive obtains three written quotations from registered vendors. The Administration Manager selects the vendor and issues the purchase order."
+          }
+        },
+        {
+          "task": "Sets up laptops, email accounts and access cards",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "The IT Executive sets up the laptop, the email account and the access card, and confirms to HR the day before the joining date."
+          }
+        },
+        {
+          "task": "Forwards vendor invoices",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "IT & Administration forwards each vendor's GST invoice to Finance."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance",
+      "summary": "Finance manages the company's accounts, budgets, vendor disbursements, payroll, and client billing.",
+      "work": [
+        {
+          "task": "Pays vendors within 30 days",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "The Accounts Executive matches the invoice to the purchase order and pays the vendor within 30 days."
+          }
+        },
+        {
+          "task": "Processes travel reimbursements",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "The Accounts Executive checks the bills and pays the claim with the employee's next monthly salary."
+          }
+        },
+        {
+          "task": "Adds new employees to payroll",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "Finance adds the employee to payroll for the joining month."
+          }
+        },
+        {
+          "task": "Raises GST invoices to clients",
+          "evidence": {
+            "doc": "policy_4",
+            "quote": "Finance raises the GST invoice to the client within two working days of receiving the milestone acceptance."
+          }
+        }
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "Sales",
+      "to": "Delivery",
+      "what": "signed statement of work",
+      "evidence": {
+        "doc": "policy_4",
+        "quote": "When a client signs a statement of work, the Account Manager sends it to Delivery with the scope, the milestones and the agreed rates."
+      }
+    },
+    {
+      "from": "Delivery",
+      "to": "IT & Administration",
+      "what": "approved purchase requests",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Approved purchase requests are sent to IT & Administration."
+      }
+    },
+    {
+      "from": "IT & Administration",
+      "to": "Finance",
+      "what": "vendor's GST invoice",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "IT & Administration forwards each vendor's GST invoice to Finance."
+      }
+    },
+    {
+      "from": "Sales",
+      "to": "Finance",
+      "what": "approved claims",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Approved claims are sent to Finance."
+      }
+    },
+    {
+      "from": "Human Resources",
+      "to": "IT & Administration",
+      "what": "new joiner request",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When a candidate accepts an offer, the HR Executive sends a new joiner request to IT & Administration at least five working days before the joining date, with the employee's name, role, department, joining date and laptop requirements."
+      }
+    },
+    {
+      "from": "IT & Administration",
+      "to": "Human Resources",
+      "what": "setup confirmation",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "The IT Executive sets up the laptop, the email account and the access card, and confirms to HR the day before the joining date."
+      }
+    },
+    {
+      "from": "Human Resources",
+      "to": "Finance",
+      "what": "joining details",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "On the joining date, HR sends the joining details to Finance: the employee's bank account, PAN and monthly salary."
+      }
+    },
+    {
+      "from": "Delivery",
+      "to": "Finance",
+      "what": "signed milestone acceptance",
+      "evidence": {
+        "doc": "policy_4",
+        "quote": "When the client accepts a milestone, the Project Manager sends the signed milestone acceptance to Finance."
+      }
+    }
+  ]
+}

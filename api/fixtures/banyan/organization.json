@@ -1,0 +1,200 @@
+{
+  "company": "Banyan Lantern Technologies Pvt. Ltd.",
+  "departments": [
+    {
+      "name": "Sales",
+      "head_role_id": "head_of_sales"
+    },
+    {
+      "name": "Delivery",
+      "head_role_id": "head_of_delivery"
+    },
+    {
+      "name": "Human Resources",
+      "head_role_id": "hr_manager"
+    },
+    {
+      "name": "IT & Administration",
+      "head_role_id": "administration_manager"
+    },
+    {
+      "name": "Finance",
+      "head_role_id": "finance_controller"
+    }
+  ],
+  "roles": [
+    {
+      "id": "managing_director",
+      "title": "Managing Director",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "Leads the company and the management team in Bengaluru."
+      ]
+    },
+    {
+      "id": "head_of_sales",
+      "title": "Head of Sales",
+      "department": "Sales",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Leads the sales team, signs statements of work with clients and approves the team's travel claims."
+      ]
+    },
+    {
+      "id": "account_manager",
+      "title": "Account Manager",
+      "department": "Sales",
+      "reports_to": "head_of_sales",
+      "responsibilities": [
+        "Visits clients, prepares proposals, collects signed statements of work and submits travel claims."
+      ]
+    },
+    {
+      "id": "head_of_delivery",
+      "title": "Head of Delivery",
+      "department": "Delivery",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Runs all client projects, assigns Project Managers and approves the department's purchases."
+      ]
+    },
+    {
+      "id": "project_manager",
+      "title": "Project Manager",
+      "department": "Delivery",
+      "reports_to": "head_of_delivery",
+      "responsibilities": [
+        "Runs a client project day to day and raises purchase requests."
+      ]
+    },
+    {
+      "id": "hr_manager",
+      "title": "HR Manager",
+      "department": "Human Resources",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Owns hiring, employee policies and the onboarding of new employees."
+      ]
+    },
+    {
+      "id": "hr_executive",
+      "title": "HR Executive",
+      "department": "Human Resources",
+      "reports_to": "hr_manager",
+      "responsibilities": [
+        "Handles offer letters, joining formalities and employee records."
+      ]
+    },
+    {
+      "id": "administration_manager",
+      "title": "Administration Manager",
+      "department": "IT & Administration",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Runs the office, IT and vendor purchasing, and issues purchase orders."
+      ]
+    },
+    {
+      "id": "it_executive",
+      "title": "IT Executive",
+      "department": "IT & Administration",
+      "reports_to": "administration_manager",
+      "responsibilities": [
+        "Sets up laptops, email accounts and access cards, and collects vendor quotations."
+      ]
+    },
+    {
+      "id": "finance_controller",
+      "title": "Finance Controller",
+      "department": "Finance",
+      "reports_to": "managing_director",
+      "responsibilities": [
+        "Owns budgets, payments, payroll and the company's accounts."
+      ]
+    },
+    {
+      "id": "accounts_executive",
+      "title": "Accounts Executive",
+      "department": "Finance",
+      "reports_to": "finance_controller",
+      "responsibilities": [
+        "Raises GST invoices to clients, pays vendors and processes reimbursements."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Delivery",
+      "to": "IT & Administration",
+      "description": "Approved purchase requests are sent to IT & Administration to obtain quotations and issue purchase orders.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Approved purchase requests are sent to IT & Administration."
+      }
+    },
+    {
+      "from": "IT & Administration",
+      "to": "Finance",
+      "description": "IT & Administration forwards each vendor's GST invoice to Finance for payment processing.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "IT & Administration forwards each vendor's GST invoice to Finance."
+      }
+    },
+    {
+      "from": "Sales",
+      "to": "Finance",
+      "description": "Approved travel and expense claims are sent to Finance for reimbursement.",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Approved claims are sent to Finance."
+      }
+    },
+    {
+      "from": "Human Resources",
+      "to": "IT & Administration",
+      "description": "HR Executive sends new joiner requests to IT & Administration to set up equipment and access.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When a candidate accepts an offer, the HR Executive sends a new joiner request to IT & Administration at least five working days before the joining date"
+      }
+    },
+    {
+      "from": "IT & Administration",
+      "to": "Human Resources",
+      "description": "IT confirms setup of laptop, email account, and access card to HR before the joining date.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "The IT Executive sets up the laptop, the email account and the access card, and confirms to HR the day before the joining date."
+      }
+    },
+    {
+      "from": "Human Resources",
+      "to": "Finance",
+      "description": "HR sends joining details to Finance to add new employees to payroll.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "On the joining date, HR sends the joining details to Finance: the employee's bank account, PAN and monthly salary."
+      }
+    },
+    {
+      "from": "Sales",
+      "to": "Delivery",
+      "description": "Account Manager sends signed statements of work to Delivery to initiate projects.",
+      "evidence": {
+        "doc": "policy_4",
+        "quote": "When a client signs a statement of work, the Account Manager sends it to Delivery with the scope, the milestones and the agreed rates."
+      }
+    },
+    {
+      "from": "Delivery",
+      "to": "Finance",
+      "description": "Project Manager sends signed milestone acceptance to Finance for invoicing.",
+      "evidence": {
+        "doc": "policy_4",
+        "quote": "When the client accepts a milestone, the Project Manager sends the signed milestone acceptance to Finance."
+      }
+    }
+  ]
+}

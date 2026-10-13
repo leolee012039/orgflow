@@ -1,0 +1,176 @@
+{
+  "workflows": [
+    {
+      "id": "confirm_clinician_sessions_and_roster",
+      "department": "Clinical Services",
+      "name": "Clinician Session Confirmation and Rostering",
+      "trigger": "People & Culture sends new clinician details to Clinical Services at least ten business days before the start date.",
+      "starts_from": "People & Culture",
+      "hands_to": "Practice Operations",
+      "output": "Roster request",
+      "basis": "policy",
+      "why": "Session confirmation and roster handoffs are currently coordinated across separate communications manually. Automating this step ensures session details are promptly confirmed and forwarded to operations without delay.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When a clinician accepts an offer, the HR Advisor checks their registration and sends the new clinician's details to Clinical Services at least ten business days before the start date."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "The Clinical Director confirms the clinician's sessions and sends a roster request to Practice Operations, which adds the clinician to the clinic rosters and the booking system."
+        }
+      ]
+    },
+    {
+      "id": "purchase_request_and_approval",
+      "department": "Practice Operations",
+      "name": "Purchasing and Equipment Approval",
+      "trigger": "A Practice Coordinator raises a purchase request with the item, clinic, cost including GST, and reason.",
+      "starts_from": null,
+      "hands_to": null,
+      "output": "Approved purchase order",
+      "basis": "policy",
+      "why": "Purchase requests require tiered sign-offs across multiple managers depending on item type and value. Automating the workflow routes approvals seamlessly based on financial thresholds and clinical requirements.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "A Practice Coordinator raises a purchase request with the item, the clinic, the cost including GST and the reason. The Operations Manager confirms the need. Clinical equipment also needs the Clinical Director's sign-off."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Up to $5,000 Operations Manager"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Over $5,000 and up to $25,000 Operations Manager and Finance Manager"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Over $25,000 Operations Manager, Finance Manager and Chief Operating Officer"
+        }
+      ]
+    },
+    {
+      "id": "supplier_invoice_forwarding",
+      "department": "Practice Operations",
+      "name": "Supplier Invoice Processing",
+      "trigger": "Practice Operations receives a supplier invoice for clinic supplies or equipment.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "Supplier invoice for payment",
+      "basis": "policy",
+      "why": "Manual handoff of supplier invoices risks misplaced documents and delayed payments. Automating invoice dispatch to Finance ensures timely tracking and payment within the 30-day window.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Practice Operations sends each supplier invoice to Finance. The Accounts Officer matches it to the purchase order and pays the supplier within 30 days."
+        }
+      ]
+    },
+    {
+      "id": "add_clinician_to_roster_and_booking",
+      "department": "Practice Operations",
+      "name": "Clinician Rostering and Booking Setup",
+      "trigger": "Clinical Services sends a roster request confirming a clinician's sessions.",
+      "starts_from": "Clinical Services",
+      "hands_to": null,
+      "output": "Updated clinic rosters and booking system",
+      "basis": "policy",
+      "why": "Adding clinicians manually to schedules and booking systems is prone to scheduling conflicts and delays before start dates. Automating the ingestion of roster requests guarantees timely setup across clinic systems.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "The Clinical Director confirms the clinician's sessions and sends a roster request to Practice Operations, which adds the clinician to the clinic rosters and the booking system."
+        }
+      ]
+    },
+    {
+      "id": "patient_fee_refund_request",
+      "department": "Patient Services",
+      "name": "Patient Fee Refund Request and Approval",
+      "trigger": "A Receptionist logs a refund request with the patient, invoice number, amount, and reason.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "Approved refund request",
+      "basis": "policy",
+      "why": "Reviewing refund requests and passing them between managers for approval causes delays for patients. Automating approval tiers based on refund thresholds accelerates turnaround and forwards approved claims directly to Finance.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "A Receptionist logs each refund request with the patient, the invoice number, the amount and the reason."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Less than $500 Patient Services Manager"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "More than $500 Patient Services Manager and Finance Manager"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Approved refunds go to Finance."
+        }
+      ]
+    },
+    {
+      "id": "clinician_onboarding_registration_check",
+      "department": "People & Culture",
+      "name": "Clinician Onboarding and Credentialing",
+      "trigger": "A new clinician accepts an employment offer.",
+      "starts_from": null,
+      "hands_to": "Clinical Services",
+      "output": "Verified clinician details",
+      "basis": "policy",
+      "why": "Checking registration and distributing clinician paperwork manually risks missing the ten-day onboarding deadline. Automation standardizes credential tracking and ensures verified details are dispatched on schedule.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When a clinician accepts an offer, the HR Advisor checks their registration and sends the new clinician's details to Clinical Services at least ten business days before the start date."
+        }
+      ]
+    },
+    {
+      "id": "supplier_invoice_matching_and_payment",
+      "department": "Finance",
+      "name": "Supplier Invoice Matching and Payment",
+      "trigger": "Practice Operations sends a supplier invoice to Finance.",
+      "starts_from": "Practice Operations",
+      "hands_to": null,
+      "output": "Supplier payment disbursement",
+      "basis": "policy",
+      "why": "Matching paper or email invoices against purchase orders manually can cause delayed vendor payments and administrative overhead. Automating reconciliation streamlines verification and ensures payment within 30 days.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Practice Operations sends each supplier invoice to Finance. The Accounts Officer matches it to the purchase order and pays the supplier within 30 days."
+        }
+      ]
+    },
+    {
+      "id": "process_patient_refund_payment",
+      "department": "Finance",
+      "name": "Patient Refund Payment Processing",
+      "trigger": "Patient Services sends an approved refund request to Finance.",
+      "starts_from": "Patient Services",
+      "hands_to": null,
+      "output": "Refunded patient card transaction",
+      "basis": "policy",
+      "why": "Processing refunds manually on card terminals is prone to processing backlogs. Automating the intake of approved refunds guarantees cards are credited within the mandatory 5 business days.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "Approved refunds go to Finance. The Accounts Officer refunds the patient's card within 5 business days."
+        }
+      ]
+    }
+  ]
+}

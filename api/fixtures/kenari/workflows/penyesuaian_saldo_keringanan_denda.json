@@ -1,0 +1,75 @@
+{
+  "workflow_name": "Penyesuaian Saldo Pinjaman Keringanan Denda",
+  "opportunity_id": "penyesuaian_saldo_keringanan_denda",
+  "department": "Keuangan",
+  "fields": [
+    {
+      "name": "nomor_kontrak",
+      "label": "nomor kontrak",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "jumlah_denda",
+      "label": "jumlah denda",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "jumlah_keringanan",
+      "label": "Jumlah keringanan",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "alasan_keterlambatan",
+      "label": "alasan keterlambatan",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "nomor_kontrak",
+    "jumlah_denda",
+    "alasan_keterlambatan"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Memeriksa kelengkapan nomor kontrak, jumlah denda, dan alasan keterlambatan.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_penyesuaian_saldo",
+      "type": "task",
+      "actor": "staf_akuntansi",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_notifikasi",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Layanan Nasabah",
+  "hands_to": null,
+  "output": "Saldo pinjaman nasabah yang telah disesuaikan",
+  "explanation": "Alur kerja ini melaksanakan pencatatan penyesuaian saldo pinjaman nasabah oleh Staf Akuntansi setelah menerima keringanan yang telah disetujui dari Divisi Layanan Nasabah sebagaimana diatur dalam Kebijakan Keringanan Denda Keterlambatan. Karena persetujuan telah diselesaikan di tahap hulu, divisi Keuangan hanya memproses tugas penyesuaian saldo lalu mengirimkan konfirmasi.",
+  "upstream_id": "persetujuan_keringanan_denda"
+}

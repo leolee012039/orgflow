@@ -1,0 +1,188 @@
+{
+  "workflows": [
+    {
+      "id": "sales_booking_handoff",
+      "department": "Sales",
+      "name": "Customer Booking and Operations Handoff",
+      "trigger": "A customer confirms a freight booking with the Account Executive.",
+      "starts_from": null,
+      "hands_to": "Operations",
+      "output": "Booking confirmation sent to Operations",
+      "basis": "policy",
+      "why": "Currently, Account Executives manually transmit booking confirmations and shipment parameters to Operations. Automating this handoff ensures operational planning begins immediately without communication delays or missing shipment details.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When a customer confirms a booking, the Account Executive sends the booking confirmation to Operations with the pick-up date, the cargo details and the agreed rate."
+        }
+      ]
+    },
+    {
+      "id": "operations_purchase_request_approval",
+      "department": "Operations",
+      "name": "Operational Purchase Request Approval",
+      "trigger": "A Shipment Coordinator raises a purchase request with item, estimated cost, and business reason.",
+      "starts_from": null,
+      "hands_to": "Procurement",
+      "output": "Approved purchase request sent to Procurement",
+      "basis": "policy",
+      "why": "Purchase requests require sequential managerial approvals based on expenditure thresholds that are tracked manually across management tiers. Automating this routes requests directly to the correct approvers and forwards approved requisitions seamlessly to Procurement.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "A Shipment Coordinator raises a purchase request with the item, the estimated cost in Singapore dollars and the business reason. The Operations Manager confirms the operational need before the request goes for approval."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Up to SGD 5,000 Operations Manager approval"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Above SGD 5,000 up to SGD 50,000 Operations Manager approval + Finance Manager approval"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Above SGD 50,000 Operations Manager approval + Finance Manager approval + Regional Director approval"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Approved purchase requests are sent to Procurement."
+        }
+      ]
+    },
+    {
+      "id": "operations_delivery_execution_and_pod",
+      "department": "Operations",
+      "name": "Delivery Execution and Proof of Delivery Handoff",
+      "trigger": "A booking confirmation is received from Sales.",
+      "starts_from": "Sales",
+      "hands_to": "Finance",
+      "output": "Signed proof of delivery sent to Finance",
+      "basis": "policy",
+      "why": "Coordinators manually schedule delivery logistics and route physical proof of delivery documents to Finance upon delivery completion. Automating the workflow initiates delivery planning upon receipt of booking confirmations and instantly hands over signed PODs to Finance.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When a customer confirms a booking, the Account Executive sends the booking confirmation to Operations with the pick-up date, the cargo details and the agreed rate."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "The Shipment Coordinator plans the pick-up and delivery. When the shipment is delivered, Operations sends the signed proof of delivery to Finance."
+        }
+      ]
+    },
+    {
+      "id": "procurement_order_processing_and_invoice_forwarding",
+      "department": "Procurement",
+      "name": "Procurement Order Processing and Supplier Invoice Forwarding",
+      "trigger": "An approved purchase request is received from Operations.",
+      "starts_from": "Operations",
+      "hands_to": "Finance",
+      "output": "Supplier invoice forwarded to Finance",
+      "basis": "policy",
+      "why": "Procurement staff manually track quotation thresholds, purchase order signing, and forwarding of received invoices to Finance. Automation prompts quotation requirements when necessary, routes POs for signature, and routes invoices directly to Finance upon arrival.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Approved purchase requests are sent to Procurement. For purchases above SGD 5,000 the Buyer obtains three written quotations. The Procurement Manager selects the supplier and signs the purchase order."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Procurement forwards each supplier invoice to Finance."
+        }
+      ]
+    },
+    {
+      "id": "customer_service_credit_note_request",
+      "department": "Customer Service",
+      "name": "Customer Credit Request Processing",
+      "trigger": "A Customer Service Officer logs a credit request for a damaged, lost, or late shipment.",
+      "starts_from": null,
+      "hands_to": "Finance",
+      "output": "Approved credit request sent to Finance",
+      "basis": "policy",
+      "why": "Customer credit requests must be routed manually to either the Customer Service Manager or Finance Manager depending on amount thresholds. Automating this dynamically dispatches the request to the proper authority and hands approved requests directly to Finance.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "A Customer Service Officer logs each credit request with the shipment number, the customer, the amount in Singapore dollars and the reason, with photos or delivery records attached."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Below SGD 1,000 Customer Service Manager"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Above SGD 1,000 Finance Manager"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Approved credit requests are sent to Finance."
+        }
+      ]
+    },
+    {
+      "id": "finance_customer_invoicing",
+      "department": "Finance",
+      "name": "Customer Invoicing",
+      "trigger": "A signed proof of delivery is received from Operations.",
+      "starts_from": "Operations",
+      "hands_to": null,
+      "output": "Customer invoice",
+      "basis": "policy",
+      "why": "Invoices are manually issued within two days following physical handoff of proof of delivery. Automating receipt of delivery records immediately prompts billing to ensure customer invoices are dispatched within the required timeframe.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "When the shipment is delivered, Operations sends the signed proof of delivery to Finance."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "Finance invoices the customer within two working days of receiving the proof of delivery."
+        }
+      ]
+    },
+    {
+      "id": "finance_supplier_invoice_settlement",
+      "department": "Finance",
+      "name": "Supplier Invoice Matching and Payment",
+      "trigger": "A supplier invoice is forwarded by Procurement.",
+      "starts_from": "Procurement",
+      "hands_to": null,
+      "output": "Supplier payment",
+      "basis": "policy",
+      "why": "Accounts Executives manually match supplier invoices against purchase orders and track Finance Manager approvals for large invoices. Automation matches records and prompts manager approval for amounts exceeding SGD 20,000 to guarantee payment within 30 days.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Procurement forwards each supplier invoice to Finance. The Accounts Executive matches the invoice to the purchase order and pays the supplier within 30 days. Invoices above SGD 20,000 also need Finance Manager approval before payment."
+        }
+      ]
+    },
+    {
+      "id": "finance_credit_note_issuance",
+      "department": "Finance",
+      "name": "Credit Note Issuance and Account Adjustment",
+      "trigger": "An approved credit request is received from Customer Service.",
+      "starts_from": "Customer Service",
+      "hands_to": null,
+      "output": "Issued credit note and customer account adjustment",
+      "basis": "policy",
+      "why": "Credit notes are processed manually by Accounts Executives following handoffs from Customer Service. Automation ingests approved claims instantly, expediting ledger adjustment and customer notification.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "Approved credit requests are sent to Finance. The Accounts Executive issues the credit note and adjusts the customer's account. Customer Service then informs the customer."
+        }
+      ]
+    }
+  ]
+}

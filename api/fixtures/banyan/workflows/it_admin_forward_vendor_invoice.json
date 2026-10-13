@@ -1,0 +1,76 @@
+{
+  "workflow_name": "Vendor Invoice Forwarding",
+  "opportunity_id": "it_admin_forward_vendor_invoice",
+  "department": "IT & Administration",
+  "fields": [
+    {
+      "name": "vendor_name",
+      "label": "Vendor name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "purchase_order_number",
+      "label": "Purchase order number",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_amount",
+      "label": "Invoice amount",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "invoice_file",
+      "label": "GST invoice",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "vendor_name",
+    "purchase_order_number",
+    "invoice_amount",
+    "invoice_file"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify that vendor GST invoice details and purchase order reference are complete.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_forward_invoice",
+      "type": "task",
+      "actor": "administration_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notification",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "Finance",
+  "output": "forwarded vendor GST invoice",
+  "explanation": "According to Section 5 of Purchase Policy, IT & Administration forwards each vendor's GST invoice to Finance for matching and payment. No intermediate department approval is required in IT & Administration before forwarding to Finance.",
+  "upstream_id": null
+}

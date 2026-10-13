@@ -1,0 +1,62 @@
+{
+  "workflow_name": "프로모션 정산 내역 검토 및 반영",
+  "opportunity_id": "promotion_settlement_processing",
+  "department": "재무팀",
+  "fields": [
+    {
+      "name": "sales_details",
+      "label": "매출 내역",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "discount_details",
+      "label": "할인 내역",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "sales_details",
+    "discount_details"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "프로모션 정산 자료(매출 및 할인 내역)가 올바르게 포함되어 있는지 확인",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_process_settlement",
+      "type": "task",
+      "actor": "finance_team_leader",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "마케팅팀",
+  "hands_to": null,
+  "output": "정산 완료 보고서",
+  "explanation": "프로모션 진행 절차 규정에 따라 마케팅팀에서 전달받은 매출 및 할인 내역 정산 자료를 기반으로 재무팀에서 결산 및 정산 처리를 수행합니다. 별도의 금액별 결재 승인 조건이 명시되어 있지 않으므로 조직도상 예산, 결산을 총괄하는 재무팀장이 작업을 진행하고 요청자에게 완료 알림을 전송합니다.",
+  "upstream_id": "promotion_settlement_delivery"
+}

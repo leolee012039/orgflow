@@ -1,0 +1,71 @@
+{
+  "workflow_name": "器材使用與損壞回報流程",
+  "opportunity_id": "branches_equipment_incident_report",
+  "department": "各分店",
+  "fields": [
+    {
+      "name": "equipment_name",
+      "label": "器材名稱",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "incident_description",
+      "label": "使用與損壞情形",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "equipment_name",
+    "incident_description"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "檢查申請人、所屬分店、器材名稱及使用與損壞情形是否填寫完整",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "store_manager_approval",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "equipment_inspection_task",
+      "type": "task",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": null,
+  "output": "器材損壞回報紀錄與處置通知",
+  "explanation": "依據組織圖職責說明，健身教練負責帶領會員訓練並回報器材使用與損壞情形，直屬主管為該店店長。本流程基於組織架構設計，教練送出回報後經主管審核與處置評估，最後通知回報人。",
+  "upstream_id": null
+}

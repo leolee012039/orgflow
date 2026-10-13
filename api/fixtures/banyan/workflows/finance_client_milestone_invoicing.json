@@ -1,0 +1,76 @@
+{
+  "workflow_name": "Client Milestone Invoicing",
+  "opportunity_id": "finance_client_milestone_invoicing",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "client",
+      "label": "Client",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "project_name",
+      "label": "Project Name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "milestone_name",
+      "label": "Milestone Name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "signed_milestone_acceptance",
+      "label": "Signed Milestone Acceptance",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "client",
+    "project_name",
+    "milestone_name",
+    "signed_milestone_acceptance"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "review_milestone_details",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify client, project name, milestone name, and signed milestone acceptance are provided.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "raise_gst_invoice",
+      "type": "task",
+      "actor": "accounts_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Delivery",
+  "hands_to": null,
+  "output": "GST invoice to client",
+  "explanation": "According to the Client Project Handover Procedure and the organization chart, Finance raises the GST invoice to the client within two working days of receiving the signed milestone acceptance from Delivery. The Accounts Executive in Finance carries out this task, requiring no interim approvals based on the policy text.",
+  "upstream_id": "delivery_milestone_acceptance_handover"
+}

@@ -1,0 +1,82 @@
+{
+  "workflow_name": "會員諮詢續約與客訴處理流程",
+  "opportunity_id": "customer_service_inquiry_complaint",
+  "department": "會員服務部",
+  "fields": [
+    {
+      "name": "case_type",
+      "label": "案件類型",
+      "type": "choice",
+      "options": [
+        "會員諮詢",
+        "續約申請",
+        "客訴案件"
+      ]
+    },
+    {
+      "name": "member_name",
+      "label": "會員姓名",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "case_details",
+      "label": "案件內容",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "case_type",
+    "member_name",
+    "case_details"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "review_case_info",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "檢查案件類型、會員姓名及案件內容是否填寫完整",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "process_case",
+      "type": "task",
+      "actor": "customer_service_specialist",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "supervisor_approval",
+      "type": "approval",
+      "actor": "customer_service_supervisor",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": null,
+  "output": "會員諮詢客訴處理結果與續約紀錄",
+  "explanation": "依據組織圖職責說明，客服專員負責處理會員諮詢、續約與客訴，客服主管負責督導會員服務與客訴處理。本流程由 AI 檢核資料後，交由客服專員處理案件並呈報客服主管審核督導，完成後通知申請人。",
+  "upstream_id": null
+}

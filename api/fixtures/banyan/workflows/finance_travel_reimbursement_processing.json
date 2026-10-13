@@ -1,0 +1,74 @@
+{
+  "workflow_name": "Travel Reimbursement Processing",
+  "opportunity_id": "finance_travel_reimbursement_processing",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "client",
+      "label": "Client",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "total_amount",
+      "label": "Total Amount in Rupees",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "trip_purpose",
+      "label": "Purpose of the Trip",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "original_bills",
+      "label": "Original Bills",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "client",
+    "total_amount",
+    "trip_purpose",
+    "original_bills"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify approved travel expense claim details and bills are complete",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_check_bills_and_process",
+      "type": "task",
+      "actor": "accounts_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Sales",
+  "hands_to": null,
+  "output": "salary reimbursement payment",
+  "explanation": "This workflow handles the reimbursement of approved travel expense claims forwarded from Sales in accordance with Section 4 of the Travel and Expense Reimbursement Policy. The Accounts Executive checks the submitted bills and processes payment of the claim alongside the employee's next monthly salary.",
+  "upstream_id": "sales_travel_expense_claim"
+}

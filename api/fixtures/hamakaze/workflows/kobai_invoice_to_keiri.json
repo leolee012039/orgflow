@@ -1,0 +1,76 @@
+{
+  "workflow_name": "仕入先請求書回付",
+  "opportunity_id": "kobai_invoice_to_keiri",
+  "department": "購買部",
+  "fields": [
+    {
+      "name": "vendor_name",
+      "label": "仕入先名",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_number",
+      "label": "請求書番号",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_amount",
+      "label": "請求金額",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "invoice_date",
+      "label": "請求日",
+      "type": "date",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "vendor_name",
+    "invoice_number",
+    "invoice_amount",
+    "invoice_date"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "仕入先名、請求書番号、請求金額、請求日等の必須記載事項が入力されているか確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_forward_invoice",
+      "type": "task",
+      "actor": "kobai_tanto",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "経理部",
+  "output": "仕入先からの請求書",
+  "explanation": "購買規程第5条に基づき、購買部が仕入先からの請求書を受領して経理部へ回付する業務を定義しています。規程上この回付プロセスに承認ステップの指定がないため、AIによる内容確認後に購買担当者が回付タスクを実施して申請者へ完了通知を行います。",
+  "upstream_id": null
+}

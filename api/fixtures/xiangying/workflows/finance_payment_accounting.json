@@ -1,0 +1,84 @@
+{
+  "workflow_name": "付款辦理與帳務發票核對作業",
+  "opportunity_id": "finance_payment_accounting",
+  "department": "財務部",
+  "fields": [
+    {
+      "name": "payment_subject",
+      "label": "付款主旨",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "payment_amount",
+      "label": "付款金額",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "invoice_number",
+      "label": "發票號碼",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "payment_date",
+      "label": "預計付款日期",
+      "type": "date",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "payment_subject",
+    "payment_amount",
+    "invoice_number"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "檢查付款主旨、付款金額與發票號碼是否完整填寫",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_department_head_approval",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_payment_and_accounting",
+      "type": "task",
+      "actor": "accountant",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": null,
+  "output": "付款完成紀錄與帳務發票核對清單",
+  "explanation": "依據組織圖中會計之職責為「辦理付款、帳務登錄與發票核對」，並由財務經理擔任財務部主管進行審核。此流程在完成資料檢核與主管核准後，交由會計執行帳務與付款作業，並通知申請人。",
+  "upstream_id": null
+}

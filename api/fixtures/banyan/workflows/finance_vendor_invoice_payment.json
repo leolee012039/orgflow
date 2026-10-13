@@ -1,0 +1,100 @@
+{
+  "workflow_name": "Vendor Invoice Matching and Payment",
+  "opportunity_id": "finance_vendor_invoice_payment",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "vendor_name",
+      "label": "Vendor name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "purchase_order_number",
+      "label": "Purchase order number",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_amount",
+      "label": "Invoice amount",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "invoice_file",
+      "label": "GST invoice",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "vendor_name",
+    "purchase_order_number",
+    "invoice_amount",
+    "invoice_file"
+  ],
+  "rules": [
+    {
+      "id": "rule_invoice_above_200000",
+      "when": {
+        "field": "invoice_amount",
+        "op": ">",
+        "value": 200000
+      },
+      "source": "Invoices above Rs. 2,00,000/- also need Finance Controller approval before payment."
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify invoice details and matched purchase order number",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_fc_approval",
+      "type": "approval",
+      "actor": "finance_controller",
+      "only_if": "rule_invoice_above_200000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_match_and_pay",
+      "type": "task",
+      "actor": "accounts_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "invoice_amount",
+      "min": 200000.0,
+      "max": null,
+      "source": "Invoices above Rs. 2,00,000/- also need Finance Controller approval before payment."
+    }
+  ],
+  "starts_from": "IT & Administration",
+  "hands_to": null,
+  "output": "vendor payment",
+  "explanation": "This workflow automates vendor invoice handling received from IT & Administration in accordance with Section 5 of the Purchase Policy. Invoices exceeding Rs. 2,00,000 require Finance Controller approval prior to payment by the Accounts Executive.",
+  "upstream_id": "it_admin_forward_vendor_invoice"
+}

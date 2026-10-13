@@ -1,0 +1,83 @@
+{
+  "workflow_name": "Pencatatan Laporan Pencairan",
+  "opportunity_id": "pencatatan_laporan_pencairan",
+  "department": "Keuangan",
+  "fields": [
+    {
+      "name": "nama_nasabah",
+      "label": "Nama Nasabah",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "jumlah_pinjaman",
+      "label": "Jumlah Pinjaman",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "tenor",
+      "label": "Tenor",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "tujuan_pinjaman",
+      "label": "Tujuan Pinjaman",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "dokumen_pendukung",
+      "label": "Dokumen Pendukung",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "nama_nasabah",
+    "jumlah_pinjaman",
+    "tenor",
+    "tujuan_pinjaman",
+    "dokumen_pendukung"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verifikasi kelengkapan data laporan pencairan pinjaman",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2",
+      "type": "task",
+      "actor": "staf_akuntansi",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Operasional",
+  "hands_to": null,
+  "output": "Catatan kas dan pembaruan pembukuan pencairan",
+  "explanation": "Alur kerja ini menerima laporan pencairan dana dari Divisi Operasional sebagaimana diatur dalam Kebijakan Persetujuan Kredit. Staf Akuntansi di Divisi Keuangan kemudian melakukan pencatatan laporan tersebut ke dalam pembukuan kas tanpa memerlukan tahapan persetujuan tambahan.",
+  "upstream_id": "pencairan_dan_pelaporan_kredit"
+}

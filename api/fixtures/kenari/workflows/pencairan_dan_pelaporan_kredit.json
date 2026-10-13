@@ -1,0 +1,90 @@
+{
+  "workflow_name": "Pencairan Dana dan Pelaporan Keuangan",
+  "opportunity_id": "pencairan_dan_pelaporan_kredit",
+  "department": "Operasional",
+  "fields": [
+    {
+      "name": "nama_nasabah",
+      "label": "Nama Nasabah",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "jumlah_pinjaman",
+      "label": "Jumlah Pinjaman",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "tenor",
+      "label": "Tenor",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "tujuan_pinjaman",
+      "label": "Tujuan Pinjaman",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "dokumen_pendukung",
+      "label": "Dokumen Pendukung",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "nama_nasabah",
+    "jumlah_pinjaman",
+    "tenor",
+    "tujuan_pinjaman",
+    "dokumen_pendukung"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Memeriksa kelengkapan data nasabah, jumlah pinjaman, tenor, tujuan pinjaman, dan dokumen pendukung.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_periksa_dan_cairkan",
+      "type": "task",
+      "actor": "staf_operasional",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_kirim_laporan_keuangan",
+      "type": "task",
+      "actor": "staf_operasional",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_4_notifikasi",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Kredit",
+  "hands_to": "Keuangan",
+  "output": "Laporan pencairan kredit",
+  "explanation": "Alur kerja ini mengimplementasikan proses Bagian 4 (Pencairan) dari Kebijakan Persetujuan Kredit di mana Staf Operasional memeriksa perjanjian kredit dan mencairkan dana serta meneruskan laporan pencairan ke Divisi Keuangan. Karena kredit telah disetujui sebelumnya di Divisi Kredit, tahapan operasional ini tidak memerlukan persetujuan tambahan dan langsung menjalankan tugas pencairan serta pelaporan.",
+  "upstream_id": "persetujuan_kredit"
+}

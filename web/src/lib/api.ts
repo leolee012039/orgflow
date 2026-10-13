@@ -1,4 +1,5 @@
 import { idToken } from "./firebase";
+import { fileName, sampleById, sampleFiles } from "./samples";
 import type {
   BuiltWorkflow,
   CaseRequest,
@@ -133,21 +134,13 @@ export async function runAnalysis(docs: Documents, onStep: (step: AnalysisStep) 
   }
 }
 
-export const SAMPLE_FILES = {
-  orgChart: "NovaGear_Organization_Chart.pdf",
-  policies: [
-    "NovaGear_Purchasing_Policy.pdf",
-    "NovaGear_Procurement_Payment_Procedures.pdf",
-    "NovaGear_Sales_Discount_Policy.pdf",
-  ],
-};
-
-export async function loadSampleDocuments(): Promise<Documents> {
-  const fetchPdf = async (name: string) => {
-    const res = await fetch(`/demo/${name}`);
+/** A sample company's documents, exactly as saved: the API recognizes them and answers from its saved reading. */
+export async function loadSampleDocuments(id?: string): Promise<Documents> {
+  const fetchPdf = async (path: string) => {
+    const res = await fetch(`/demo/${path}`);
     if (!res.ok) throw new Error("The sample documents could not be loaded. Reload the page and try again.");
-    return new File([await res.blob()], name, { type: "application/pdf" });
+    return new File([await res.blob()], fileName(path), { type: "application/pdf" });
   };
-  const [orgChart, ...policies] = await Promise.all([SAMPLE_FILES.orgChart, ...SAMPLE_FILES.policies].map(fetchPdf));
+  const [orgChart, ...policies] = await Promise.all(sampleFiles(sampleById(id)).map(fetchPdf));
   return { orgChart, policies };
 }

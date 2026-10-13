@@ -1,0 +1,95 @@
+{
+  "workflow_name": "Supplier Invoice Matching and Payment",
+  "opportunity_id": "finance_supplier_invoice_settlement",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "item",
+      "label": "Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated cost in Singapore dollars",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_reason",
+      "label": "Business reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "estimated_cost",
+    "business_reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_invoice_above_20000",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 20000
+      },
+      "source": "Invoices above SGD 20,000 also need Finance Manager approval before payment."
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify invoice details and matching purchase order information are complete",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_approval_finance_manager",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_invoice_above_20000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_match_invoice_and_pay",
+      "type": "task",
+      "actor": "accounts_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "estimated_cost",
+      "min": 20000.0,
+      "max": null,
+      "source": "Invoices above SGD 20,000 also need Finance Manager approval before payment."
+    }
+  ],
+  "starts_from": "Procurement",
+  "hands_to": null,
+  "output": "Supplier payment",
+  "explanation": "This workflow automates the supplier invoice matching and settlement process received from Procurement in accordance with Section 5 of the Purchasing Policy. Invoices exceeding SGD 20,000 require approval from the Finance Manager before payment is processed by the Accounts Executive.",
+  "upstream_id": "procurement_order_processing_and_invoice_forwarding"
+}

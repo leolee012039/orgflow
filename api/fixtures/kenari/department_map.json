@@ -1,0 +1,207 @@
+{
+  "departments": [
+    {
+      "name": "Pemasaran",
+      "summary": "Bertanggung jawab untuk memimpin tim pemasaran, menetapkan target penyaluran pembiayaan, serta mencari nasabah baru.",
+      "work": [
+        {
+          "task": "Memimpin tim pemasaran dan menetapkan target",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Memimpin tim pemasaran dan menetapkan target penyaluran pembiayaan."
+          }
+        },
+        {
+          "task": "Mencari nasabah baru dan mengajukan permohonan kredit",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Mencari nasabah baru dan mengajukan permohonan kredit."
+          }
+        },
+        {
+          "task": "Mengajukan permohonan kredit ke Divisi Kredit",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "Staf Pemasaran mengajukan permohonan kredit ke Divisi Kredit dengan nama nasabah, jumlah pinjaman, tenor, tujuan pinjaman dan dokumen pendukung."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kredit",
+      "summary": "Bertanggung jawab untuk memeriksa dokumen, memberikan rekomendasi, dan menyetujui pembiayaan kredit nasabah.",
+      "work": [
+        {
+          "task": "Memimpin divisi kredit dan menyetujui pembiayaan",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Memimpin divisi kredit dan menyetujui pembiayaan sesuai kewenangannya."
+          }
+        },
+        {
+          "task": "Memeriksa dokumen nasabah dan membuat rekomendasi kredit",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Memeriksa dokumen nasabah dan membuat rekomendasi kredit."
+          }
+        },
+        {
+          "task": "Menyetujui pinjaman kredit",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "Sampai dengan Rp 50.000.000 Kepala Kredit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operasional",
+      "summary": "Bertanggung jawab atas pengelolaan operasional pencairan dana kredit dan penyampaian data pascapencairan.",
+      "work": [
+        {
+          "task": "Memimpin divisi operasional dan pencairan dana",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Memimpin divisi operasional dan pencairan dana."
+          }
+        },
+        {
+          "task": "Memeriksa perjanjian kredit dan mencairkan dana",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Memeriksa perjanjian kredit dan mencairkan dana."
+          }
+        },
+        {
+          "task": "Mengirim laporan pencairan ke Divisi Keuangan",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "lalu mengirim laporan pencairan ke Divisi Keuangan."
+          }
+        },
+        {
+          "task": "Mengirim data nasabah dan jadwal angsuran",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "Setelah dana dicairkan, Divisi Operasional mengirim data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Layanan Nasabah",
+      "summary": "Bertanggung jawab untuk melayani nasabah, menangani keluhan, serta mengelola permohonan keringanan denda.",
+      "work": [
+        {
+          "task": "Memimpin layanan nasabah dan menangani keluhan",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Memimpin layanan nasabah dan menangani keluhan."
+          }
+        },
+        {
+          "task": "Menerima permohonan keringanan denda",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "Petugas Layanan menerima permohonan dari nasabah dengan nomor kontrak, jumlah denda dan alasan keterlambatan."
+          }
+        },
+        {
+          "task": "Menyetujui permohonan keringanan denda",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "Di bawah Rp 2 juta Kepala Layanan Nasabah"
+          }
+        },
+        {
+          "task": "Menghubungi nasabah untuk sambutan",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "Petugas Layanan menghubungi nasabah dalam 3 hari kerja untuk menjelaskan jadwal angsuran dan cara pembayaran."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Keuangan",
+      "summary": "Bertanggung jawab mengelola anggaran, kas, laporan keuangan, serta mencatat pembayaran dan penyesuaian saldo pinjaman nasabah.",
+      "work": [
+        {
+          "task": "Mengelola anggaran, kas dan laporan keuangan",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Mengelola anggaran, kas dan laporan keuangan."
+          }
+        },
+        {
+          "task": "Mencatat pembayaran nasabah dan menyesuaikan saldo pinjaman",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Mencatat pembayaran nasabah dan menyesuaikan saldo pinjaman."
+          }
+        },
+        {
+          "task": "Menyetujui kredit bernilai tertentu",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "500.000.000 Kepala Kredit dan Kepala Keuangan"
+          }
+        },
+        {
+          "task": "Menyesuaikan saldo pinjaman nasabah untuk keringanan denda",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "Staf Akuntansi menyesuaikan saldo pinjaman nasabah."
+          }
+        }
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "Pemasaran",
+      "to": "Kredit",
+      "what": "permohonan kredit",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Staf Pemasaran mengajukan permohonan kredit ke Divisi Kredit dengan nama nasabah, jumlah pinjaman, tenor, tujuan pinjaman dan dokumen pendukung."
+      }
+    },
+    {
+      "from": "Kredit",
+      "to": "Operasional",
+      "what": "kredit yang disetujui",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Kredit yang disetujui diteruskan ke Divisi Operasional."
+      }
+    },
+    {
+      "from": "Operasional",
+      "to": "Keuangan",
+      "what": "laporan pencairan",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "lalu mengirim laporan pencairan ke Divisi Keuangan."
+      }
+    },
+    {
+      "from": "Layanan Nasabah",
+      "to": "Keuangan",
+      "what": "keringanan yang disetujui",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Keringanan yang disetujui diteruskan ke Divisi Keuangan."
+      }
+    },
+    {
+      "from": "Operasional",
+      "to": "Layanan Nasabah",
+      "what": "data nasabah dan jadwal angsuran",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "Setelah dana dicairkan, Divisi Operasional mengirim data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah."
+      }
+    }
+  ]
+}

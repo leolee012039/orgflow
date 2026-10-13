@@ -1,0 +1,69 @@
+{
+  "workflow_name": "受注処理および製造指示",
+  "opportunity_id": "eigyo_order_to_manufacturing",
+  "department": "営業部",
+  "fields": [
+    {
+      "name": "part_number",
+      "label": "品番",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "数量",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "delivery_date",
+      "label": "納期",
+      "type": "date",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "part_number",
+    "quantity",
+    "delivery_date"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "品番、数量、納期が記載されているか確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_send_manufacturing_instruction",
+      "type": "task",
+      "actor": "eigyo_tanto",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "製造部",
+  "output": "製造指示依頼",
+  "explanation": "受注・出荷手順書第1項に基づき、顧客から注文書を受領した営業担当が品番・数量・納期を記載した製造指示依頼を作成して製造部へ連携します。規定上承認ステップは定められていないため、AIレビュー後に営業担当による製造指示の送信タスクを実行し、申請者へ通知します。",
+  "upstream_id": null
+}

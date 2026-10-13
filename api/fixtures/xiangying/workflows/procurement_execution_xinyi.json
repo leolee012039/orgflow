@@ -1,0 +1,78 @@
+{
+  "workflow_name": "台北信義店器材採購執行與驗收",
+  "opportunity_id": "procurement_execution_xinyi",
+  "department": "採購部",
+  "fields": [
+    {
+      "name": "item",
+      "label": "品項",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_amount",
+      "label": "預估金額",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "procurement_reason",
+      "label": "採購理由",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "estimated_amount",
+    "procurement_reason"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "檢查請購申請人、所屬單位、品項、預估金額及採購理由是否完整",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_inquiry_and_ordering",
+      "type": "task",
+      "actor": "procurement_specialist",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_delivery_and_inspection",
+      "type": "task",
+      "actor": "procurement_specialist",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_4_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "台北信義店",
+  "hands_to": null,
+  "output": "完成交貨驗收與驗收通知",
+  "explanation": "依據《器材及用品採購作業辦法》第四條規定，請購案核准後由採購部辦理詢價、訂購及交貨驗收，並於完成後通知申請人。對應組織架構中採購專員之職責執行詢價、訂購與驗收任務，流程結束時通知原申請人。",
+  "upstream_id": "xinyi_equipment_requisition_flow"
+}

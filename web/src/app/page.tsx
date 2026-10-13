@@ -134,7 +134,7 @@ function Home() {
     if (!unsaved) return;
     let cancelled = false;
     // The sample's documents come back too, so its workflows can still be built
-    (unsaved.sample ? loadSampleDocuments().catch(() => null) : Promise.resolve(null)).then((d) => {
+    (unsaved.sample ? loadSampleDocuments(unsaved.sampleId).catch(() => null) : Promise.resolve(null)).then((d) => {
       if (cancelled) return;
       if (d) setDocs(d);
       setView((v) => (v.status === "idle" ? { status: "ready", workspace: unsaved, saved: null } : v));
@@ -149,7 +149,9 @@ function Home() {
     if (view.status === "ready") writeUnsaved(view.saved ? null : view.workspace);
   }, [view]);
 
-  async function analyze(d: Documents, sample: boolean) {
+  /** sampleId: one of the sample companies, which open from their saved reading without an account */
+  async function analyze(d: Documents, sampleId: string | null) {
+    const sample = sampleId !== null;
     let owner = user ?? null;
     if (!sample && accountsEnabled && !owner) {
       try {
@@ -171,10 +173,11 @@ function Home() {
         built: {},
         analyzedAt: new Date().toISOString(),
         sample,
+        ...(sampleId ? { sampleId } : {}),
       };
     } catch (e) {
       const err = e as AnalysisError;
-      setView({ status: "error", message: err.message, problems: err.problems ?? [], retry: () => analyze(d, sample) });
+      setView({ status: "error", message: err.message, problems: err.problems ?? [], retry: () => analyze(d, sampleId) });
       return;
     }
     document.title = `OrgFlow, ${workspace.company}`;

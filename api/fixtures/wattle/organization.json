@@ -1,0 +1,164 @@
+{
+  "company": "Wattle Creek Medical Group Pty Ltd",
+  "departments": [
+    {
+      "name": "Clinical Services",
+      "head_role_id": "clinical_director"
+    },
+    {
+      "name": "Practice Operations",
+      "head_role_id": "operations_manager"
+    },
+    {
+      "name": "Patient Services",
+      "head_role_id": "patient_services_manager"
+    },
+    {
+      "name": "People & Culture",
+      "head_role_id": "people_and_culture_manager"
+    },
+    {
+      "name": "Finance",
+      "head_role_id": "finance_manager"
+    }
+  ],
+  "roles": [
+    {
+      "id": "chief_executive_officer",
+      "title": "Chief Executive Officer",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "Leads the group and its management team."
+      ]
+    },
+    {
+      "id": "clinical_director",
+      "title": "Clinical Director",
+      "department": "Clinical Services",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Leads the clinicians and signs off on clinical equipment."
+      ]
+    },
+    {
+      "id": "general_practitioner",
+      "title": "General Practitioner",
+      "department": "Clinical Services",
+      "reports_to": "clinical_director",
+      "responsibilities": [
+        "Sees patients and requests clinical equipment and supplies."
+      ]
+    },
+    {
+      "id": "operations_manager",
+      "title": "Operations Manager",
+      "department": "Practice Operations",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Runs the clinics, the rosters and purchasing, and approves the clinics' purchases."
+      ]
+    },
+    {
+      "id": "practice_coordinator",
+      "title": "Practice Coordinator",
+      "department": "Practice Operations",
+      "reports_to": "operations_manager",
+      "responsibilities": [
+        "Raises purchase requests and keeps each clinic stocked."
+      ]
+    },
+    {
+      "id": "patient_services_manager",
+      "title": "Patient Services Manager",
+      "department": "Patient Services",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Leads reception and handles patient complaints."
+      ]
+    },
+    {
+      "id": "receptionist",
+      "title": "Receptionist",
+      "department": "Patient Services",
+      "reports_to": "patient_services_manager",
+      "responsibilities": [
+        "Books appointments, takes payments and logs refund requests."
+      ]
+    },
+    {
+      "id": "people_and_culture_manager",
+      "title": "People & Culture Manager",
+      "department": "People & Culture",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Owns recruitment and onboarding."
+      ]
+    },
+    {
+      "id": "hr_advisor",
+      "title": "HR Advisor",
+      "department": "People & Culture",
+      "reports_to": "people_and_culture_manager",
+      "responsibilities": [
+        "Checks new clinicians' registration and prepares their contracts."
+      ]
+    },
+    {
+      "id": "finance_manager",
+      "title": "Finance Manager",
+      "department": "Finance",
+      "reports_to": "chief_executive_officer",
+      "responsibilities": [
+        "Owns budgets, payments and the group's accounts."
+      ]
+    },
+    {
+      "id": "accounts_officer",
+      "title": "Accounts Officer",
+      "department": "Finance",
+      "reports_to": "finance_manager",
+      "responsibilities": [
+        "Pays suppliers and processes patient refunds."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Practice Operations",
+      "to": "Finance",
+      "description": "Practice Operations sends supplier invoices to Finance for matching and payment.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Practice Operations sends each supplier invoice to Finance. The Accounts Officer matches it to the purchase order and pays the supplier within 30 days."
+      }
+    },
+    {
+      "from": "Patient Services",
+      "to": "Finance",
+      "description": "Patient Services sends approved refunds to Finance to be processed.",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Approved refunds go to Finance. The Accounts Officer refunds the patient's card within 5 business days."
+      }
+    },
+    {
+      "from": "People & Culture",
+      "to": "Clinical Services",
+      "description": "People & Culture sends new clinician details to Clinical Services before the start date.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When a clinician accepts an offer, the HR Advisor checks their registration and sends the new clinician's details to Clinical Services at least ten business days before the start date."
+      }
+    },
+    {
+      "from": "Clinical Services",
+      "to": "Practice Operations",
+      "description": "Clinical Services sends a roster request to Practice Operations to add the clinician to rosters and the booking system.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "The Clinical Director confirms the clinician's sessions and sends a roster request to Practice Operations, which adds the clinician to the clinic rosters and the booking system."
+      }
+    }
+  ]
+}

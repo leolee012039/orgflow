@@ -1,0 +1,83 @@
+{
+  "workflow_name": "New Joiner IT Provisioning Request",
+  "opportunity_id": "hr_new_joiner_it_request",
+  "department": "Human Resources",
+  "fields": [
+    {
+      "name": "employee_name",
+      "label": "employee's name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "role",
+      "label": "role",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "employee_department",
+      "label": "department",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "joining_date",
+      "label": "joining date",
+      "type": "date",
+      "options": []
+    },
+    {
+      "name": "laptop_requirements",
+      "label": "laptop requirements",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "employee_name",
+    "role",
+    "employee_department",
+    "joining_date",
+    "laptop_requirements"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify all new joiner information and laptop requirements are complete",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_send_request",
+      "type": "task",
+      "actor": "hr_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "IT & Administration",
+  "output": "new joiner request",
+  "explanation": "This workflow follows Policy 3 by capturing the candidate's details and equipment requirements when an offer is accepted. The HR Executive initiates and sends the new joiner request to IT & Administration without requiring separate internal approval tiers.",
+  "upstream_id": null
+}

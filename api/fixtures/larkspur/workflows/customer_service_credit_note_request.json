@@ -1,0 +1,124 @@
+{
+  "workflow_name": "Customer Credit Request Processing",
+  "opportunity_id": "customer_service_credit_note_request",
+  "department": "Customer Service",
+  "fields": [
+    {
+      "name": "shipment_number",
+      "label": "shipment number",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "customer",
+      "label": "customer",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "amount",
+      "label": "amount in Singapore dollars",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "reason",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "attachments",
+      "label": "photos or delivery records attached",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "shipment_number",
+    "customer",
+    "amount",
+    "reason",
+    "attachments"
+  ],
+  "rules": [
+    {
+      "id": "rule_below_1000",
+      "when": {
+        "field": "amount",
+        "op": "<",
+        "value": 1000
+      },
+      "source": "Below SGD 1,000 Customer Service Manager"
+    },
+    {
+      "id": "rule_above_1000",
+      "when": {
+        "field": "amount",
+        "op": ">",
+        "value": 1000
+      },
+      "source": "Above SGD 1,000 Finance Manager"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ai_review_check",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify that shipment number, customer, amount, reason, and photo/delivery record attachments are provided.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "approval_csm",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": "rule_below_1000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "approval_fm",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_above_1000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "amount",
+      "min": null,
+      "max": 1000.0,
+      "source": "Below SGD 1,000 Customer Service Manager"
+    },
+    {
+      "field": "amount",
+      "min": 1000.0,
+      "max": null,
+      "source": "Above SGD 1,000 Finance Manager"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Finance",
+  "output": "Approved credit request sent to Finance",
+  "explanation": "This workflow captures all mandatory information required by the Customer Credit Note Policy when submitting a credit request. Approvals are conditionally routed to either the Customer Service Manager or the Finance Manager based on the credit note amount threshold defined in policy_2.",
+  "upstream_id": null
+}

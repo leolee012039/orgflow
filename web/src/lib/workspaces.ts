@@ -30,6 +30,8 @@ export interface Workspace extends Analysis {
   decisions?: Decision[];
   analyzedAt: string;
   sample: boolean;
+  /** Which sample company (web/src/lib/samples.json); absent on an analysis kept from before there were several */
+  sampleId?: string;
 }
 
 export interface SavedWorkspace extends Workspace {

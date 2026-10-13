@@ -1,0 +1,200 @@
+{
+  "departments": [
+    {
+      "name": "Sales",
+      "summary": "Sales generates freight revenue by quoting rates, handling customer bookings, and managing key accounts.",
+      "work": [
+        {
+          "task": "Quote freight rates and take bookings",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Quotes freight rates and takes customer bookings."
+          }
+        },
+        {
+          "task": "Send booking confirmations to Operations",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "When a customer confirms a booking, the Account Executive sends the booking confirmation to Operations with the pick-up date, the cargo details and the agreed rate."
+          }
+        },
+        {
+          "task": "Lead sales team and key accounts",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Leads the sales team and the company's largest customer accounts."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operations",
+      "summary": "Operations manages warehousing, trucking logistics, and the planning and execution of shipment deliveries.",
+      "work": [
+        {
+          "task": "Plan pick-ups and deliveries",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "The Shipment Coordinator plans the pick-up and delivery."
+          }
+        },
+        {
+          "task": "Raise purchase requests",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "A Shipment Coordinator raises a purchase request with the item, the estimated cost in Singapore dollars and the business reason."
+          }
+        },
+        {
+          "task": "Confirm operational needs and approve purchases",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "The Operations Manager confirms the operational need before the request goes for approval."
+          }
+        },
+        {
+          "task": "Send signed proof of delivery to Finance",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "When the shipment is delivered, Operations sends the signed proof of delivery to Finance."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Procurement",
+      "summary": "Procurement sources vendors, collects quotations, places purchase orders, and handles incoming supplier invoices.",
+      "work": [
+        {
+          "task": "Obtain written quotations",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "For purchases above SGD 5,000 the Buyer obtains three written quotations."
+          }
+        },
+        {
+          "task": "Select suppliers and sign purchase orders",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "The Procurement Manager selects the supplier and signs the purchase order."
+          }
+        },
+        {
+          "task": "Forward supplier invoices to Finance",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "Procurement forwards each supplier invoice to Finance."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance",
+      "summary": "Finance manages the company's financial operations, including customer invoicing, credit approvals, supplier payments, and credit note issuance.",
+      "work": [
+        {
+          "task": "Invoice customers",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "Finance invoices the customer within two working days of receiving the proof of delivery."
+          }
+        },
+        {
+          "task": "Match invoices and pay suppliers",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "The Accounts Executive matches the invoice to the purchase order and pays the supplier within 30 days."
+          }
+        },
+        {
+          "task": "Approve large purchases and invoices",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "Invoices above SGD 20,000 also need Finance Manager approval before payment."
+          }
+        },
+        {
+          "task": "Issue credit notes and adjust customer accounts",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "The Accounts Executive issues the credit note and adjusts the customer's account."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Service",
+      "summary": "Customer Service assists clients, addresses customer complaints, and initiates credit note requests for service issues.",
+      "work": [
+        {
+          "task": "Log credit requests",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "A Customer Service Officer logs each credit request with the shipment number, the customer, the amount in Singapore dollars and the reason, with photos or delivery records attached."
+          }
+        },
+        {
+          "task": "Approve small credit notes",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "Below SGD 1,000 Customer Service Manager"
+          }
+        },
+        {
+          "task": "Inform customers regarding credit notes",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "Customer Service then informs the customer."
+          }
+        }
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "Sales",
+      "to": "Operations",
+      "what": "booking confirmation",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When a customer confirms a booking, the Account Executive sends the booking confirmation to Operations with the pick-up date, the cargo details and the agreed rate."
+      }
+    },
+    {
+      "from": "Operations",
+      "to": "Procurement",
+      "what": "approved purchase requests",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Approved purchase requests are sent to Procurement."
+      }
+    },
+    {
+      "from": "Operations",
+      "to": "Finance",
+      "what": "signed proof of delivery",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When the shipment is delivered, Operations sends the signed proof of delivery to Finance."
+      }
+    },
+    {
+      "from": "Procurement",
+      "to": "Finance",
+      "what": "supplier invoice",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Procurement forwards each supplier invoice to Finance."
+      }
+    },
+    {
+      "from": "Customer Service",
+      "to": "Finance",
+      "what": "approved credit requests",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Approved credit requests are sent to Finance."
+      }
+    }
+  ]
+}

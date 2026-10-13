@@ -1,0 +1,81 @@
+{
+  "workflow_name": "IT Setup Confirmation Verification",
+  "opportunity_id": "hr_receive_it_confirmation",
+  "department": "Human Resources",
+  "fields": [
+    {
+      "name": "employee_name",
+      "label": "employee's name",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "role",
+      "label": "role",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "employee_department",
+      "label": "department",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "joining_date",
+      "label": "joining date",
+      "type": "date",
+      "options": []
+    },
+    {
+      "name": "laptop_requirements",
+      "label": "laptop requirements",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "employee_name",
+    "role",
+    "employee_department",
+    "joining_date",
+    "laptop_requirements"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "review_it_confirmation",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify all employee joining details and IT setup requirements are complete",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "verify_onboarding_readiness",
+      "type": "task",
+      "actor": "hr_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "IT & Administration",
+  "hands_to": null,
+  "output": "verified employee onboarding readiness",
+  "explanation": "This workflow receives setup confirmation initiated by IT & Administration according to the Employee Onboarding Procedure. The HR Executive verifies onboarding readiness prior to the joining date without requiring monetary approvals.",
+  "upstream_id": "it_admin_employee_setup"
+}

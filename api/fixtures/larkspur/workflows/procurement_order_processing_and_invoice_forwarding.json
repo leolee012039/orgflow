@@ -1,0 +1,104 @@
+{
+  "workflow_name": "Procurement Order Processing and Supplier Invoice Forwarding",
+  "opportunity_id": "procurement_order_processing_and_invoice_forwarding",
+  "department": "Procurement",
+  "fields": [
+    {
+      "name": "item",
+      "label": "Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated cost in Singapore dollars",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_reason",
+      "label": "Business reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "item",
+    "estimated_cost",
+    "business_reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_three_written_quotations",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 5000
+      },
+      "source": "For purchases above SGD 5,000 the Buyer obtains three written quotations."
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify approved purchase request details including item, estimated cost, and business reason",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_obtain_quotations",
+      "type": "task",
+      "actor": "buyer",
+      "only_if": "rule_three_written_quotations",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_select_supplier_and_sign_po",
+      "type": "task",
+      "actor": "procurement_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_place_purchase_order",
+      "type": "task",
+      "actor": "buyer",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_forward_invoice_to_finance",
+      "type": "task",
+      "actor": "Procurement",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Operations",
+  "hands_to": "Finance",
+  "output": "Supplier invoice forwarded to Finance",
+  "explanation": "This workflow executes Procurement's handling of approved purchase requests originating from Operations in accordance with Policy 1. It obtains three quotations when the estimated cost exceeds SGD 5,000, routes supplier selection and PO signing to the Procurement Manager, places the order via the Buyer, and forwards the received supplier invoice to Finance.",
+  "upstream_id": "operations_purchase_request_approval"
+}

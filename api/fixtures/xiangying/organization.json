@@ -1,0 +1,135 @@
+{
+  "company": "翔鷹健身股份有限公司",
+  "departments": [
+    {
+      "name": "營運部",
+      "head_role_id": "operations_manager"
+    },
+    {
+      "name": "財務部",
+      "head_role_id": "finance_manager"
+    },
+    {
+      "name": "採購部",
+      "head_role_id": "procurement_supervisor"
+    },
+    {
+      "name": "會員服務部",
+      "head_role_id": "customer_service_supervisor"
+    },
+    {
+      "name": "台北信義店",
+      "head_role_id": "taipei_xinyi_store_manager"
+    },
+    {
+      "name": "新北板橋店",
+      "head_role_id": "new_taipei_banqiao_store_manager"
+    },
+    {
+      "name": "各分店",
+      "head_role_id": null
+    }
+  ],
+  "roles": [
+    {
+      "id": "general_manager",
+      "title": "總經理",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "訂定公司經營方向，督導各部門。"
+      ]
+    },
+    {
+      "id": "operations_manager",
+      "title": "營運經理",
+      "department": "營運部",
+      "reports_to": "general_manager",
+      "responsibilities": [
+        "督導各分店營運、人力排班與服務品質。"
+      ]
+    },
+    {
+      "id": "taipei_xinyi_store_manager",
+      "title": "台北信義店店長",
+      "department": "台北信義店",
+      "reports_to": "operations_manager",
+      "responsibilities": [
+        "管理分店日常營運，提出分店器材與用品需求。"
+      ]
+    },
+    {
+      "id": "new_taipei_banqiao_store_manager",
+      "title": "新北板橋店店長",
+      "department": "新北板橋店",
+      "reports_to": "operations_manager",
+      "responsibilities": [
+        "管理分店日常營運，提出分店器材與用品需求。"
+      ]
+    },
+    {
+      "id": "fitness_coach",
+      "title": "健身教練",
+      "department": "各分店",
+      "reports_to": null,
+      "responsibilities": [
+        "帶領會員訓練，回報器材使用與損壞情形。"
+      ]
+    },
+    {
+      "id": "finance_manager",
+      "title": "財務經理",
+      "department": "財務部",
+      "reports_to": "general_manager",
+      "responsibilities": [
+        "審核預算與支出，確認請購案符合公司規定。"
+      ]
+    },
+    {
+      "id": "accountant",
+      "title": "會計",
+      "department": "財務部",
+      "reports_to": "finance_manager",
+      "responsibilities": [
+        "辦理付款、帳務登錄與發票核對。"
+      ]
+    },
+    {
+      "id": "procurement_supervisor",
+      "title": "採購主任",
+      "department": "採購部",
+      "reports_to": "general_manager",
+      "responsibilities": [
+        "督導採購作業與供應商管理。"
+      ]
+    },
+    {
+      "id": "procurement_specialist",
+      "title": "採購專員",
+      "department": "採購部",
+      "reports_to": "procurement_supervisor",
+      "responsibilities": [
+        "辦理詢價、訂購與交貨驗收。"
+      ]
+    },
+    {
+      "id": "customer_service_supervisor",
+      "title": "客服主管",
+      "department": "會員服務部",
+      "reports_to": "general_manager",
+      "responsibilities": [
+        "督導會員服務與客訴處理。"
+      ]
+    },
+    {
+      "id": "customer_service_specialist",
+      "title": "客服專員",
+      "department": "會員服務部",
+      "reports_to": "customer_service_supervisor",
+      "responsibilities": [
+        "處理會員諮詢、續約與客訴。"
+      ]
+    }
+  ],
+  "relationships": []
+}

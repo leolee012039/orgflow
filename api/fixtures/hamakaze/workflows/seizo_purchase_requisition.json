@@ -1,0 +1,143 @@
+{
+  "workflow_name": "材料・工具購買依頼および承認",
+  "opportunity_id": "seizo_purchase_requisition",
+  "department": "製造部",
+  "fields": [
+    {
+      "name": "item_name",
+      "label": "品名",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "数量",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "estimated_amount",
+      "label": "見積金額（税抜）",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "purpose",
+      "label": "用途",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item_name",
+    "quantity",
+    "estimated_amount",
+    "purpose"
+  ],
+  "rules": [
+    {
+      "id": "rule_over_500k",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">",
+        "value": 500000
+      },
+      "source": "50万円を超え500万円未満 製造部長、経理部長"
+    },
+    {
+      "id": "rule_gte_5m",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">=",
+        "value": 5000000
+      },
+      "source": "500万円以上 製造部長、経理部長、常務取締役"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "購買依頼書に品名、数量、見積金額（税抜）、用途が記載されているか確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_approval_seizo_bucho",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approval_keiri_bucho",
+      "type": "approval",
+      "actor": "keiri_bucho",
+      "only_if": "rule_over_500k",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approval_jomu",
+      "type": "approval",
+      "actor": "常務取締役",
+      "only_if": "rule_gte_5m",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_task_forward_to_purchasing",
+      "type": "task",
+      "actor": "seizo_bucho",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "常務取締役"
+  ],
+  "amount_tiers": [
+    {
+      "field": "estimated_amount",
+      "min": null,
+      "max": 500000.0,
+      "source": "50万円未満 製造部長"
+    },
+    {
+      "field": "estimated_amount",
+      "min": 500000.0,
+      "max": 5000000.0,
+      "source": "50万円を超え500万円未満 製造部長、経理部長"
+    },
+    {
+      "field": "estimated_amount",
+      "min": 5000000.0,
+      "max": null,
+      "source": "500万円以上 製造部長、経理部長、常務取締役"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "購買部",
+  "output": "承認された購買依頼書",
+  "explanation": "購買規程第2条に基づき品名・数量・見積金額（税抜）・用途の必須入力を定義し、第3条の承認権限テーブルに従って見積金額に応じた承認経路（製造部長、経理部長、常務取締役）を設定しました。常務取締役は組織図に定義されていない役職のため未解決アクターとして保持し、承認完了後に購買部へ回付するタスクおよび申請者への通知を設けています。",
+  "upstream_id": null
+}

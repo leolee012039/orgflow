@@ -1,0 +1,93 @@
+{
+  "workflow_name": "購買見積取得および発注処理",
+  "opportunity_id": "kobai_ordering_process",
+  "department": "購買部",
+  "fields": [
+    {
+      "name": "item_name",
+      "label": "品名",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "数量",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "estimated_amount",
+      "label": "見積金額（税抜）",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "purpose",
+      "label": "用途",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "item_name",
+    "quantity",
+    "estimated_amount",
+    "purpose"
+  ],
+  "rules": [
+    {
+      "id": "rule_multiple_quotes",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">=",
+        "value": 300000
+      },
+      "source": "購買担当は、30万円以上の購買について2社以上から見積書を取得する。"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "購買依頼書の内容および見積金額（税抜）の記載を確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_obtain_multiple_quotes",
+      "type": "task",
+      "actor": "kobai_tanto",
+      "only_if": "rule_multiple_quotes",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_select_vendor_and_issue_po",
+      "type": "task",
+      "actor": "kobai_bucho",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notification",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "製造部",
+  "hands_to": null,
+  "output": "注文書",
+  "explanation": "購買規程第4条に基づき、製造部から回付された承認済みの購買依頼に対して30万円以上の場合は購買担当が2社以上から相見積もりを取得します。その後、購買部長が発注先を決定して注文書を発行し、依頼元へ通知を行います。",
+  "upstream_id": "seizo_purchase_requisition"
+}

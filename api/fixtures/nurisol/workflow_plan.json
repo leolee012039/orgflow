@@ -1,0 +1,220 @@
+{
+  "workflows": [
+    {
+      "id": "purchase_request_and_approval",
+      "department": "상품기획팀",
+      "name": "구매 요청 및 결재",
+      "trigger": "MD가 품목, 수량, 예상 금액, 사유를 작성하여 구매를 요청할 때 시작된다.",
+      "starts_from": null,
+      "hands_to": "물류팀",
+      "output": "승인된 구매 요청서",
+      "basis": "policy",
+      "why": "금액별로 결재권자가 달라 수기로 승인을 취합하고 물류팀에 전달하는 과정에서 지연이 발생하기 쉽습니다. 자동화를 통해 금액 기준에 맞는 결재선 지정과 승인 후 물류팀 전달이 즉시 이루어집니다.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "MD는 품목, 수량, 예상 금액(부가세 별도), 사유를 적은 구매 요청서를 작성하고, 상품기획팀장이 필요성을 확인한다."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "1,000만원 이하 상품기획팀장\n1,000만원 초과 5,000만원 이하 상품기획팀장, 재무팀장\n5,000만원 초과 상품기획팀장, 재무팀장, 부사장"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "승인된 구매 요청은 물류팀으로 전달되며, 물류팀장이 공급업체에 발주하고 입고를 확인한다."
+        }
+      ]
+    },
+    {
+      "id": "promotion_inventory_check_and_dispatch_request",
+      "department": "상품기획팀",
+      "name": "프로모션 재고 확인 및 출고 준비 요청",
+      "trigger": "마케팅팀으로부터 프로모션 계획이 전달되면 시작된다.",
+      "starts_from": "마케팅팀",
+      "hands_to": "물류팀",
+      "output": "출고 준비 요청",
+      "basis": "policy",
+      "why": "프로모션 계획 수신 후 MD가 재고를 확인하고 물류팀에 전달하는 과정이 수작업으로 진행되어 누락 위험이 있습니다. 자동화를 통해 프로모션 접수 즉시 재고를 검토하고 물류팀으로 출고 준비 요청을 연계할 수 있습니다.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "마케터는 기간, 할인율, 대상 상품을 적은 프로모션 계획을 상품기획팀에 전달한다."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "MD는 재고를 확인한 후 물류팀에 출고 준비를 요청한다."
+        }
+      ]
+    },
+    {
+      "id": "promotion_planning_and_submission",
+      "department": "마케팅팀",
+      "name": "프로모션 계획 수립 및 전달",
+      "trigger": "마케터가 프로모션 계획을 기획하여 상품기획팀에 전달할 때 시작된다.",
+      "starts_from": null,
+      "hands_to": "상품기획팀",
+      "output": "프로모션 계획서",
+      "basis": "policy",
+      "why": "프로모션 기획 승인과 타 부서 전달 과정이 수작업 문서로 진행되어 검토 지연이 발생할 수 있습니다. 자동화를 통해 표준 서식 기반 승인 후 상품기획팀으로 계획서가 즉시 전달됩니다.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "org_chart",
+          "quote": "마케팅팀을 총괄하고 프로모션 계획을 승인한다."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "마케터는 기간, 할인율, 대상 상품을 적은 프로모션 계획을 상품기획팀에 전달한다."
+        }
+      ]
+    },
+    {
+      "id": "promotion_settlement_delivery",
+      "department": "마케팅팀",
+      "name": "프로모션 정산 자료 제출",
+      "trigger": "프로모션이 종료되어 매출과 할인 내역을 정산할 때 시작된다.",
+      "starts_from": null,
+      "hands_to": "재무팀",
+      "output": "프로모션 정산 자료",
+      "basis": "policy",
+      "why": "프로모션 종료 후 정산 자료를 수기로 취합하여 재무팀에 전달하는 데 시간이 소요됩니다. 자동화를 통해 매출 및 할인 내역 정리 완료 즉시 재무팀으로 정산 데이터가 전달됩니다.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "프로모션이 끝나면 마케팅팀은 매출과 할인 내역을 정리한 정산 자료를 재무팀에 전달한다."
+        }
+      ]
+    },
+    {
+      "id": "supplier_order_and_tax_invoice_processing",
+      "department": "물류팀",
+      "name": "공급업체 발주 및 세금계산서 전달",
+      "trigger": "상품기획팀으로부터 승인된 구매 요청이 전달되면 시작된다.",
+      "starts_from": "상품기획팀",
+      "hands_to": "재무팀",
+      "output": "공급업체 세금계산서",
+      "basis": "policy",
+      "why": "구매 요청 수신부터 공급업체 발주, 입고 확인, 세금계산서 전달까지 여러 단계를 사람이 직접 챙겨 누락 위험이 있습니다. 자동화를 통해 승인 건 발주 연계와 입고 확인 후 세금계산서의 재무팀 이관이 신속해집니다.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "승인된 구매 요청은 물류팀으로 전달되며, 물류팀장이 공급업체에 발주하고 입고를 확인한다."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "물류팀은 공급업체의 세금계산서를 재무팀에 전달하고, 회계 담당자는 발주서와 대조한 후 30일 이내에 대금을 지급한다."
+        }
+      ]
+    },
+    {
+      "id": "promotion_dispatch_preparation",
+      "department": "물류팀",
+      "name": "프로모션 출고 준비 처리",
+      "trigger": "상품기획팀으로부터 프로모션 출고 준비 요청이 전달되면 시작된다.",
+      "starts_from": "상품기획팀",
+      "hands_to": null,
+      "output": "출고 준비 완료 처리",
+      "basis": "policy",
+      "why": "출고 요청 접수와 재고 확인 처리가 비표준 방식으로 이루어져 프로모션 일정 대응에 혼선이 생길 수 있습니다. 자동화를 통해 요청 접수 즉시 출고 작업 목록으로 편성되어 신속한 처리가 가능합니다.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "MD는 재고를 확인한 후 물류팀에 출고 준비를 요청한다."
+        },
+        {
+          "doc": "org_chart",
+          "quote": "입고와 출고를 처리하고 재고 수량을 확인한다."
+        }
+      ]
+    },
+    {
+      "id": "customer_refund_request_and_approval",
+      "department": "고객지원팀",
+      "name": "환불 접수 및 승인",
+      "trigger": "상담원이 고객으로부터 환불 요청 정보를 접수할 때 시작된다.",
+      "starts_from": null,
+      "hands_to": "재무팀",
+      "output": "승인된 환불 요청서",
+      "basis": "policy",
+      "why": "금액 기준에 따른 승인선 지정과 승인된 건의 재무팀 전달이 수작업으로 진행되어 고객 응대 처리가 늦어집니다. 자동화를 통해 환불 금액별 결재선 지정과 승인 후 재무팀 이관이 자동으로 수행됩니다.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "상담원은 주문번호, 고객명, 환불 금액, 사유와 사진을 받아 환불 요청을 접수한다."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "30만원 미만 고객지원팀장\n30만원 초과 고객지원팀장, 재무팀장"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "승인된 환불 요청은 재무팀으로 전달되며, 회계 담당자가 3영업일 이내에 환불을 처리한다."
+        }
+      ]
+    },
+    {
+      "id": "supplier_payment_processing",
+      "department": "재무팀",
+      "name": "매입 대금 지급 처리",
+      "trigger": "물류팀으로부터 공급업체 세금계산서가 전달되면 시작된다.",
+      "starts_from": "물류팀",
+      "hands_to": null,
+      "output": "대금 지급 완료 내역",
+      "basis": "policy",
+      "why": "세금계산서 수령 후 발주서를 수작업으로 대조하고 30일 지급 기한을 관리해야 해 누락 우려가 있습니다. 자동화를 통해 증빙 대조 및 결제 기한 추적이 체계화되어 기한 내 정확한 지급이 가능해집니다.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "물류팀은 공급업체의 세금계산서를 재무팀에 전달하고, 회계 담당자는 발주서와 대조한 후 30일 이내에 대금을 지급한다."
+        }
+      ]
+    },
+    {
+      "id": "customer_refund_execution",
+      "department": "재무팀",
+      "name": "고객 환불금 지급 처리",
+      "trigger": "고객지원팀으로부터 승인된 환불 요청이 전달되면 시작된다.",
+      "starts_from": "고객지원팀",
+      "hands_to": null,
+      "output": "환불 처리 완료 내역",
+      "basis": "policy",
+      "why": "승인된 환불 건을 접수받아 3영업일 기한 내에 송금하는 절차가 수작업으로 진행되어 처리가 지연될 수 있습니다. 자동화를 통해 처리 기한 알림과 즉각적인 지급 반영이 이루어져 지연을 예방합니다.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "승인된 환불 요청은 재무팀으로 전달되며, 회계 담당자가 3영업일 이내에 환불을 처리한다."
+        }
+      ]
+    },
+    {
+      "id": "promotion_settlement_processing",
+      "department": "재무팀",
+      "name": "프로모션 정산 내역 검토 및 반영",
+      "trigger": "마케팅팀으로부터 프로모션 정산 자료가 전달되면 시작된다.",
+      "starts_from": "마케팅팀",
+      "hands_to": null,
+      "output": "정산 완료 보고서",
+      "basis": "policy",
+      "why": "마케팅팀의 매출 및 할인 내역 정산서를 수동으로 검토하고 회계에 반영하는 작업에 시간이 소요됩니다. 자동화를 통해 정산 자료 인입 즉시 검토 큐로 연결되어 결산 처리 속도가 향상됩니다.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "프로모션이 끝나면 마케팅팀은 매출과 할인 내역을 정리한 정산 자료를 재무팀에 전달한다."
+        },
+        {
+          "doc": "org_chart",
+          "quote": "예산, 지급, 결산을 총괄한다."
+        }
+      ]
+    }
+  ]
+}

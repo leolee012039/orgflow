@@ -1,0 +1,184 @@
+{
+  "workflows": [
+    {
+      "id": "pengajuan_permohonan_kredit",
+      "department": "Pemasaran",
+      "name": "Pengajuan Permohonan Kredit",
+      "trigger": "Staf Pemasaran mendapatkan nasabah baru dan mengisi formulir pengajuan kredit beserta dokumen pendukung.",
+      "starts_from": null,
+      "hands_to": "Kredit",
+      "output": "Berkas permohonan kredit lengkap",
+      "basis": "policy",
+      "why": "Pengumpulan dan penyerahan berkas permohonan kredit secara fisik rawan kelengkapan data tertinggal atau hilang. Otomatisasi memastikan semua data wajib dan dokumen pendukung terisi lengkap sebelum diteruskan ke Divisi Kredit.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Staf Pemasaran mengajukan permohonan kredit ke Divisi Kredit dengan nama nasabah, jumlah pinjaman, tenor, tujuan pinjaman dan dokumen pendukung."
+        }
+      ]
+    },
+    {
+      "id": "persetujuan_kredit",
+      "department": "Kredit",
+      "name": "Persetujuan Kredit Bertingkat",
+      "trigger": "Divisi Kredit menerima berkas permohonan kredit dari Divisi Pemasaran.",
+      "starts_from": "Pemasaran",
+      "hands_to": "Operasional",
+      "output": "Kredit yang disetujui",
+      "basis": "policy",
+      "why": "Pemeriksaan dan persetujuan berjenjang berdasarkan nominal kredit sering terhambat proses sirkulasi dokumen manual antarpejabat. Otomatisasi langsung mengarahkan rekomendasi ke pejabat yang berwenang sesuai limit nominal tanpa jeda waktu.",
+      "manual_handoffs": 3,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Analis Kredit memeriksa dokumen dan membuat rekomendasi."
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Sampai dengan Rp 50.000.000 Kepala Kredit"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Di atas Rp 50.000.000 sampai dengan Rp 500.000.000 Kepala Kredit dan Kepala Keuangan"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Di atas Rp 500.000.000 (lima ratus juta rupiah) Kepala Kredit, Kepala Keuangan dan Direktur Risiko"
+        },
+        {
+          "doc": "policy_1",
+          "quote": "Kredit yang disetujui diteruskan ke Divisi Operasional."
+        }
+      ]
+    },
+    {
+      "id": "pencairan_dan_pelaporan_kredit",
+      "department": "Operasional",
+      "name": "Pencairan Dana dan Pelaporan Keuangan",
+      "trigger": "Divisi Operasional menerima berkas kredit yang disetujui dari Divisi Kredit.",
+      "starts_from": "Kredit",
+      "hands_to": "Keuangan",
+      "output": "Laporan pencairan kredit",
+      "basis": "policy",
+      "why": "Pemeriksaan fisik perjanjian dan pengiriman laporan pencairan manual memakan waktu hingga mendekati batas waktu kerja. Otomatisasi mempercepat validasi perjanjian serta menerbitkan laporan pencairan otomatis ke Divisi Keuangan.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "Kredit yang disetujui diteruskan ke Divisi Operasional. Staf Operasional memeriksa perjanjian kredit dan mencairkan dana dalam 2 hari kerja, lalu mengirim laporan pencairan ke Divisi Keuangan."
+        }
+      ]
+    },
+    {
+      "id": "penyerahan_data_nasabah_baru",
+      "department": "Operasional",
+      "name": "Penyerahan Data Nasabah Pascapencairan",
+      "trigger": "Dana pinjaman kredit berhasil dicairkan oleh Staf Operasional.",
+      "starts_from": null,
+      "hands_to": "Layanan Nasabah",
+      "output": "Data nasabah dan jadwal angsuran",
+      "basis": "policy",
+      "why": "Pengiriman manual data nasabah dan jadwal angsuran berisiko terlambat sehingga menunda penanganan nasabah baru. Otomatisasi langsung memicu pengiriman data terjadwal begitu pencairan selesai.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "Setelah dana dicairkan, Divisi Operasional mengirim data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah."
+        }
+      ]
+    },
+    {
+      "id": "persetujuan_keringanan_denda",
+      "department": "Layanan Nasabah",
+      "name": "Persetujuan Keringanan Denda",
+      "trigger": "Petugas Layanan menerima permohonan keringanan denda dari nasabah.",
+      "starts_from": null,
+      "hands_to": "Keuangan",
+      "output": "Keringanan denda yang disetujui",
+      "basis": "policy",
+      "why": "Penetapan persetujuan permohonan keringanan denda secara berjenjang memakan waktu peninjauan manual antarpejabat. Otomatisasi menyortir pengajuan secara instan ke Kepala Layanan Nasabah atau diteruskan ke Kepala Keuangan sesuai ambang batas nominal.",
+      "manual_handoffs": 2,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "Petugas Layanan menerima permohonan dari nasabah dengan nomor kontrak, jumlah denda dan alasan keterlambatan."
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Di bawah Rp 2 juta Kepala Layanan Nasabah"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Di atas Rp 2 juta Kepala Layanan Nasabah dan Kepala Keuangan"
+        },
+        {
+          "doc": "policy_2",
+          "quote": "Keringanan yang disetujui diteruskan ke Divisi Keuangan."
+        }
+      ]
+    },
+    {
+      "id": "sambutan_nasabah_baru",
+      "department": "Layanan Nasabah",
+      "name": "Sambutan Nasabah Baru",
+      "trigger": "Divisi Layanan Nasabah menerima data nasabah dan jadwal angsuran dari Divisi Operasional.",
+      "starts_from": "Operasional",
+      "hands_to": null,
+      "output": "Konfirmasi sambutan dan penjelasan pembayaran",
+      "basis": "policy",
+      "why": "Pemberitahuan manual jadwal angsuran berisiko melampaui batas waktu 3 hari kerja akibat penumpukan data. Otomatisasi membuat antrean kontak nasabah secara terstruktur agar penjelasan pembayaran dapat diberikan tepat waktu.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_3",
+          "quote": "Setelah dana dicairkan, Divisi Operasional mengirim data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah."
+        },
+        {
+          "doc": "policy_3",
+          "quote": "Petugas Layanan menghubungi nasabah dalam 3 hari kerja untuk menjelaskan jadwal angsuran dan cara pembayaran."
+        }
+      ]
+    },
+    {
+      "id": "pencatatan_laporan_pencairan",
+      "department": "Keuangan",
+      "name": "Pencatatan Laporan Pencairan",
+      "trigger": "Divisi Keuangan menerima laporan pencairan dari Divisi Operasional.",
+      "starts_from": "Operasional",
+      "hands_to": null,
+      "output": "Catatan kas dan pembaruan pembukuan pencairan",
+      "basis": "policy",
+      "why": "Rekonsiliasi pencairan dana secara manual memperlambat pelaporan arus kas operasional. Otomatisasi mempercepat pencatatan laporan pencairan langsung ke sistem pembukuan kas.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_1",
+          "quote": "lalu mengirim laporan pencairan ke Divisi Keuangan."
+        },
+        {
+          "doc": "org_chart",
+          "quote": "Mengelola anggaran, kas dan laporan keuangan."
+        }
+      ]
+    },
+    {
+      "id": "penyesuaian_saldo_keringanan_denda",
+      "department": "Keuangan",
+      "name": "Penyesuaian Saldo Pinjaman Keringanan Denda",
+      "trigger": "Divisi Keuangan menerima persetujuan keringanan denda dari Divisi Layanan Nasabah.",
+      "starts_from": "Layanan Nasabah",
+      "hands_to": null,
+      "output": "Saldo pinjaman nasabah yang telah disesuaikan",
+      "basis": "policy",
+      "why": "Penyesuaian saldo denda secara manual pada rekening nasabah membutuhkan waktu verifikasi ulang dan rawan kekeliruan hitung. Otomatisasi mempercepat penyesuaian saldo pinjaman secara akurat begitu persetujuan diterima.",
+      "manual_handoffs": 1,
+      "evidence": [
+        {
+          "doc": "policy_2",
+          "quote": "Keringanan yang disetujui diteruskan ke Divisi Keuangan. Staf Akuntansi menyesuaikan saldo pinjaman nasabah."
+        }
+      ]
+    }
+  ]
+}

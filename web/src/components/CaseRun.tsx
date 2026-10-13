@@ -42,14 +42,17 @@ function Field({ label, children }: { label: string; children: (id: string) => R
   );
 }
 
-function initialCase(wf: Workflow, start: WorkflowCandidate, gaps: number[]): CaseRequest {
+/** Example answers: "workflow id.field" first, then the field name, then the NovaGear sample's */
+export type Examples = Record<string, string>;
+
+function initialCase(wf: Workflow, start: WorkflowCandidate, gaps: number[], examples?: Examples): CaseRequest {
   const values: CaseRequest = { request_id: "CASE-0001", requester: "Emma Chen", department: start.department };
   for (const f of fieldsOf(wf)) {
     if (f.type === "number") {
       const tries = tryValues(wf, f.name, gaps);
       values[f.name] = tries[Math.min(1, tries.length - 1)] ?? 1000;
     } else if (f.type === "choice") values[f.name] = f.options[0] ?? "";
-    else values[f.name] = EXAMPLES[f.name] ?? "";
+    else values[f.name] = examples?.[`${wf.opportunity_id}.${f.name}`] ?? examples?.[f.name] ?? EXAMPLES[f.name] ?? "";
   }
   return values;
 }
@@ -60,6 +63,7 @@ function CaseForm({
   org,
   busy,
   initial,
+  examples,
   onRun,
 }: {
   wf: BuiltWorkflow;
@@ -68,10 +72,14 @@ function CaseForm({
   busy: boolean;
   /** The last case's request, so coming back to Cases keeps what was typed */
   initial?: CaseRequest;
+  /** A sample company's example answers, in its own language */
+  examples?: Examples;
   onRun: (request: CaseRequest) => void;
 }) {
   const gapsFor = (field: string) => (wf.amount_gaps ?? []).filter((g) => g.field === field).map((g) => g.amount);
-  const [values, setValues] = useState<CaseRequest>(() => initial ?? initialCase(wf, start, gapsFor("estimated_cost")));
+  const [values, setValues] = useState<CaseRequest>(
+    () => initial ?? initialCase(wf, start, gapsFor("estimated_cost"), examples),
+  );
   const set = (name: string, value: string | number) => setValues((v) => ({ ...v, [name]: value }));
   const longText = (f: FormField) => /justification|reason|description|purpose/i.test(f.name);
 
@@ -432,6 +440,7 @@ export function CaseRun({
   org,
   nextNumber = 1,
   lastCase,
+  examples,
   onCase,
   onResolve,
 }: {
@@ -442,6 +451,8 @@ export function CaseRun({
   nextNumber?: number;
   /** The latest case: shown again when the page comes back, for instance after a decision */
   lastCase?: CaseRecord;
+  /** A sample company's example answers for its forms */
+  examples?: Examples;
   onCase?: (record: CaseRecord) => void;
   onResolve?: (workflowId: string) => void;
 }) {
@@ -519,6 +530,7 @@ export function CaseRun({
           org={org}
           busy={busy}
           initial={lastRequest && lastHere?.startId === start.id ? lastRequest : undefined}
+          examples={examples}
           onRun={run}
         />
         <div className="flex flex-col gap-4">

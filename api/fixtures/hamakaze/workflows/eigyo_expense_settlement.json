@@ -1,0 +1,112 @@
+{
+  "workflow_name": "営業経費精算申請",
+  "opportunity_id": "eigyo_expense_settlement",
+  "department": "営業部",
+  "fields": [
+    {
+      "name": "expense_amount",
+      "label": "精算金額",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "receipt",
+      "label": "領収書",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "expense_amount",
+    "receipt"
+  ],
+  "rules": [
+    {
+      "id": "rule_expense_lte_100k",
+      "when": {
+        "field": "expense_amount",
+        "op": "<=",
+        "value": 100000
+      },
+      "source": "10万円以下 営業部長"
+    },
+    {
+      "id": "rule_expense_gt_100k",
+      "when": {
+        "field": "expense_amount",
+        "op": ">",
+        "value": 100000
+      },
+      "source": "10万円を超える場合 営業部長、経理部長"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "領収書の添付および精算金額の記載を確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_approval_manager",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approval_keiri_bucho",
+      "type": "approval",
+      "actor": "keiri_bucho",
+      "only_if": "rule_expense_gt_100k",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_task_forward_to_keiri",
+      "type": "task",
+      "actor": "営業部",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "expense_amount",
+      "min": null,
+      "max": 100000.0,
+      "source": "10万円以下 営業部長"
+    },
+    {
+      "field": "expense_amount",
+      "min": 100000.0,
+      "max": null,
+      "source": "10万円を超える場合 営業部長、経理部長"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "経理部",
+  "output": "承認された経費精算書",
+  "explanation": "経費精算規程に基づき、営業担当からの経費精算申請に対して領収書の確認および営業部長の承認を実施します。精算金額が10万円を超える場合は経理部長の承認を追加し、承認後に経理部へ回付されます。",
+  "upstream_id": null
+}

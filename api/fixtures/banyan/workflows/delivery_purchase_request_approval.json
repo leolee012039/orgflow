@@ -1,0 +1,134 @@
+{
+  "workflow_name": "Project Purchase Request",
+  "opportunity_id": "delivery_purchase_request_approval",
+  "department": "Delivery",
+  "fields": [
+    {
+      "name": "item",
+      "label": "Item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "client_project",
+      "label": "Client project",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_cost",
+      "label": "Estimated cost in Indian rupees excluding GST",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "business_reason",
+      "label": "Business reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "client_project",
+    "estimated_cost",
+    "business_reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_fc_approval",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 50000
+      },
+      "source": "Above Rs. 50,000/- up to Rs. 5,00,000/- Head of Delivery approval + Finance Controller approval"
+    },
+    {
+      "id": "rule_cfo_approval",
+      "when": {
+        "field": "estimated_cost",
+        "op": ">",
+        "value": 500000
+      },
+      "source": "Above Rs. 5,00,000/- Head of Delivery approval + Finance Controller approval + Chief Financial Officer approval"
+    }
+  ],
+  "steps": [
+    {
+      "id": "ai_review_request",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify purchase request details including item, client project, estimated cost, and business reason",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "approval_head_of_delivery",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "approval_finance_controller",
+      "type": "approval",
+      "actor": "finance_controller",
+      "only_if": "rule_fc_approval",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "approval_chief_financial_officer",
+      "type": "approval",
+      "actor": "Chief Financial Officer",
+      "only_if": "rule_cfo_approval",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "Chief Financial Officer"
+  ],
+  "amount_tiers": [
+    {
+      "field": "estimated_cost",
+      "min": null,
+      "max": 50000.0,
+      "source": "Up to Rs. 50,000/- Head of Delivery approval"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 50000.0,
+      "max": 500000.0,
+      "source": "Above Rs. 50,000/- up to Rs. 5,00,000/- Head of Delivery approval + Finance Controller approval"
+    },
+    {
+      "field": "estimated_cost",
+      "min": 500000.0,
+      "max": null,
+      "source": "Above Rs. 5,00,000/- Head of Delivery approval + Finance Controller approval + Chief Financial Officer approval"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "IT & Administration",
+  "output": "approved purchase request",
+  "explanation": "This workflow configures the purchase request submission and multi-tiered approvals defined in the Purchase Policy. Approvals dynamically route from the Head of Delivery up to Finance Controller and Chief Financial Officer depending on the estimated cost excluding GST.",
+  "upstream_id": null
+}

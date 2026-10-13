@@ -1,6 +1,6 @@
 # Banyan Lantern Technologies (fictional, India)
 
-A software company in Bengaluru written for trying OrgFlow on documents it has never seen: an org chart and four policies and procedures, in English, with amounts written the Indian way ("Rs. 5,00,000/-", "₹1 lakh"). No company of this name turned up in a search on 13 October 2026; every page says it is fictional. The upload page on https://orgflowai.web.app offers the same five PDFs as a ZIP.
+A software company in Bengaluru written for trying OrgFlow on documents it has never seen: an org chart and four policies and procedures, in English, with amounts written the Indian way ("Rs. 5,00,000/-", "₹1 lakh"). No company of this name turned up in a search on 13 October 2026; every page says it is fictional. It is one of the samples on https://orgflowai.web.app, which open without an account.
 
 Two problems are written in on purpose:
 1. Purchases above Rs. 5,00,000/- need "Chief Financial Officer" approval, and the org chart has no Chief Financial Officer.

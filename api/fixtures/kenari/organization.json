@@ -1,0 +1,173 @@
+{
+  "company": "PT Kenari Dana Sejahtera",
+  "departments": [
+    {
+      "name": "Pemasaran",
+      "head_role_id": "kepala_pemasaran"
+    },
+    {
+      "name": "Kredit",
+      "head_role_id": "kepala_kredit"
+    },
+    {
+      "name": "Operasional",
+      "head_role_id": "kepala_operasional"
+    },
+    {
+      "name": "Layanan Nasabah",
+      "head_role_id": "kepala_layanan_nasabah"
+    },
+    {
+      "name": "Keuangan",
+      "head_role_id": "kepala_keuangan"
+    }
+  ],
+  "roles": [
+    {
+      "id": "direktur_utama",
+      "title": "Direktur Utama",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "Memimpin perusahaan dan seluruh divisi."
+      ]
+    },
+    {
+      "id": "kepala_pemasaran",
+      "title": "Kepala Pemasaran",
+      "department": "Pemasaran",
+      "reports_to": "direktur_utama",
+      "responsibilities": [
+        "Memimpin tim pemasaran dan menetapkan target penyaluran pembiayaan."
+      ]
+    },
+    {
+      "id": "staf_pemasaran",
+      "title": "Staf Pemasaran",
+      "department": "Pemasaran",
+      "reports_to": "kepala_pemasaran",
+      "responsibilities": [
+        "Mencari nasabah baru dan mengajukan permohonan kredit."
+      ]
+    },
+    {
+      "id": "kepala_kredit",
+      "title": "Kepala Kredit",
+      "department": "Kredit",
+      "reports_to": "direktur_utama",
+      "responsibilities": [
+        "Memimpin divisi kredit dan menyetujui pembiayaan sesuai kewenangannya."
+      ]
+    },
+    {
+      "id": "analis_kredit",
+      "title": "Analis Kredit",
+      "department": "Kredit",
+      "reports_to": "kepala_kredit",
+      "responsibilities": [
+        "Memeriksa dokumen nasabah dan membuat rekomendasi kredit."
+      ]
+    },
+    {
+      "id": "kepala_operasional",
+      "title": "Kepala Operasional",
+      "department": "Operasional",
+      "reports_to": "direktur_utama",
+      "responsibilities": [
+        "Memimpin divisi operasional dan pencairan dana."
+      ]
+    },
+    {
+      "id": "staf_operasional",
+      "title": "Staf Operasional",
+      "department": "Operasional",
+      "reports_to": "kepala_operasional",
+      "responsibilities": [
+        "Memeriksa perjanjian kredit dan mencairkan dana."
+      ]
+    },
+    {
+      "id": "kepala_layanan_nasabah",
+      "title": "Kepala Layanan Nasabah",
+      "department": "Layanan Nasabah",
+      "reports_to": "direktur_utama",
+      "responsibilities": [
+        "Memimpin layanan nasabah dan menangani keluhan."
+      ]
+    },
+    {
+      "id": "petugas_layanan",
+      "title": "Petugas Layanan",
+      "department": "Layanan Nasabah",
+      "reports_to": "kepala_layanan_nasabah",
+      "responsibilities": [
+        "Menjawab pertanyaan nasabah dan menerima permohonan keringanan denda."
+      ]
+    },
+    {
+      "id": "kepala_keuangan",
+      "title": "Kepala Keuangan",
+      "department": "Keuangan",
+      "reports_to": "direktur_utama",
+      "responsibilities": [
+        "Mengelola anggaran, kas dan laporan keuangan."
+      ]
+    },
+    {
+      "id": "staf_akuntansi",
+      "title": "Staf Akuntansi",
+      "department": "Keuangan",
+      "reports_to": "kepala_keuangan",
+      "responsibilities": [
+        "Mencatat pembayaran nasabah dan menyesuaikan saldo pinjaman."
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Pemasaran",
+      "to": "Kredit",
+      "description": "Staf Pemasaran mengajukan permohonan kredit ke Divisi Kredit.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Staf Pemasaran mengajukan permohonan kredit ke Divisi Kredit dengan nama nasabah, jumlah pinjaman, tenor, tujuan pinjaman dan dokumen pendukung."
+      }
+    },
+    {
+      "from": "Kredit",
+      "to": "Operasional",
+      "description": "Kredit yang disetujui diteruskan ke Divisi Operasional.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Kredit yang disetujui diteruskan ke Divisi Operasional."
+      }
+    },
+    {
+      "from": "Operasional",
+      "to": "Keuangan",
+      "description": "Divisi Operasional mengirim laporan pencairan ke Divisi Keuangan.",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "lalu mengirim laporan pencairan ke Divisi Keuangan."
+      }
+    },
+    {
+      "from": "Layanan Nasabah",
+      "to": "Keuangan",
+      "description": "Keringanan denda yang disetujui diteruskan ke Divisi Keuangan.",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Keringanan yang disetujui diteruskan ke Divisi Keuangan."
+      }
+    },
+    {
+      "from": "Operasional",
+      "to": "Layanan Nasabah",
+      "description": "Divisi Operasional mengirim data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah.",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "Setelah dana dicairkan, Divisi Operasional mengirim data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah."
+      }
+    }
+  ]
+}

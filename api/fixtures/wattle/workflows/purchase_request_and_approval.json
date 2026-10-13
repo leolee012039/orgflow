@@ -1,0 +1,172 @@
+{
+  "workflow_name": "Purchasing and Equipment Policy",
+  "opportunity_id": "purchase_request_and_approval",
+  "department": "Practice Operations",
+  "fields": [
+    {
+      "name": "item",
+      "label": "item",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "item_type",
+      "label": "item type",
+      "type": "choice",
+      "options": [
+        "Clinical equipment",
+        "Medical supplies",
+        "Services"
+      ]
+    },
+    {
+      "name": "clinic",
+      "label": "clinic",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "cost_incl_gst",
+      "label": "cost including GST",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "item_type",
+    "clinic",
+    "cost_incl_gst",
+    "reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_clinical_equipment",
+      "when": {
+        "field": "item_type",
+        "op": "==",
+        "value": "Clinical equipment"
+      },
+      "source": "Clinical equipment also needs the Clinical Director's sign-off."
+    },
+    {
+      "id": "rule_over_5000",
+      "when": {
+        "field": "cost_incl_gst",
+        "op": ">",
+        "value": 5000
+      },
+      "source": "Over $5,000 and up to $25,000 Operations Manager and Finance Manager"
+    },
+    {
+      "id": "rule_over_25000",
+      "when": {
+        "field": "cost_incl_gst",
+        "op": ">",
+        "value": 25000
+      },
+      "source": "Over $25,000 Operations Manager, Finance Manager and Chief Operating Officer"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify all purchase request details including item, clinic, cost including GST, and reason are provided",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_operations_manager_approval",
+      "type": "approval",
+      "actor": "operations_manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_clinical_director_approval",
+      "type": "approval",
+      "actor": "clinical_director",
+      "only_if": "rule_clinical_equipment",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_finance_manager_approval",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_over_5000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_coo_approval",
+      "type": "approval",
+      "actor": "Chief Operating Officer",
+      "only_if": "rule_over_25000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_create_purchase_order",
+      "type": "task",
+      "actor": "practice_coordinator",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "Chief Operating Officer"
+  ],
+  "amount_tiers": [
+    {
+      "field": "cost_incl_gst",
+      "min": null,
+      "max": 5000.0,
+      "source": "Up to $5,000 Operations Manager"
+    },
+    {
+      "field": "cost_incl_gst",
+      "min": 5000.0,
+      "max": 25000.0,
+      "source": "Over $5,000 and up to $25,000 Operations Manager and Finance Manager"
+    },
+    {
+      "field": "cost_incl_gst",
+      "min": 25000.0,
+      "max": null,
+      "source": "Over $25,000 Operations Manager, Finance Manager and Chief Operating Officer"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": null,
+  "output": "Approved purchase order",
+  "explanation": "This workflow follows the Purchasing and Equipment Policy by capturing all mandatory request details and routing approvals through the Operations Manager, Clinical Director (for clinical equipment), Finance Manager (over $5,000), and Chief Operating Officer (over $25,000). The Chief Operating Officer is designated as an unresolved actor as the title does not exist in the organization chart.",
+  "upstream_id": null
+}

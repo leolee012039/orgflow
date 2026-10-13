@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SAMPLE_FILES } from "@/lib/api";
+import { fileName, sampleById, sampleFiles } from "@/lib/samples";
 import type { Workspace } from "@/lib/workspaces";
 import type { Documents } from "@/lib/types";
 import { OrgView } from "../OrgView";
@@ -22,6 +22,8 @@ export function DocumentsView({
   onDocs: (docs: Documents) => void;
 }) {
   const [draft, setDraft] = useState<DraftDocuments>({ policies: [] });
+  // A sample's own files open from /demo/; the path of the one with this name, if it is one of them
+  const samplePath = (name: string) => sampleFiles(sampleById(workspace.sampleId)).find((p) => fileName(p) === name);
   const files = [
     { label: "Organization chart", name: workspace.documents.orgChart },
     ...workspace.documents.policies.map((name, i) => ({ label: `Policy ${i + 1}`, name })),
@@ -34,8 +36,8 @@ export function DocumentsView({
           {files.map((f) => (
             <li key={f.label} className="grid gap-1 px-5 py-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
               <span className="text-sm text-muted">{f.label}</span>
-              {workspace.sample && [SAMPLE_FILES.orgChart, ...SAMPLE_FILES.policies].includes(f.name) ? (
-                <a href={`/demo/${f.name}`} target="_blank" rel="noreferrer" className="break-all font-medium text-ai hover:underline">
+              {workspace.sample && samplePath(f.name) ? (
+                <a href={`/demo/${samplePath(f.name)}`} target="_blank" rel="noreferrer" className="break-all font-medium text-ai hover:underline">
                   {f.name}
                 </a>
               ) : (

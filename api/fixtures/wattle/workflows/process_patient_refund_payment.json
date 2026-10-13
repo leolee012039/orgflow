@@ -1,0 +1,74 @@
+{
+  "workflow_name": "Patient Refund Payment Processing",
+  "opportunity_id": "process_patient_refund_payment",
+  "department": "Finance",
+  "fields": [
+    {
+      "name": "patient",
+      "label": "patient",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_number",
+      "label": "invoice number",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "amount",
+      "label": "amount",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "patient",
+    "invoice_number",
+    "amount",
+    "reason"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify that patient, invoice number, amount, and reason are provided.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2",
+      "type": "task",
+      "actor": "accounts_officer",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Patient Services",
+  "hands_to": null,
+  "output": "Refunded patient card transaction",
+  "explanation": "This workflow executes the processing of approved refunds received from Patient Services as defined in the Patient Fee Refund Policy. The Accounts Officer refunds the patient's card within 5 business days without requiring additional approvals within Finance.",
+  "upstream_id": "patient_fee_refund_request"
+}

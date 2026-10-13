@@ -1,0 +1,66 @@
+{
+  "workflow_name": "経費支払処理",
+  "opportunity_id": "keiri_expense_payment",
+  "department": "経理部",
+  "fields": [
+    {
+      "name": "part_number",
+      "label": "品番",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "数量",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "delivery_date",
+      "label": "納期",
+      "type": "date",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "承認された経費精算書の回付内容を確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "pay_with_salary",
+      "type": "task",
+      "actor": "keiri_tanto",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "営業部",
+  "hands_to": null,
+  "output": "給与合算支払データ",
+  "explanation": "経費精算規程第4条に基づき、営業部から回付された承認済みの経費精算書について、経理担当が翌月の給与と合わせて支払う処理を行います。本ワークフローは前工程から引き継がれるため新たな承認ステップは不要であり、AIチェック、支払処理タスク、申請者への通知で構成されています。",
+  "upstream_id": "eigyo_shipping_report_to_keiri"
+}

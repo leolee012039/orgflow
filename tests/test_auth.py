@@ -14,7 +14,8 @@ from schemas import Organization
 
 ROOT = Path(__file__).resolve().parent.parent
 SAMPLE = upload_files()
-OTHER = upload_files((ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Org_Chart.pdf").read_bytes(),
+# Not a sample: the gym chain is one, so a byte added after its end gives other documents with the same text
+OTHER = upload_files((ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Org_Chart.pdf").read_bytes() + b"\n% not a sample\n",
                      [(ROOT / "demo_assets" / "zh" / "Xiangying_Fitness_Purchasing_Policy.pdf").read_bytes()])
 client = TestClient(main.app)
 

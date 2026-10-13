@@ -1,0 +1,192 @@
+[
+  {
+    "id": "novagear",
+    "company": "NovaGear Inc.",
+    "market": "United States",
+    "industry": "Consumer electronics",
+    "language": "English",
+    "orgChart": "NovaGear_Organization_Chart.pdf",
+    "policies": [
+      "NovaGear_Purchasing_Policy.pdf",
+      "NovaGear_Procurement_Payment_Procedures.pdf",
+      "NovaGear_Sales_Discount_Policy.pdf"
+    ]
+  },
+  {
+    "id": "banyan",
+    "company": "Banyan Lantern Technologies",
+    "market": "India",
+    "industry": "Software services",
+    "language": "English",
+    "orgChart": "banyan/Banyan_Lantern_Organization_Chart.pdf",
+    "policies": [
+      "banyan/Banyan_Lantern_Purchase_Policy.pdf",
+      "banyan/Banyan_Lantern_Travel_and_Expense_Policy.pdf",
+      "banyan/Banyan_Lantern_Employee_Onboarding_Procedure.pdf",
+      "banyan/Banyan_Lantern_Client_Project_Handover_Procedure.pdf"
+    ],
+    "examples": {
+      "item": "Two developer laptops for the Atlas project",
+      "client_project": "Atlas Retail Bank, mobile banking app",
+      "business_reason": "Two engineers join the project next month and need laptops on their first day.",
+      "trip_purpose": "Requirements workshop at the client's Mumbai office",
+      "original_bills": "Train tickets, hotel invoice and meal receipts attached",
+      "client": "Atlas Retail Bank",
+      "project_name": "Mobile banking app",
+      "milestone_name": "Milestone 2: user acceptance testing",
+      "signed_milestone_acceptance": "Signed acceptance from the client attached",
+      "employee_name": "Priya Sharma",
+      "role": "Senior Developer",
+      "employee_department": "Delivery",
+      "joining_date": "2026-11-02",
+      "laptop_requirements": "16 GB laptop with a second monitor",
+      "bank_account": "Savings account ending 4821",
+      "pan": "ABCPS1234K",
+      "vendor_name": "Southline Computers",
+      "purchase_order_number": "PO-2026-0187",
+      "invoice_file": "GST invoice attached",
+      "statement_of_work": "Signed statement of work attached",
+      "scope": "Mobile banking app, phase 1",
+      "milestones": "Design, build, user acceptance testing",
+      "agreed_rates": "Fixed price for each milestone"
+    }
+  },
+  {
+    "id": "larkspur",
+    "company": "Larkspur Bay Logistics",
+    "market": "Singapore",
+    "industry": "Freight and warehousing",
+    "language": "English",
+    "orgChart": "larkspur/Larkspur_Bay_Organization_Chart.pdf",
+    "policies": [
+      "larkspur/Larkspur_Bay_Purchasing_Policy.pdf",
+      "larkspur/Larkspur_Bay_Customer_Credit_Note_Policy.pdf",
+      "larkspur/Larkspur_Bay_Shipment_Handover_Procedure.pdf"
+    ],
+    "examples": {
+      "shipment_number": "LBL-2026-10482",
+      "customer": "Harbourline Retail",
+      "reason": "Two cartons arrived crushed; the customer sent photos.",
+      "attachments": "Photos and the signed delivery note attached",
+      "item": "Replacement pallet jack",
+      "business_reason": "One of the warehouse's two pallet jacks is broken.",
+      "pick_up_date": "2026-10-20",
+      "cargo_details": "12 pallets of household goods, 4.2 tonnes"
+    }
+  },
+  {
+    "id": "xiangying",
+    "company": "翔鷹健身 Xiangying Fitness",
+    "market": "Taiwan",
+    "industry": "Gym chain",
+    "language": "Traditional Chinese",
+    "orgChart": "xiangying/Xiangying_Fitness_Org_Chart.pdf",
+    "policies": [
+      "xiangying/Xiangying_Fitness_Purchasing_Policy.pdf"
+    ],
+    "examples": {
+      "item": "跑步機 2 台",
+      "purchase_reason": "店內兩台跑步機故障，需要更換，會員才有足夠的器材使用。",
+      "procurement_reason": "店內兩台跑步機故障，需要更換，會員才有足夠的器材使用。",
+      "equipment_name": "跑步機",
+      "incident_description": "跑步帶運轉時有異音，已暫停使用",
+      "member_name": "王小明",
+      "case_details": "詢問年約續約方案與優惠",
+      "payment_subject": "器材採購款",
+      "invoice_number": "AB-12345678",
+      "inspection_items": "環境清潔、器材保養、人力排班"
+    }
+  },
+  {
+    "id": "hamakaze",
+    "company": "浜風精工 Hamakaze Seiko",
+    "market": "Japan",
+    "industry": "Precision parts",
+    "language": "Japanese",
+    "orgChart": "hamakaze/Hamakaze_Seiko_Org_Chart.pdf",
+    "policies": [
+      "hamakaze/Hamakaze_Seiko_Purchasing_Rules.pdf",
+      "hamakaze/Hamakaze_Seiko_Expense_Rules.pdf",
+      "hamakaze/Hamakaze_Seiko_Order_to_Shipment_Procedure.pdf"
+    ],
+    "examples": {
+      "item_name": "精密加工用の工具一式",
+      "purpose": "現在の工具が摩耗し、加工精度を保てないため。",
+      "part_number": "HS-4120",
+      "vendor_name": "北浜ツール株式会社",
+      "invoice_number": "INV-2026-0312",
+      "receipt": "領収書を添付"
+    }
+  },
+  {
+    "id": "nurisol",
+    "company": "누리솔마켓 Nurisol Market",
+    "market": "Korea",
+    "industry": "Online retail",
+    "language": "Korean",
+    "orgChart": "nurisol/Nurisol_Market_Org_Chart.pdf",
+    "policies": [
+      "nurisol/Nurisol_Market_Purchase_Approval_Rules.pdf",
+      "nurisol/Nurisol_Market_Refund_Rules.pdf",
+      "nurisol/Nurisol_Market_Promotion_Procedure.pdf"
+    ],
+    "examples": {
+      "item": "주방용 수납용기 300개",
+      "order_number": "NS-20261013-0042",
+      "customer_name": "김민지",
+      "reason": "배송 중 제품이 파손되어 고객이 사진을 보내 주셨습니다.",
+      "photo": "사진 3장 첨부",
+      "promotion_period": "2026-11-01 ~ 2026-11-07",
+      "target_products": "주방용품 전 품목",
+      "sales_details": "프로모션 기간 매출 내역 첨부",
+      "discount_details": "할인 내역 첨부"
+    }
+  },
+  {
+    "id": "kenari",
+    "company": "PT Kenari Dana Sejahtera",
+    "market": "Indonesia",
+    "industry": "Consumer and small-business lending",
+    "language": "Indonesian",
+    "orgChart": "kenari/Kenari_Dana_Struktur_Organisasi.pdf",
+    "policies": [
+      "kenari/Kenari_Dana_Kebijakan_Persetujuan_Kredit.pdf",
+      "kenari/Kenari_Dana_Kebijakan_Keringanan_Denda.pdf",
+      "kenari/Kenari_Dana_Prosedur_Serah_Terima_Nasabah.pdf"
+    ],
+    "examples": {
+      "nama_nasabah": "Budi Santoso",
+      "tenor": "24 bulan",
+      "tujuan_pinjaman": "Modal kerja untuk menambah stok toko",
+      "dokumen_pendukung": "KTP, slip gaji 3 bulan terakhir, rekening koran",
+      "nomor_kontrak": "KDS-2026-00418",
+      "alasan_keterlambatan": "Nasabah dirawat di rumah sakit selama dua minggu.",
+      "jadwal_angsuran": "Setiap tanggal 5, sebanyak 24 kali"
+    }
+  },
+  {
+    "id": "wattle",
+    "company": "Wattle Creek Medical Group",
+    "market": "Australia",
+    "industry": "General practice clinics",
+    "language": "English",
+    "orgChart": "wattle/Wattle_Creek_Organisation_Chart.pdf",
+    "policies": [
+      "wattle/Wattle_Creek_Purchasing_Policy.pdf",
+      "wattle/Wattle_Creek_Patient_Refund_Policy.pdf",
+      "wattle/Wattle_Creek_Clinician_Onboarding.pdf"
+    ],
+    "examples": {
+      "item": "Patient examination couch",
+      "clinic": "Wattle Creek North",
+      "purchase_request_and_approval.reason": "The examination couch in room 3 is broken and unsafe.",
+      "patient": "Emily Nguyen",
+      "invoice_number": "WC-INV-20431",
+      "patient_fee_refund_request.reason": "Charged twice for the same consultation on 6 October.",
+      "clinician_name": "Dr Sam Patel",
+      "registration_number": "MED0001234567",
+      "supplier_name": "Coastline Medical Supplies",
+      "purchase_order_number": "PO-4471"
+    }
+  }
+]

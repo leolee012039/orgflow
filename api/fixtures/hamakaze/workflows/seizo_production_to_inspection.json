@@ -1,0 +1,67 @@
+{
+  "workflow_name": "製造完了および検査引渡",
+  "opportunity_id": "seizo_production_to_inspection",
+  "department": "製造部",
+  "fields": [
+    {
+      "name": "part_number",
+      "label": "品番",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "quantity",
+      "label": "数量",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "delivery_date",
+      "label": "納期",
+      "type": "date",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "part_number",
+    "quantity",
+    "delivery_date"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "review_instruction",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "製造指示依頼の品番、数量、納期が正しく入力されているか確認する",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "manufacture_and_handoff",
+      "type": "task",
+      "actor": "製造部",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "営業部",
+  "hands_to": "品質保証部",
+  "output": "製造が完了した製品",
+  "explanation": "受注・出荷手順書に基づき、営業部から受領した製造指示依頼の品番、数量、納期情報を引き継いで製造を実施します。製造完了後は手順書の定めに従って品質保証部へ製品を引き渡します。",
+  "upstream_id": "eigyo_order_to_manufacturing"
+}

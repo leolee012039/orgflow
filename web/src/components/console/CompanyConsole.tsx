@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { buildOrder, upstreamOf } from "@/lib/chain";
 import { Decisions, openProblems, settledProblems, withDecision, withoutDecision } from "@/lib/decisions";
 import { layers } from "./DepartmentCanvas";
+import { sampleById } from "@/lib/samples";
 import { useBuilds } from "@/lib/useBuilds";
 import type { BuiltWorkflow, CaseRecord, Decision, Documents, WorkflowCandidate } from "@/lib/types";
 import { MAX_CASES, type Workspace } from "@/lib/workspaces";
@@ -300,7 +301,16 @@ export function CompanyConsole({
               />
             )}
             {section === "cases" && (
-              <CasesView plan={candidates} built={built} org={org} cases={cases} editable={editable} onCase={addCase} onResolve={openInWorkflows} />
+              <CasesView
+                plan={candidates}
+                built={built}
+                org={org}
+                cases={cases}
+                editable={editable}
+                examples={workspace.sample ? sampleById(workspace.sampleId).examples : undefined}
+                onCase={addCase}
+                onResolve={openInWorkflows}
+              />
             )}
             {section === "documents" && <DocumentsView workspace={workspace} docs={docs} editable={editable} onDocs={onDocs} />}
           </div>

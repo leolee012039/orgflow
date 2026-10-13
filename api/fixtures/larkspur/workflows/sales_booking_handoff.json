@@ -1,0 +1,69 @@
+{
+  "workflow_name": "Shipment Handover Procedure - Bookings",
+  "opportunity_id": "sales_booking_handoff",
+  "department": "Sales",
+  "fields": [
+    {
+      "name": "pick_up_date",
+      "label": "Pick-up date",
+      "type": "date",
+      "options": []
+    },
+    {
+      "name": "cargo_details",
+      "label": "Cargo details",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "agreed_rate",
+      "label": "Agreed rate",
+      "type": "number",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "pick_up_date",
+    "cargo_details",
+    "agreed_rate"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "review_booking_details",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify that pick-up date, cargo details, and agreed rate are provided",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "send_booking_confirmation",
+      "type": "task",
+      "actor": "account_executive",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "Operations",
+  "output": "Booking confirmation sent to Operations",
+  "explanation": "According to Policy 3, when a customer confirms a booking, the Account Executive sends the booking confirmation to Operations with the pick-up date, cargo details, and agreed rate. No internal approval tiers are required for this booking handoff step before forwarding it to Operations.",
+  "upstream_id": null
+}

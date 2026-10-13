@@ -1,0 +1,78 @@
+{
+  "workflow_name": "프로모션 재고 확인 및 출고 준비 요청",
+  "opportunity_id": "promotion_inventory_check_and_dispatch_request",
+  "department": "상품기획팀",
+  "fields": [
+    {
+      "name": "promotion_period",
+      "label": "기간",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "discount_rate",
+      "label": "할인율",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "target_products",
+      "label": "대상 상품",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "promotion_period",
+    "discount_rate",
+    "target_products"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "프로모션 계획 필수 정보(기간, 할인율, 대상 상품) 확인",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_inventory_check",
+      "type": "task",
+      "actor": "md",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_request_dispatch_prep",
+      "type": "task",
+      "actor": "md",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "마케팅팀",
+  "hands_to": "물류팀",
+  "output": "출고 준비 요청",
+  "explanation": "이 워크플로는 policy_3에 명시된 대로 마케팅팀의 프로모션 계획을 받아 상품기획팀 MD가 재고를 확인하고 물류팀에 출고 준비를 요청하는 절차를 따릅니다. 별도의 승인 절차 없이 MD의 업무 수행과 요청자 알림으로 간결하고 정확하게 구성되었습니다.",
+  "upstream_id": "promotion_planning_and_submission"
+}

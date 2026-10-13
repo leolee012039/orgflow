@@ -1,0 +1,76 @@
+{
+  "workflow_name": "Delivery Execution and Proof of Delivery Handoff",
+  "opportunity_id": "operations_delivery_execution_and_pod",
+  "department": "Operations",
+  "fields": [
+    {
+      "name": "pick_up_date",
+      "label": "Pick-up date",
+      "type": "date",
+      "options": []
+    },
+    {
+      "name": "cargo_details",
+      "label": "Cargo details",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "agreed_rate",
+      "label": "Agreed rate",
+      "type": "number",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "pick_up_date",
+    "cargo_details",
+    "agreed_rate"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify pick-up date, cargo details, and agreed rate from booking confirmation",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2",
+      "type": "task",
+      "actor": "shipment_coordinator",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3",
+      "type": "task",
+      "actor": "Operations",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_4",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Sales",
+  "hands_to": "Finance",
+  "output": "Signed proof of delivery sent to Finance",
+  "explanation": "This workflow executes the delivery procedure defined in policy_3 where the Shipment Coordinator plans pick-up and delivery upon receiving a booking confirmation. Once delivered, Operations transmits the signed proof of delivery to Finance without requiring intermediate management approvals.",
+  "upstream_id": "sales_booking_handoff"
+}

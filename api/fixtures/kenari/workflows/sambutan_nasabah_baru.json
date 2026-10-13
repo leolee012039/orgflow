@@ -1,0 +1,60 @@
+{
+  "workflow_name": "Sambutan Nasabah Baru",
+  "opportunity_id": "sambutan_nasabah_baru",
+  "department": "Layanan Nasabah",
+  "fields": [
+    {
+      "name": "nama_nasabah",
+      "label": "data nasabah",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "jadwal_angsuran",
+      "label": "jadwal angsuran",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "nama_nasabah",
+    "jadwal_angsuran"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Memeriksa kelengkapan data nasabah dan jadwal angsuran",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_hubungi_nasabah",
+      "type": "task",
+      "actor": "petugas_layanan",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notifikasi",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "Operasional",
+  "hands_to": null,
+  "output": "Konfirmasi sambutan dan penjelasan pembayaran",
+  "explanation": "Alur kerja ini mengimplementasikan Prosedur Serah Terima Nasabah Baru berdasarkan policy_3 tanpa memerlukan persetujuan berjenjang. Petugas Layanan ditugaskan untuk menghubungi nasabah dalam 3 hari kerja guna menjelaskan jadwal angsuran serta tata cara pembayaran.",
+  "upstream_id": "penyerahan_data_nasabah_baru"
+}

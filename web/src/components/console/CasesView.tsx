@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { orderedBuilt } from "@/lib/chain";
 import type { BuiltWorkflow, CaseRecord, Organization, WorkflowCandidate } from "@/lib/types";
-import { CaseRun, caseResult, ChainSlip } from "../CaseRun";
+import { CaseRun, caseResult, ChainSlip, type Examples } from "../CaseRun";
 
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -15,6 +15,7 @@ export function CasesView({
   org,
   cases,
   editable = true,
+  examples,
   onCase,
   onResolve,
 }: {
@@ -22,6 +23,8 @@ export function CasesView({
   built: Record<string, BuiltWorkflow>;
   org: Organization;
   cases: CaseRecord[];
+  /** A sample company's example answers for its forms */
+  examples?: Examples;
   /** False for a company shared by link: cases still run, but only the owner's are saved */
   editable?: boolean;
   onCase: (record: CaseRecord) => void;
@@ -45,7 +48,16 @@ export function CasesView({
               This company was shared with you. Cases you run here are only on this page: they aren&apos;t saved.
             </p>
           )}
-          <CaseRun plan={plan} built={built} org={org} nextNumber={next} lastCase={cases[0]} onCase={onCase} onResolve={onResolve} />
+          <CaseRun
+            plan={plan}
+            built={built}
+            org={org}
+            nextNumber={next}
+            lastCase={cases[0]}
+            examples={examples}
+            onCase={onCase}
+            onResolve={onResolve}
+          />
         </div>
       )}
 

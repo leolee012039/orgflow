@@ -1,0 +1,83 @@
+{
+  "workflow_name": "고객 환불금 지급 처리",
+  "opportunity_id": "customer_refund_execution",
+  "department": "재무팀",
+  "fields": [
+    {
+      "name": "order_number",
+      "label": "주문번호",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "customer_name",
+      "label": "고객명",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "refund_amount",
+      "label": "환불 금액",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "사유",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "photo",
+      "label": "사진",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "order_number",
+    "customer_name",
+    "refund_amount",
+    "reason",
+    "photo"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "승인된 환불 요청서의 주문번호, 고객명, 환불 금액, 사유, 사진 등 필수 정보 누락 여부를 확인한다.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_refund_processing",
+      "type": "task",
+      "actor": "accounting_specialist",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": "고객지원팀",
+  "hands_to": null,
+  "output": "환불 처리 완료 내역",
+  "explanation": "환불 및 보상 규정 제4조에 따라 고객지원팀에서 전달된 승인된 환불 요청에 대해 회계 담당자가 3영업일 이내에 환불 처리를 수행합니다. 재무팀 내 추가 승인 절차가 명시되어 있지 않으므로 결재 단계 없이 검토 및 처리 작업 후 요청 부서로 결과를 통보하도록 설계되었습니다.",
+  "upstream_id": "customer_refund_request_and_approval"
+}

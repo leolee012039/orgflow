@@ -277,15 +277,18 @@ def find_gaps(workflow: Workflow, org_chart_text: str) -> list[dict[str, Any]]:
 
 
 def is_sample_workflow(wf: Workflow) -> bool:
-    """Whether this is one of the bundled sample's saved workflows, with the checks Gemini reviews unchanged."""
+    """Whether this is one of the bundled samples' saved workflows, with the checks Gemini reviews unchanged."""
     if not re.fullmatch(r"[a-z0-9_]+", wf.opportunity_id):
         return False
-    rel = f"novagear/workflows/{wf.opportunity_id}.json"
-    if not os.path.exists(os.path.join(FIXTURES_DIR, rel)):
-        return False
-    saved = Workflow.model_validate(load_fixture(rel))
-    return (wf.required_fields == saved.required_fields
-            and [(s.type, s.check) for s in wf.steps] == [(s.type, s.check) for s in saved.steps])
+    for name in load_fixture("sample_documents.json"):
+        rel = f"{name}/workflows/{wf.opportunity_id}.json"
+        if not os.path.exists(os.path.join(FIXTURES_DIR, rel)):
+            continue
+        saved = Workflow.model_validate(load_fixture(rel))
+        if (wf.required_fields == saved.required_fields
+                and [(s.type, s.check) for s in wf.steps] == [(s.type, s.check) for s in saved.steps]):
+            return True
+    return False
 
 
 async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandidate,

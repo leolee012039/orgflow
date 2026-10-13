@@ -1,0 +1,145 @@
+{
+  "workflow_name": "台北信義店器材及用品請購簽核",
+  "opportunity_id": "xinyi_equipment_requisition_flow",
+  "department": "台北信義店",
+  "fields": [
+    {
+      "name": "item",
+      "label": "品項",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "estimated_amount",
+      "label": "預估金額",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "procurement_reason",
+      "label": "採購理由",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "item",
+    "estimated_amount",
+    "procurement_reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_estimated_amount_gt_20000",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">",
+        "value": 20000
+      },
+      "source": "逾新臺幣二萬元，未達新臺幣十萬元 所屬單位主管及財務經理核准"
+    },
+    {
+      "id": "rule_estimated_amount_gt_100000",
+      "when": {
+        "field": "estimated_amount",
+        "op": ">",
+        "value": 100000
+      },
+      "source": "逾新臺幣十萬元 所屬單位主管、財務經理及區經理核准後，陳總經理核定"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "檢查每件請購是否載明申請人、所屬單位、品項、預估金額及採購理由，資料不全者不得送簽",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_unit_manager_approval",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_finance_manager_approval",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_estimated_amount_gt_20000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_district_manager_approval",
+      "type": "approval",
+      "actor": "區經理",
+      "only_if": "rule_estimated_amount_gt_100000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_general_manager_approval",
+      "type": "approval",
+      "actor": "general_manager",
+      "only_if": "rule_estimated_amount_gt_100000",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_procurement_task",
+      "type": "task",
+      "actor": "採購部",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [
+    "區經理"
+  ],
+  "amount_tiers": [
+    {
+      "field": "estimated_amount",
+      "min": null,
+      "max": 20000.0,
+      "source": "新臺幣二萬元以下 所屬單位主管核准"
+    },
+    {
+      "field": "estimated_amount",
+      "min": 20000.0,
+      "max": 100000.0,
+      "source": "逾新臺幣二萬元，未達新臺幣十萬元 所屬單位主管及財務經理核准"
+    },
+    {
+      "field": "estimated_amount",
+      "min": 100000.0,
+      "max": null,
+      "source": "逾新臺幣十萬元 所屬單位主管、財務經理及區經理核准後，陳總經理核定"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "採購部",
+  "output": "核准之器材及用品請購案",
+  "explanation": "本流程嚴格依據器材及用品採購作業辦法規劃，請購發起時由 AI 審查必填資訊完整性。簽核關卡依預估金額門檻逐級分派所屬單位主管、財務經理、區經理及總經理審核，核准後交由採購部辦理並於驗收後通知申請人。",
+  "upstream_id": null
+}

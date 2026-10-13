@@ -6,8 +6,7 @@ OrgFlow reads a company's org chart and policies, maps how work moves from depar
 
 Built for the Google Cloud AI Builder Cup 2026 (theme: Future of Work and Enterprise Productivity).
 
-- **Live app:** https://orgflowai.web.app (the NovaGear sample works without an account)
-- **Try your own upload:** sign in and upload the five PDFs of [Banyan Lantern Technologies](demo_assets/in), a fictional software company in India (the upload page offers them as a ZIP). Gemini reads them live; two problems are written in, and the folder's README names them.
+- **Live app:** https://orgflowai.web.app. Eight sample companies open at once without an account: NovaGear (United States), and fictional companies from India, Singapore, Taiwan, Japan, Korea, Indonesia and Australia, each in its own language and currency, with two problems written into its documents ([demo_assets](demo_assets)). Gemini's reading of each was checked and saved; your own documents are read live after a Google sign-in.
 - **Demo video:** added with the submission
 - **Evaluation on real documents:** [docs/EVAL.md](docs/EVAL.md)
 
@@ -81,7 +80,7 @@ Cloud Logging: one structured JSON event per Gemini call, guard result and case
 ## Privacy and limits
 
 - Uploaded PDFs are read in memory and not stored. Firestore keeps what OrgFlow derived from them, under the signer's account. Logs record events, timings and counts, not document text.
-- Analyzing your own documents needs a Google sign-in and is limited to about 30 analyses and 300 later steps per person per day (counted per server instance). The NovaGear sample opens from Gemini's checked, saved reading, so it opens at once; uploaded documents are always read live.
+- Analyzing your own documents needs a Google sign-in and is limited to about 30 analyses and 300 later steps per person per day (counted per server instance). The eight sample companies open from Gemini's checked, saved reading, so they open at once; uploaded documents are always read live.
 - Without an account, the sample builds only from its saved answers, and its cases get Gemini's review a few hundred times a day; a changed workflow gets the plain-code check instead. One setting pauses every Gemini call in an emergency ([docs/RUNBOOK.md](docs/RUNBOOK.md)).
 - Approvals are simulated: OrgFlow does not yet send requests to real approvers.
 - Each department gets at most three workflows, the most valuable first; a fourth process in the same department is left out. Very long documents can take longer than the 90 s limit per stage. Handoffs that the policies give to "any unit" are not mapped yet. Known issues are tracked in [docs/ISSUES.md](docs/ISSUES.md).
@@ -131,10 +130,10 @@ On Cloud Run the API refuses to start when sign-in is turned off, or `ALLOWED_OR
 
 ```
 api/            FastAPI app: agents/, guard.py, amount_coverage.py, runner.py, pipeline.py, auth.py
-api/fixtures/   the NovaGear sample's saved answers
+api/fixtures/   the sample companies' saved answers, one folder each, and their documents' fingerprints
 web/            Next.js app: the console (map, workflows, cases, documents)
 tests/          pytest suite
-scripts/        evaluation and sample PDF generators
+scripts/        evaluation, sample PDF generators, and save_sample.py, which reads a new sample company live once and saves it
 demo_assets/    sample PDFs: NovaGear (English), Banyan Lantern (India), Larkspur Bay (Singapore), Xiangying Fitness (Traditional Chinese),
                 Hamakaze Seiko (Japan), Nurisol Market (Korea), Kenari Dana (Indonesia), Wattle Creek (Australia)
 docs/           EVAL.md, ISSUES.md, DEPLOY_CHECKLIST.md, RUNBOOK.md, MOVE_PROJECT.md, SPEC.md (the archived build brief)

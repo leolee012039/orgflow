@@ -1,0 +1,62 @@
+{
+  "workflow_name": "프로모션 정산 자료 제출",
+  "opportunity_id": "promotion_settlement_delivery",
+  "department": "마케팅팀",
+  "fields": [
+    {
+      "name": "sales_details",
+      "label": "매출 내역",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "discount_details",
+      "label": "할인 내역",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "sales_details",
+    "discount_details"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "매출과 할인 내역이 포함되어 있는지 확인",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_deliver_settlement",
+      "type": "task",
+      "actor": "marketer",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "재무팀",
+  "output": "프로모션 정산 자료",
+  "explanation": "프로모션 진행 절차 제3조에 따라 프로모션 종료 후 마케팅팀이 매출과 할인 내역을 정리한 정산 자료를 재무팀에 전달하도록 설계했습니다. 별도의 내부 승인이나 금액별 결재선 규정이 없으므로 AI 검토 후 정산 자료 전달 태스크와 완료 알림으로 구성했습니다.",
+  "upstream_id": null
+}

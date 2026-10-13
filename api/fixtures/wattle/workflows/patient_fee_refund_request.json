@@ -1,0 +1,108 @@
+{
+  "workflow_name": "Patient Fee Refund Request and Approval",
+  "opportunity_id": "patient_fee_refund_request",
+  "department": "Patient Services",
+  "fields": [
+    {
+      "name": "patient",
+      "label": "patient",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "invoice_number",
+      "label": "invoice number",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "amount",
+      "label": "amount",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "reason",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "patient",
+    "invoice_number",
+    "amount",
+    "reason"
+  ],
+  "rules": [
+    {
+      "id": "rule_over_500",
+      "when": {
+        "field": "amount",
+        "op": ">",
+        "value": 500
+      },
+      "source": "More than $500 Patient Services Manager and Finance Manager"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Verify all refund request fields including patient, invoice number, amount, and reason are provided.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_approval_psm",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approval_fm",
+      "type": "approval",
+      "actor": "finance_manager",
+      "only_if": "rule_over_500",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "amount",
+      "min": null,
+      "max": 500.0,
+      "source": "Less than $500 Patient Services Manager"
+    },
+    {
+      "field": "amount",
+      "min": 500.0,
+      "max": null,
+      "source": "More than $500 Patient Services Manager and Finance Manager"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "Finance",
+  "output": "Approved refund request",
+  "explanation": "This workflow follows the Patient Fee Refund Policy by capturing all required refund submission details and routing approvals according to the stated thresholds. The Patient Services Manager reviews every request, while the Finance Manager also approves any refund exceeding $500 before it is handed over to Finance.",
+  "upstream_id": null
+}

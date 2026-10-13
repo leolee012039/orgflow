@@ -1,0 +1,177 @@
+{
+  "departments": [
+    {
+      "name": "Clinical Services",
+      "summary": "Clinical Services provides medical care to patients and manages clinical equipment and clinician schedules.",
+      "work": [
+        {
+          "task": "Seeing patients and requesting equipment",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Sees patients and requests clinical equipment and supplies."
+          }
+        },
+        {
+          "task": "Signing off on clinical equipment",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Leads the clinicians and signs off on clinical equipment."
+          }
+        },
+        {
+          "task": "Confirming clinician sessions",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "The Clinical Director confirms the clinician's sessions and sends a roster request to Practice Operations, which adds the clinician to the clinic rosters and the booking system."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Practice Operations",
+      "summary": "Practice Operations oversees clinic operations, purchasing, supplies, and clinician rostering.",
+      "work": [
+        {
+          "task": "Running clinics, rosters, and purchasing",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Runs the clinics, the rosters and purchasing, and approves the clinics' purchases."
+          }
+        },
+        {
+          "task": "Raising purchase requests and stocking clinics",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Raises purchase requests and keeps each clinic stocked."
+          }
+        },
+        {
+          "task": "Adding clinicians to rosters and the booking system",
+          "evidence": {
+            "doc": "policy_3",
+            "quote": "The Clinical Director confirms the clinician's sessions and sends a roster request to Practice Operations, which adds the clinician to the clinic rosters and the booking system."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient Services",
+      "summary": "Patient Services manages patient appointments, reception operations, fee collection, and complaints.",
+      "work": [
+        {
+          "task": "Handling patient complaints and reception leadership",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Leads reception and handles patient complaints."
+          }
+        },
+        {
+          "task": "Booking appointments and logging refunds",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Books appointments, takes payments and logs refund requests."
+          }
+        },
+        {
+          "task": "Logging refund requests",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "A Receptionist logs each refund request with the patient, the invoice number, the amount and the reason."
+          }
+        }
+      ]
+    },
+    {
+      "name": "People & Culture",
+      "summary": "People & Culture manages recruitment, onboarding, credential checking, and employment contracts.",
+      "work": [
+        {
+          "task": "Managing recruitment and onboarding",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Owns recruitment and onboarding."
+          }
+        },
+        {
+          "task": "Checking clinician registration and preparing contracts",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Checks new clinicians' registration and prepares their contracts."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance",
+      "summary": "Finance manages the group's budgets, accounts, supplier disbursements, and patient refunds.",
+      "work": [
+        {
+          "task": "Managing budgets, payments, and accounts",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Owns budgets, payments and the group's accounts."
+          }
+        },
+        {
+          "task": "Paying suppliers and processing patient refunds",
+          "evidence": {
+            "doc": "org_chart",
+            "quote": "Pays suppliers and processes patient refunds."
+          }
+        },
+        {
+          "task": "Matching invoices and paying suppliers",
+          "evidence": {
+            "doc": "policy_1",
+            "quote": "The Accounts Officer matches it to the purchase order and pays the supplier within 30 days."
+          }
+        },
+        {
+          "task": "Refunding patient cards",
+          "evidence": {
+            "doc": "policy_2",
+            "quote": "The Accounts Officer refunds the patient's card within 5 business days."
+          }
+        }
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "Practice Operations",
+      "to": "Finance",
+      "what": "supplier invoice",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "Practice Operations sends each supplier invoice to Finance."
+      }
+    },
+    {
+      "from": "Patient Services",
+      "to": "Finance",
+      "what": "approved refunds",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "Approved refunds go to Finance."
+      }
+    },
+    {
+      "from": "People & Culture",
+      "to": "Clinical Services",
+      "what": "new clinician's details",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "When a clinician accepts an offer, the HR Advisor checks their registration and sends the new clinician's details to Clinical Services at least ten business days before the start date."
+      }
+    },
+    {
+      "from": "Clinical Services",
+      "to": "Practice Operations",
+      "what": "roster request",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "The Clinical Director confirms the clinician's sessions and sends a roster request to Practice Operations, which adds the clinician to the clinic rosters and the booking system."
+      }
+    }
+  ]
+}

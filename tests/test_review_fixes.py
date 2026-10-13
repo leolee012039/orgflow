@@ -17,8 +17,9 @@ from schemas import Organization, Workflow
 
 client = TestClient(main.app)
 ZH = Path(__file__).resolve().parent.parent / "demo_assets" / "zh"
-# Not the sample: the sample falls back to its saved answers, other documents get an error
-OTHER = upload_files((ZH / "Xiangying_Fitness_Org_Chart.pdf").read_bytes(),
+# Not a sample: a sample falls back to its saved answers, other documents get an error. The gym chain is a
+# sample, so a byte added after its end gives other documents with the same text
+OTHER = upload_files((ZH / "Xiangying_Fitness_Org_Chart.pdf").read_bytes() + b"\n% not a sample\n",
                      [(ZH / "Xiangying_Fitness_Purchasing_Policy.pdf").read_bytes()])
 PURCHASE = {"request_id": "PR-1", "requester": "Emma Chen", "department": "Operations", "item": "Laptop",
             "business_justification": "Laptop required for a new designer on the Operations team."}

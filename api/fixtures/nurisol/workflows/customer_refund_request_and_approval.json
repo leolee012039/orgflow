@@ -1,0 +1,124 @@
+{
+  "workflow_name": "환불 접수 및 승인",
+  "opportunity_id": "customer_refund_request_and_approval",
+  "department": "고객지원팀",
+  "fields": [
+    {
+      "name": "order_number",
+      "label": "주문번호",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "customer_name",
+      "label": "고객명",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "refund_amount",
+      "label": "환불 금액",
+      "type": "number",
+      "options": []
+    },
+    {
+      "name": "reason",
+      "label": "사유",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "photo",
+      "label": "사진",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "order_number",
+    "customer_name",
+    "refund_amount",
+    "reason",
+    "photo"
+  ],
+  "rules": [
+    {
+      "id": "rule_refund_under_300k",
+      "when": {
+        "field": "refund_amount",
+        "op": "<",
+        "value": 300000
+      },
+      "source": "30만원 미만 고객지원팀장"
+    },
+    {
+      "id": "rule_refund_over_300k",
+      "when": {
+        "field": "refund_amount",
+        "op": ">",
+        "value": 300000
+      },
+      "source": "30만원 초과 고객지원팀장, 재무팀장"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "주문번호, 고객명, 환불 금액, 사유와 사진이 모두 입력되었는지 확인",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_approval_customer_support_team_leader",
+      "type": "approval",
+      "actor": "requester.manager",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_approval_finance_team_leader",
+      "type": "approval",
+      "actor": "finance_team_leader",
+      "only_if": "rule_refund_over_300k",
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_notify_requester",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [
+    {
+      "field": "refund_amount",
+      "min": null,
+      "max": 300000.0,
+      "source": "30만원 미만 고객지원팀장"
+    },
+    {
+      "field": "refund_amount",
+      "min": 300000.0,
+      "max": null,
+      "source": "30만원 초과 고객지원팀장, 재무팀장"
+    }
+  ],
+  "starts_from": null,
+  "hands_to": "재무팀",
+  "output": "승인된 환불 요청서",
+  "explanation": "환불 및 보상 규정 제2조에 따라 환불 접수 시 주문번호, 고객명, 환불 금액, 사유 및 사진을 필수로 입력받도록 구성했습니다. 제3조의 승인 권한 규정에 따라 고객지원팀장의 기본 결재와 30만원 초과 시 재무팀장의 추가 결재를 수행하도록 단계와 규칙을 정의했습니다.",
+  "upstream_id": null
+}

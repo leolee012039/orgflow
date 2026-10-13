@@ -1,0 +1,191 @@
+{
+  "company": "浜風精工株式会社",
+  "departments": [
+    {
+      "name": "営業部",
+      "head_role_id": "eigyo_bucho"
+    },
+    {
+      "name": "製造部",
+      "head_role_id": "seizo_bucho"
+    },
+    {
+      "name": "品質保証部",
+      "head_role_id": "hinshitsu_hosho_bucho"
+    },
+    {
+      "name": "購買部",
+      "head_role_id": "kobai_bucho"
+    },
+    {
+      "name": "経理部",
+      "head_role_id": "keiri_bucho"
+    }
+  ],
+  "roles": [
+    {
+      "id": "daihyo_torishimariyaku_shacho",
+      "title": "代表取締役社長",
+      "department": null,
+      "reports_to": null,
+      "responsibilities": [
+        "会社の経営全般を統括する。"
+      ]
+    },
+    {
+      "id": "eigyo_bucho",
+      "title": "営業部長",
+      "department": "営業部",
+      "reports_to": "daihyo_torishimariyaku_shacho",
+      "responsibilities": [
+        "営業部を統括し、主要顧客との取引条件を決定する。"
+      ]
+    },
+    {
+      "id": "eigyo_tanto",
+      "title": "営業担当",
+      "department": "営業部",
+      "reports_to": "eigyo_bucho",
+      "responsibilities": [
+        "顧客からの注文を受け、納期を調整し、出張旅費などの経費を精算する。"
+      ]
+    },
+    {
+      "id": "seizo_bucho",
+      "title": "製造部長",
+      "department": "製造部",
+      "reports_to": "daihyo_torishimariyaku_shacho",
+      "responsibilities": [
+        "製造部を統括し、部の購買依頼を確認する。"
+      ]
+    },
+    {
+      "id": "seizo_kacho",
+      "title": "製造課長",
+      "department": "製造部",
+      "reports_to": "seizo_bucho",
+      "responsibilities": [
+        "生産計画を立て、製造に必要な材料や工具の購買依頼を作成する。"
+      ]
+    },
+    {
+      "id": "hinshitsu_hosho_bucho",
+      "title": "品質保証部長",
+      "department": "品質保証部",
+      "reports_to": "daihyo_torishimariyaku_shacho",
+      "responsibilities": [
+        "品質保証部を統括し、出荷品質の基準を定める。"
+      ]
+    },
+    {
+      "id": "hinshitsu_kensa_tanto",
+      "title": "品質検査担当",
+      "department": "品質保証部",
+      "reports_to": "hinshitsu_hosho_bucho",
+      "responsibilities": [
+        "製品の出荷検査を行い、検査成績書を作成する。"
+      ]
+    },
+    {
+      "id": "kobai_bucho",
+      "title": "購買部長",
+      "department": "購買部",
+      "reports_to": "daihyo_torishimariyaku_shacho",
+      "responsibilities": [
+        "仕入先を選定し、注文書を発行する。"
+      ]
+    },
+    {
+      "id": "kobai_tanto",
+      "title": "購買担当",
+      "department": "購買部",
+      "reports_to": "kobai_bucho",
+      "responsibilities": [
+        "仕入先から見積書を取得し、発注と納品を管理する。"
+      ]
+    },
+    {
+      "id": "keiri_bucho",
+      "title": "経理部長",
+      "department": "経理部",
+      "reports_to": "daihyo_torishimariyaku_shacho",
+      "responsibilities": [
+        "予算、支払、決算を統括する。"
+      ]
+    },
+    {
+      "id": "keiri_tanto",
+      "title": "経理担当",
+      "department": "経理部",
+      "reports_to": "keiri_bucho",
+      "responsibilities": [
+        "請求書の発行、仕入先への支払、経費の精算を行う。"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "製造部",
+      "to": "購買部",
+      "description": "承認された購買依頼書の回付",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "承認された購買依頼書は購買部へ回付する。"
+      }
+    },
+    {
+      "from": "購買部",
+      "to": "経理部",
+      "description": "仕入先からの請求書の回付",
+      "evidence": {
+        "doc": "policy_1",
+        "quote": "購買部は、仕入先からの請求書を経理部へ回付する。"
+      }
+    },
+    {
+      "from": "営業部",
+      "to": "経理部",
+      "description": "承認された経費精算書の回付",
+      "evidence": {
+        "doc": "policy_2",
+        "quote": "承認された経費精算書は経理部へ回付する。"
+      }
+    },
+    {
+      "from": "営業部",
+      "to": "製造部",
+      "description": "製造指示依頼の送付",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "営業担当は、顧客から注文書を受領したら、品番、数量、納期を記載した製造指示依頼を製造部へ送る。"
+      }
+    },
+    {
+      "from": "製造部",
+      "to": "品質保証部",
+      "description": "製造が完了した製品の引き渡し",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "製造部は、製造が完了した製品を品質保証部へ引き渡す。"
+      }
+    },
+    {
+      "from": "品質保証部",
+      "to": "営業部",
+      "description": "合格品の検査成績書の送付",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "品質検査担当は出荷検査を行い、合格品の検査成績書を営業部へ送る。"
+      }
+    },
+    {
+      "from": "営業部",
+      "to": "経理部",
+      "description": "出荷後の出荷報告の送付",
+      "evidence": {
+        "doc": "policy_3",
+        "quote": "営業部は、出荷後に出荷報告を経理部へ送る。"
+      }
+    }
+  ]
+}

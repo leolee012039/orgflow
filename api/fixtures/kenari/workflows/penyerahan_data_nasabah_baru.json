@@ -1,0 +1,62 @@
+{
+  "workflow_name": "Penyerahan Data Nasabah Pascapencairan",
+  "opportunity_id": "penyerahan_data_nasabah_baru",
+  "department": "Operasional",
+  "fields": [
+    {
+      "name": "nama_nasabah",
+      "label": "data nasabah",
+      "type": "text",
+      "options": []
+    },
+    {
+      "name": "jadwal_angsuran",
+      "label": "jadwal angsuran",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "required_fields": [
+    "requester",
+    "department",
+    "nama_nasabah",
+    "jadwal_angsuran"
+  ],
+  "rules": [],
+  "steps": [
+    {
+      "id": "step_1_ai_review",
+      "type": "ai_review",
+      "actor": "orgflow_ai",
+      "only_if": null,
+      "also_if": null,
+      "check": "Memastikan data nasabah dan jadwal angsuran telah terisi lengkap.",
+      "on_fail": "human_review"
+    },
+    {
+      "id": "step_2_kirim_data",
+      "type": "task",
+      "actor": "staf_operasional",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    },
+    {
+      "id": "step_3_notifikasi",
+      "type": "notification",
+      "actor": "requester",
+      "only_if": null,
+      "also_if": null,
+      "check": null,
+      "on_fail": null
+    }
+  ],
+  "unresolved_actors": [],
+  "amount_tiers": [],
+  "starts_from": null,
+  "hands_to": "Layanan Nasabah",
+  "output": "Data nasabah dan jadwal angsuran",
+  "explanation": "Berdasarkan Prosedur Serah Terima Nasabah Baru, Divisi Operasional mengirimkan data nasabah dan jadwal angsuran ke Divisi Layanan Nasabah setelah pencairan dana dilakukan. Proses ini tidak memerlukan persetujuan tambahan dan langsung diproses oleh Staf Operasional untuk diteruskan.",
+  "upstream_id": null
+}
