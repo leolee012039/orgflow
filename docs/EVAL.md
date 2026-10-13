@@ -168,3 +168,12 @@ A fictional freight company in Singapore, written for this test: an org chart an
 - First run: 5 departments and all 5 handoffs the documents state; 10 of 10 planned workflows built, 82 s from upload; found the Regional Director the org chart doesn't have. Missed exactly SGD 1,000: the boundary reader didn't know "SGD" ([ISSUES.md](ISSUES.md) #23).
 - After the fix, three complete runs (130 to 155 s from upload to every workflow built, 8 of 8 each time): all three found both planted problems, shown as "The policy requires Regional Director approval, and the org chart has no Regional Director" and "No approval level covers exactly SGD 1,000". One more attempt stopped when Gemini took over 90 s on the department map; the page said so and a second try went through.
 
+### Banyan Lantern Technologies (added 13 October 2026)
+
+A fictional software company in Bengaluru, written for this test and offered on the upload page: an org chart and four policies and procedures (purchases, travel claims, employee onboarding, client project handover) in English, with amounts written the Indian way ("Rs. 5,00,000/-", "₹1 lakh"), and two problems planted. The PDFs and the answer key are in [demo_assets/in](../demo_assets/in). Read live with Gemini 3.8 Flash on the local app.
+
+- First, `normalize_amounts` read "Rs. 5,00,000/-" as 5 and 0 and "₹2 lakh" as 2 ([ISSUES.md](ISSUES.md) #25). After the fix:
+- Run 1: 5 departments and all 7 handoffs; 12 of 12 workflows built; found the Chief Financial Officer the org chart doesn't have; nothing flagged at Rs. 50,000/-, 2,00,000/-, 5,00,000/- or ₹1 lakh. It missed exactly ₹25,000 because the travel claims were written for Delivery, which then had four processes, one more than a department's three: the claims workflow was left out. The documents now give travel claims to Sales.
+- Run 2: both planted problems found and no false alarm; 11 of 13 built, because one workflow's Gemini call ran past 90 s and the workflow handed to it waited. The same button builds the rest.
+- Run 3: 5 departments, 8 handoffs, 12 of 12 workflows built in 196 s from upload; both planted problems found ("The policy requires Chief Financial Officer approval, and the org chart has no Chief Financial Officer", "No approval level covers exactly INR 25,000"), nothing else flagged. Cases: Rs. 30,000 and Rs. 3,00,000 complete (shown as INR 3,00,000), Rs. 6,00,000 stops at the missing CFO; claims of ₹10,000 and ₹1,50,000 complete, exactly ₹25,000 stops.
+

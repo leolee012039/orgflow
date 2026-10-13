@@ -33,6 +33,8 @@ firebase-debug.log*
 
 # Demo zips & raw downloads
 *.zip
+# ...except the fictional company's documents the upload page offers
+!web/public/demo/Banyan_Lantern_Technologies.zip
 
 # Operating System & IDE
 .DS_Store

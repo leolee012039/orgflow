@@ -7,6 +7,7 @@ OrgFlow reads a company's org chart and policies, maps how work moves from depar
 Built for the Google Cloud AI Builder Cup 2026 (theme: Future of Work and Enterprise Productivity).
 
 - **Live app:** https://orgflowai.web.app (the NovaGear sample works without an account)
+- **Try your own upload:** sign in and upload the five PDFs of [Banyan Lantern Technologies](demo_assets/in), a fictional software company in India (the upload page offers them as a ZIP). Gemini reads them live; two problems are written in, and the folder's README names them.
 - **Demo video:** added with the submission
 - **Evaluation on real documents:** [docs/EVAL.md](docs/EVAL.md)
 
@@ -83,7 +84,7 @@ Cloud Logging: one structured JSON event per Gemini call, guard result and case
 - Analyzing your own documents needs a Google sign-in and is limited to about 30 analyses and 300 later steps per person per day (counted per server instance). The NovaGear sample opens from Gemini's checked, saved reading, so it opens at once; uploaded documents are always read live.
 - Without an account, the sample builds only from its saved answers, and its cases get Gemini's review a few hundred times a day; a changed workflow gets the plain-code check instead. One setting pauses every Gemini call in an emergency ([docs/RUNBOOK.md](docs/RUNBOOK.md)).
 - Approvals are simulated: OrgFlow does not yet send requests to real approvers.
-- Very long documents can take longer than the 90 s limit per stage. Handoffs that the policies give to "any unit" are not mapped yet. Known issues are tracked in [docs/ISSUES.md](docs/ISSUES.md).
+- Each department gets at most three workflows, the most valuable first; a fourth process in the same department is left out. Very long documents can take longer than the 90 s limit per stage. Handoffs that the policies give to "any unit" are not mapped yet. Known issues are tracked in [docs/ISSUES.md](docs/ISSUES.md).
 
 ## Run it locally
 
@@ -134,7 +135,7 @@ api/fixtures/   the NovaGear sample's saved answers
 web/            Next.js app: the console (map, workflows, cases, documents)
 tests/          pytest suite
 scripts/        evaluation and sample PDF generators
-demo_assets/    sample PDFs: NovaGear (English), Xiangying Fitness (Traditional Chinese)
+demo_assets/    sample PDFs: NovaGear (English), Banyan Lantern (India), Larkspur Bay (Singapore), Xiangying Fitness (Traditional Chinese)
 docs/           EVAL.md, ISSUES.md, DEPLOY_CHECKLIST.md, RUNBOOK.md, MOVE_PROJECT.md, SPEC.md (the archived build brief)
 firestore.rules Firestore security rules
 ```

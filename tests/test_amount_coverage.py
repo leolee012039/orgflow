@@ -61,6 +61,31 @@ def test_a_currency_after_the_amount():
     assert find_amount_gaps(covered) == []
 
 
+def test_indian_amounts():
+    # Indian policies group digits in twos after the first three, and use lakh and crore
+    assert extract_numbers("Above Rs. 5,00,000/-") == ["500000"]
+    assert extract_numbers("INR 1,25,50,000") == ["12550000"]
+    assert extract_numbers("up to ₹2 lakh") == ["200000"]
+    assert extract_numbers("up to ₹2.5 lakhs") == ["250000"]
+    assert extract_numbers("above INR 1 crore") == ["10000000"]
+    assert extract_numbers("Rs 50 lac") == ["5000000"]
+    # Three-digit groups and lists of small numbers are unchanged
+    assert extract_numbers("USD 1,234,567") == ["1234567"]
+    assert extract_numbers("clauses 4, 12, 300") == ["4", "12", "300"]
+
+
+def test_indian_rupee_wording():
+    for currency in ("Rs.", "Rs", "INR", "₹"):
+        gap = tiers((None, 500000, f"Below {currency} 5,00,000/-: Finance Controller"),
+                    (500000, None, f"Above {currency} 5,00,000/-: Chief Financial Officer"))
+        assert [f["kind"] for f in find_amount_gaps(gap)] == ["gap"], currency
+        covered = tiers((None, 500000, f"Up to {currency} 5 lakh: Finance Controller"),
+                        (500000, None, f"Above {currency} 5 lakh: Chief Financial Officer"))
+        assert find_amount_gaps(covered) == [], currency
+    overlap = tiers((None, 200000, "Rs. 2,00,000/- and below"), (200000, None, "Rs. 2,00,000/- and above"))
+    assert [f["kind"] for f in find_amount_gaps(overlap)] == ["overlap"]
+
+
 def test_wording_that_says_both_is_unclear_not_a_gap():
     # 「逾…以上」 says "over" and "at or above" at once: OrgFlow can't prove a gap from the
     # words, so it asks a person to confirm which level owns the amount

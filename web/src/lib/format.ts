@@ -1,6 +1,10 @@
 import type { FormField, Organization, Rule, StepType, Workflow } from "./types";
 
-export const money = (n: number, currency = "") => (currency ? `${currency} ${n.toLocaleString("en-US")}` : n.toLocaleString("en-US"));
+// Rupees are grouped the Indian way, as the policy writes them: INR 5,00,000
+export const money = (n: number, currency = "") => {
+  const digits = n.toLocaleString(currency === "INR" ? "en-IN" : "en-US");
+  return currency ? `${currency} ${digits}` : digits;
+};
 
 // How a policy writes a currency, and the name OrgFlow shows for it
 const CURRENCY_NAMES: [RegExp, string][] = [
@@ -17,7 +21,7 @@ const CURRENCY_NAMES: [RegExp, string][] = [
   [/人民幣|\bRMB\b|\bCNY\b/g, "CNY"],
   [/₩|\bKRW\b/g, "KRW"],
   [/\bRM\s?\d|\bMYR\b/g, "MYR"],
-  [/₹|\bINR\b/g, "INR"],
+  [/₹|\bINR\b|\bRs\.?\s?\d|\brupees?\b/gi, "INR"],
   [/₱|\bPHP\b/g, "PHP"],
   [/฿|\bTHB\b/g, "THB"],
   [/\bRp\s?\d|\bIDR\b/g, "IDR"],

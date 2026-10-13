@@ -180,6 +180,14 @@ export function UploadStep({
         documents are read live, which takes about a minute, and need a Google sign-in so your work is saved to you.
         The PDFs themselves are not saved.
       </p>
+      <p className="text-sm text-muted">
+        No documents of your own at hand? Download those of Banyan Lantern Technologies, a fictional software company in
+        India (
+        <a href="/demo/Banyan_Lantern_Technologies.zip" download className="font-medium text-ai hover:underline">
+          ZIP, 5 PDFs
+        </a>
+        ), and upload them to watch Gemini read a company it has never seen.
+      </p>
       {error && <ErrorNote message={error} />}
     </div>
   );

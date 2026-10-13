@@ -90,10 +90,19 @@ def normalize_amounts(text: str) -> str:
     """Write every amount as plain digits so English and Chinese policies compare the same way.
 
     '1,000' -> '1000', '30萬' -> '300000', '5 千萬' -> '50000000', '新臺幣五萬元' -> '新臺幣50000元'.
+    Indian amounts too: '5,00,000' -> '500000', '2 lakh' -> '200000', '1 crore' -> '10000000'.
     Look-alike characters are normalized first: '５０萬' is '50萬'.
     """
     text = normalize_text(text)
+    # Indian grouping: twos after the first three, as in 5,00,000 and 1,25,50,000
+    text = re.sub(r"(?<![\d,])\d{1,2}(?:,\d{2})+,\d{3}(?![\d,])", lambda m: m.group().replace(",", ""), text)
     text = re.sub(r"(?<=\d),(?=\d{3})", "", text)
+    text = re.sub(
+        r"(\d+(?:\.\d+)?)\s*(lakhs?|lacs?|crores?)\b",
+        lambda m: _format_amount(round(float(m.group(1)) * (10_000_000 if m.group(2).lower().startswith("c") else 100_000))),
+        text,
+        flags=re.I,
+    )
     multipliers = {"千萬": 10_000_000, "百萬": 1_000_000, "十萬": 100_000, "萬": 10_000, "万": 10_000,
                    "千": 1_000, "億": 100_000_000, "亿": 100_000_000}
     text = re.sub(
