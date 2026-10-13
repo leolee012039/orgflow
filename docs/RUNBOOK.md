@@ -6,7 +6,7 @@ For the judging period (Oct 19 - Nov 6, 2026, and to Dec 4 if shortlisted).
 - Owner: Leo (GCP admin). Backup: [name].
 - Every command below names the project. If you run others, first `gcloud config set project ai-builder-510613`:
   the old project (`aibul-510701`) is suspended, and a default left pointing at it fails or changes the wrong project.
-- Last known good revision: `orgflow-api-00004-nl8` (2026-10-13, commit 14bad6e; the one before, `orgflow-api-00003-dz4`). Git tag: `last-good`.
+- Last known good revision: `orgflow-api-00005-q6r` (2026-10-13, commit 076182b, Indian amounts; the one before, `orgflow-api-00004-nl8`). Git tag: `last-good`.
 
 ## 1. The API or the website is down (uptime alert)
 
