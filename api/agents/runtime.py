@@ -7,6 +7,7 @@ local cache so development does not spend the Gemini free-tier quota.
 
 import asyncio
 import hashlib
+import html
 import json
 import os
 import time
@@ -36,9 +37,10 @@ LOW_THINKING = types.GenerateContentConfig(
     temperature=0,
     thinking_config=types.ThinkingConfig(thinking_level="low"),
 )
-# Vertex answers 429 when its shared capacity is busy. Two retries, about 2 s and 4 s later,
-# clear most of them well inside the time budget. Without retry options the client never retries.
-RETRY = types.HttpRetryOptions(attempts=3, initial_delay=2, max_delay=8)
+# Vertex answers 429 when its shared capacity is busy. Four retries, about 2, 4, 8 and 16 s later (30 s of
+# waiting, inside the 90 s budget), ride out a busy spell: with two, a Japanese company's build lost 4 of 10
+# workflows to 429 in one (ISSUES.md #27). Without retry options the client never retries.
+RETRY = types.HttpRetryOptions(attempts=5, initial_delay=2, max_delay=16)
 
 
 def gemini() -> Gemini:
@@ -155,12 +157,24 @@ async def _run_hedged(agent: Agent, parts: list[types.Part], timeout_s: float) -
             task.cancel()
 
 
+def _unescape(value: Any) -> Any:
+    """Gemini sometimes writes & as &amp; in its JSON ("People &amp; Culture"). A document never means the entity,
+    and the page would show it as written."""
+    if isinstance(value, str):
+        return html.unescape(value) if "&" in value else value
+    if isinstance(value, list):
+        return [_unescape(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _unescape(v) for k, v in value.items()}
+    return value
+
+
 def _parse_json(text: str) -> dict[str, Any]:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("`")
         cleaned = cleaned[cleaned.find("{"):]
-    return json.loads(cleaned)
+    return _unescape(json.loads(cleaned))
 
 
 async def run_agent(agent: Agent, parts: list[types.Part], timeout_s: float = CALL_TIMEOUT_S) -> AgentResult:

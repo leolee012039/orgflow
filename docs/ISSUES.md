@@ -226,3 +226,29 @@ An outside audit (OrgFlow_Submission_Readiness_and_Audit_Report) walked the live
 - Found while writing a fictional Indian company for the demo (the organizer is in India). Indian policies group digits in twos after the first three and use lakh and crore: "Rs. 5,00,000/-", "₹2 lakh", "INR 1 crore".
 - `normalize_amounts` only joined groups of three digits, so "Rs. 5,00,000/-" was read as 5 and 0, and "₹2 lakh" as 2. A rule's number would not be found in its passage, and the boundary reader would not see the amount. "Rs." was not skipped as a currency between the word and the amount.
 - Status: **fixed.** `normalize_amounts` joins Indian digit groups (5,00,000 and 1,25,50,000) and turns lakh, lac and crore into digits; the boundary reader skips "Rs." before an amount and "/-" or "rupees" after it. The web names rupees INR (also from "Rs.") and groups them the Indian way: INR 5,00,000. Checked: `test_indian_amounts`, `test_indian_rupee_wording` (187 tests), and three live runs on Banyan Lantern Technologies ([EVAL.md](EVAL.md)); the last found both planted problems and nothing else.
+
+## 26. Amounts and boundary words from more JAPAC markets (2026-10-13)
+
+- Found by a free check (no Gemini) of how each market writes an amount and an approval boundary, before testing more fictional companies.
+- Amounts read wrong: Korean 만 and 억 ("500만원" read as 500, "1억원" as 1); dots grouping thousands in Indonesia and Vietnam ("Rp 5.000.000" and "10.000.000 VND" read as nothing); Indonesian juta and Vietnamese triệu. A rule's number is then not found in its passage, so the guard rejects the workflow.
+- Boundary words not read: Japanese 未満 and を超える, Korean 미만, 초과, 이상, 이하, simplified Chinese 低于 and 高于, Indonesian "di bawah" and "di atas". Exact-amount gaps in those policies are missed.
+- Read correctly already: PHP, THB, AUD, HKD, MYR, NZD, 人民币 with 万, Japanese 万円.
+- Status: **fixed.** `normalize_amounts` reads 만, 억 and 천 after a digit (not 3일만에), dots grouping thousands (two groups or more, or one next to Rp, IDR, VND or đồng; ",00" after them is cents), juta, ribu, miliar, triệu, tỷ and nghìn, and simplified 千万, 百万 and 十万. The boundary reader knows Japanese and Korean words after the amount (未満, を超え, を超えない, まで, 미만, 초과, 이상, 이하, 까지), simplified Chinese (低于, 高于, 超过, 不超过, 等于), Indonesian (di bawah, di atas, sampai dengan, kurang dari, lebih dari, ke atas, "tidak" turning them around) and Vietnamese (dưới, trên, không quá, trở lên); a range may read 「から…まで」, "sampai dengan" or "đến". The web names KRW from 원 and 만원, VND from đồng, THB from บาท, IDR from rupiah. "AUD 5k" is still read as 5: policies don't write it, and "5K" names other things. Checked: `test_japac_amounts`, `test_japac_boundary_words`, `test_negated_boundary_words_are_not_read_as_plain_ones` (192 tests), and four fictional companies read live ([EVAL.md](EVAL.md), "Four JAPAC companies").
+
+## 27. Gemini busy (429) left most of a company's workflows unbuilt (2026-10-13)
+
+- Found testing the fictional Japanese company: 3 of 10 workflows built. Four workflow_architect calls ended in 429 RESOURCE_EXHAUSTED after their three tries (about 2 s and 4 s apart), and two ran past 90 s. Pressing the button again twice didn't help while Vertex stayed busy. The Korean company, read a few minutes later, built 10 of 10 in 88 s.
+- The service already uses the global endpoint and sends at most three builds at once. A judge who meets a busy spell sees most workflows fail.
+- The same evening, slow answers (past 90 s) stopped the Indonesian and Australian analyses once each, and left 1 to 5 workflows unbuilt on other runs; pressing the button again built most of them.
+- Status: **fixed** as far as our side goes. Gemini calls retry a 429 four times (about 2, 4, 8 and 16 s later, 30 s of waiting inside the 90 s budget) instead of twice. "Build all" tries the ones that failed once more by itself 5 s after its first pass, and stays busy while it waits, so nobody has to know to press the button again. Checked: `test_every_agent_retries_a_busy_endpoint`, and a browser run of the sample in which every build failed for 3 s: the page waited, stayed "Building…" and disabled, tried again at 5.2 s and built 5 of 5. A long busy spell can still stop a build; the page then says so and offers "Try again".
+
+## 28. A missing Japanese approver was shown as "confirm who that is" (2026-10-13)
+
+- Found testing the fictional Japanese company: the policy needs 常務取締役 approval and the org chart has no 常務取締役, but OrgFlow said "The policy requires 常務取締役 approval; confirm who that is" instead of "the org chart has no 常務取締役".
+- Cause: `find_gaps` decided whether the org chart names the approver with the quote check, which accepts 70% of the characters in a 3-line window. 常務取締役 shares 取締役 with 代表取締役社長 and 務 with 職務分掌. The case still stopped and asked a person, so nothing was approved by mistake; the finding was just weaker than the documents allow.
+- Status: **fixed.** `names_in_text` asks for the whole title, spacing and punctuation aside (an org chart extracted one character per line still matches, as NTU's does). Checked: `test_an_approver_sharing_characters_with_a_role_is_still_missing` (191 tests).
+
+## 29. "People &amp; Culture" on screen (2026-10-13)
+
+- Found testing the fictional Australian company: a department and its workflows read "People &amp; Culture". The PDF says "People & Culture"; Gemini wrote the ampersand as an HTML entity in its JSON, the guard accepted it (most of the words match), and the page showed it as written.
+- Status: **fixed.** `_parse_json` turns HTML entities in every answer back into characters. Checked: `test_html_entities_in_an_answer_become_characters` (192 tests).

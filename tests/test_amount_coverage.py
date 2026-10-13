@@ -86,6 +86,59 @@ def test_indian_rupee_wording():
     assert [f["kind"] for f in find_amount_gaps(overlap)] == ["overlap"]
 
 
+def test_japac_amounts():
+    # Korean 만 and 억, dots grouping thousands (Indonesia, Vietnam), juta and triệu
+    assert extract_numbers("500만원 이상") == ["5000000"]
+    assert extract_numbers("1억원 초과") == ["100000000"]
+    assert extract_numbers("5천원") == ["5000"]
+    assert extract_numbers("Rp 5.000.000") == ["5000000"]
+    assert extract_numbers("Rp5.000.000,00") == ["5000000"]
+    assert extract_numbers("Rp 50.000") == ["50000"]
+    assert extract_numbers("10.000.000 VND") == ["10000000"]
+    assert extract_numbers("50.000 đ") == ["50000"]
+    assert extract_numbers("Rp 10 juta") == ["10000000"]
+    assert extract_numbers("Rp 1,5 juta") == ["1500000"]
+    assert extract_numbers("2 triệu đồng") == ["2000000"]
+    # Not amounts: a date, a version, a section number, a day count in Korean
+    assert extract_numbers("13.10.2026") == ["13.1", "2026"] or "13102026" not in extract_numbers("13.10.2026")
+    assert extract_numbers("version 2.5") == ["2.5"]
+    assert extract_numbers("3일만에") == ["3"]
+
+
+def test_japac_boundary_words():
+    cases = [
+        # (below passage, above passage, amount, finding)
+        ("100万円未満：部長", "100万円を超える場合：取締役", 1000000, "gap"),
+        ("100万円未満：部長", "100万円以上：取締役", 1000000, None),
+        ("100万円まで：部長", "100万円を超える場合：取締役", 1000000, None),
+        ("100万円以下：部長", "100万円以上：取締役", 1000000, "overlap"),
+        ("100만원 미만: 팀장", "100만원 초과: 본부장", 1000000, "gap"),
+        ("100만원 미만: 팀장", "100만원 이상: 본부장", 1000000, None),
+        ("100만원 이하: 팀장", "100만원 초과: 본부장", 1000000, None),
+        ("低于5万元：经理", "高于5万元：总监", 50000, "gap"),
+        ("不超过5万元：经理", "超过5万元：总监", 50000, None),
+        ("Di bawah Rp 5.000.000: Manajer", "Di atas Rp 5.000.000: Direktur", 5000000, "gap"),
+        ("Sampai dengan Rp 5.000.000: Manajer", "Di atas Rp 5.000.000: Direktur", 5000000, None),
+        ("Kurang dari Rp 5.000.000: Manajer", "Rp 5.000.000 ke atas: Direktur", 5000000, None),
+        ("Dưới 10.000.000 đồng: Trưởng phòng", "Trên 10.000.000 đồng: Giám đốc", 10000000, "gap"),
+        ("Không quá 10.000.000 đồng: Trưởng phòng", "Trên 10.000.000 đồng: Giám đốc", 10000000, None),
+        ("Below Rp 5.000.000: Manager", "Above Rp 5.000.000: Director", 5000000, "gap"),
+    ]
+    for below, above, amount, kind in cases:
+        found = find_amount_gaps(tiers((None, amount, below), (amount, None, above)))
+        assert [f["kind"] for f in found] == ([kind] if kind else []), (below, above)
+
+
+def test_negated_boundary_words_are_not_read_as_plain_ones():
+    # "tidak lebih dari" (not more than) and "không vượt quá" (not over) end a level inclusively
+    covered = tiers((None, 5000000, "Tidak lebih dari Rp 5.000.000: Manajer"), (5000000, None, "Lebih dari Rp 5.000.000: Direktur"))
+    assert find_amount_gaps(covered) == []
+    covered = tiers((None, 10000000, "Không vượt quá 10.000.000 đồng: Trưởng phòng"), (10000000, None, "Vượt quá 10.000.000 đồng: Giám đốc"))
+    assert find_amount_gaps(covered) == []
+    covered = tiers((None, 1000000, "100万円を超えない場合：部長"), (1000000, None, "100万円を超える場合：取締役"))
+    assert find_amount_gaps(covered) == []
+
+
 def test_wording_that_says_both_is_unclear_not_a_gap():
     # 「逾…以上」 says "over" and "at or above" at once: OrgFlow can't prove a gap from the
     # words, so it asks a person to confirm which level owns the amount

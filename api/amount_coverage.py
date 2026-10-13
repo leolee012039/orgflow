@@ -23,43 +23,55 @@ from schemas import AmountTier
 
 # Any currency between the word and the amount: an ISO code (SGD, AUD, EUR ...), a prefixed dollar (S$, NT$, A$),
 # RM, Rp and Rs., a symbol, or a Chinese or Japanese name. Words a policy writes there are never three capitals.
-_CURRENCY = (r"(?:新[臺台]幣|[臺台]幣|人民幣|港幣|日圓|日元|[A-Z]{1,3}\$|[A-Z]{3}(?![A-Za-z])|RM|Rp|Rs\.?|"
+_CURRENCY = (r"(?:新[臺台][幣币]|[臺台][幣币]|人民[幣币]|港[幣币]|日圓|日元|[A-Z]{1,3}\$|[A-Z]{3}(?![A-Za-z])|RM|Rp|Rs\.?|"
              r"\$|¥|€|£|₩|₹|₱|฿|₫|円)?")
 _TO_AMOUNT = rf"\s*{_CURRENCY}\s*"  # between a word like 未達 and the amount
-# Between the amount and a word like 以上, or "SGD"; Indian amounts often end in "/-" (Rs. 5,00,000/-)
-_FROM_AMOUNT = r"\s*(?:/-)?\s*(?:元|圓|円|dollars?|rupees?|[A-Z]{3}(?![A-Za-z]))?\s*"
+# Between the amount and a word like 以上, or "SGD"; Indian amounts often end in "/-" (Rs. 5,00,000/-),
+# Korean ones in 원, Vietnamese ones in đồng
+_FROM_AMOUNT = r"\s*(?:/-)?\s*(?:元|圓|円|원|đồng|đ|dong|บาท|dollars?|rupees?|rupiah|[A-Z]{3}(?![A-Za-z]))?\s*"
 # "not below", "no more than", "at or above" and 「等於或超過」 turn the plain word around
 _NOT = r"(?<!not )(?<!no )(?<!or )"
 _NUMBER = r"\d+(?:\.\d+)?"
 
-# (end of the tier, what the word means, words before the amount, words after it)
+# (end of the tier, what the word means, words before the amount, words after it).
+# Chinese words come in traditional and simplified forms (低於 低于, 超過 超过). Japanese and Korean put the
+# word after the amount: 100万円未満, 100万円を超える, 100만원 미만, 100만원 초과. Indonesian (di bawah, di atas,
+# sampai dengan) and Vietnamese (dưới, trên, không quá) put it before; "tidak" and "không" negate it.
 _WORDING = [
     ("upper", "exclusive",
-     rf"未達|未滿|不足|(?<![不或])低於|(?<![不或])少於|{_NOT}\b(?:below|under|less than(?! or equal)|lower than(?! or equal))",
-     None),
+     rf"未[達达]|未[滿満]|不足|(?<![不或])低[於于]|(?<![不或])少[於于]|{_NOT}\b(?:below|under|less than(?! or equal)"
+     r"|lower than(?! or equal))|\b(?:di bawah|(?<!tidak )kurang dari)|\bdưới",
+     r"未[滿満]|미만"),
     ("upper", "inclusive",
-     r"(?:不|未|不得|不可|不應|不能|沒有)(?:超過|逾|高於|大於|多於)|等於或(?:低於|少於|小於)|\b(?:up to|at most|no more than"
+     r"(?:不|未|不得|不可|不[應应]|不能|[沒没]有)(?:超[過过]|逾|高[於于]|大[於于]|多[於于])|等[於于]或(?:低[於于]|少[於于]|小[於于])"
+     r"|\b(?:up to|at most|no more than"
      r"|not (?:to )?(?:more than|over|above|exceed(?:ing)?)|(?:less|lower) than or equal to"
-     r"|(?:at|equal to|equal|is) or (?:below|under|less than|lower than))",
-     r"以下|以內|\b(?:or less|or below|or under|and below|and under)\b"),
+     r"|(?:at|equal to|equal|is) or (?:below|under|less than|lower than))"
+     r"|\b(?:sampai dengan|s\.d\.|hingga|maksimal|maksimum|paling banyak|tidak lebih dari|tidak melebihi)"
+     r"|\b(?:không quá|tối đa|không vượt quá|không hơn)",
+     r"以下|以[內内]|まで|까지|이하|を?超えない|\b(?:or less|or below|or under|and below|and under|ke bawah|trở xuống)\b"),
     ("lower", "exclusive",
-     rf"(?<![不未或得可應能有])(?:逾|超過|高於|大於)|{_NOT}\b(?:above|over|more than(?! or equal)"
-     r"|greater than(?! or equal)|(?<!not to )exceed(?:s|ing)?|in excess of)",
-     None),
+     rf"(?<![不未或得可應应能有])(?:逾|超[過过]|高[於于]|大[於于])|{_NOT}\b(?:above|over|more than(?! or equal)"
+     r"|greater than(?! or equal)|(?<!not to )exceed(?:s|ing)?|in excess of)"
+     r"|\b(?:di atas|(?<!tidak )lebih dari|(?<!tidak )melebihi)|\b(?:trên|(?<!không )vượt quá|(?<!không )hơn)",
+     r"を?超え(?!ない)|超(?![過过え])|초과"),
     ("lower", "inclusive",
-     r"不低於|不少於|等於或(?:超過|高於|大於|多於)|\b(?:at least|no less than|not (?:less than|below|under)"
+     r"不低[於于]|不少[於于]|等[於于]或(?:超[過过]|高[於于]|大[於于]|多[於于])|\b(?:at least|no less than|not (?:less than|below|under)"
      r"|(?:greater|more) than or equal to"
-     r"|(?:at|equal to|equal|meets?|meeting) or (?:above|over|more than|greater than|higher than|exceed(?:s|ing)?))",
-     r"以上|\b(?:or more|or above|or over|and above|and over)\b"),
+     r"|(?:at|equal to|equal|meets?|meeting) or (?:above|over|more than|greater than|higher than|exceed(?:s|ing)?))"
+     r"|\b(?:minimal|minimum|paling sedikit|sekurang-kurangnya|tidak kurang dari|mulai)|\b(?:từ|tối thiểu|ít nhất)",
+     r"以上|이상|\b(?:or more|or above|or over|and above|and over|ke atas|trở lên)\b"),
 ]
-# Ranges include both ends: "USD 1,000 - USD 5,000", 「二萬元至十萬元」, "between 1,000 and 5,000".
-_RANGE = re.compile(rf"(?:(?<![\d.])({_NUMBER}){_FROM_AMOUNT}(?:[-–—~～至到]|\bto\b)"
+# Ranges include both ends: "USD 1,000 - USD 5,000", 「二萬元至十萬元」, "between 1,000 and 5,000",
+# 「100万円から500万円まで」, "Rp 5.000.000 sampai dengan Rp 10.000.000", "từ 5.000.000 đến 10.000.000".
+_RANGE = re.compile(rf"(?:(?<![\d.])({_NUMBER}){_FROM_AMOUNT}(?:[-–—~～至到]|から|\bto\b|\bsampai(?: dengan)?\b|\bhingga\b|\bđến\b)"
                     rf"|\bbetween{_TO_AMOUNT}({_NUMBER}){_FROM_AMOUNT}and)"
                     rf"{_TO_AMOUNT}({_NUMBER})(?!\d|\.\d)", re.I)
 # Words next to the amount that say it is included, whatever the main word says
-_INCLUDED_BEFORE = re.compile(r"equal|\bat or\b|\bmeets? or\b|等於", re.I)
-_INCLUDED_AFTER = re.compile(r"以上|以下|以內"
-                             r"|\bor (?:more|less|above|below|over|under)\b|\band (?:above|below|over|under)\b", re.I)
+_INCLUDED_BEFORE = re.compile(r"equal|\bat or\b|\bmeets? or\b|等[於于]", re.I)
+_INCLUDED_AFTER = re.compile(r"以上|以下|以[內内]|まで|까지|이상|이하"
+                             r"|\bor (?:more|less|above|below|over|under)\b|\band (?:above|below|over|under)\b"
+                             r"|\bke (?:atas|bawah)\b|\btrở (?:lên|xuống)\b", re.I)
 
 
 def _prepared(source: str, amount: float) -> tuple[str, str]:

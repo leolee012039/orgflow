@@ -41,12 +41,12 @@ from guard import (
     extract_pdf_text,
     form_fields,
     load_fixture,
+    names_in_text,
     validate_department_map,
     validate_organization_output,
     validate_workflow_output,
     validate_workflow_plan,
     verified_amount_tiers,
-    verify_quote_in_text,
 )
 from runner import run_chain, run_workflow
 from schemas import (
@@ -269,7 +269,7 @@ def find_gaps(workflow: Workflow, org_chart_text: str) -> list[dict[str, Any]]:
         rule = rules.get(step.only_if) if step and step.only_if else None
         gaps.append({
             "actor": actor,
-            "status": "possible_match" if verify_quote_in_text(actor, org_chart_text) else "missing",
+            "status": "possible_match" if names_in_text(actor, org_chart_text) else "missing",
             "step_id": step.id if step else None,
             "policy_quote": rule.source if rule else None,
         })

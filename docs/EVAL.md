@@ -176,4 +176,23 @@ A fictional software company in Bengaluru, written for this test and offered on 
 - Run 1: 5 departments and all 7 handoffs; 12 of 12 workflows built; found the Chief Financial Officer the org chart doesn't have; nothing flagged at Rs. 50,000/-, 2,00,000/-, 5,00,000/- or ₹1 lakh. It missed exactly ₹25,000 because the travel claims were written for Delivery, which then had four processes, one more than a department's three: the claims workflow was left out. The documents now give travel claims to Sales.
 - Run 2: both planted problems found and no false alarm; 11 of 13 built, because one workflow's Gemini call ran past 90 s and the workflow handed to it waited. The same button builds the rest.
 - Run 3: 5 departments, 8 handoffs, 12 of 12 workflows built in 196 s from upload; both planted problems found ("The policy requires Chief Financial Officer approval, and the org chart has no Chief Financial Officer", "No approval level covers exactly INR 25,000"), nothing else flagged. Cases: Rs. 30,000 and Rs. 3,00,000 complete (shown as INR 3,00,000), Rs. 6,00,000 stops at the missing CFO; claims of ₹10,000 and ₹1,50,000 complete, exactly ₹25,000 stops.
+- Run 4, the check before deploying: 14 of 14 built in 136 s, both planted problems found, nothing else flagged, 15 of 15 checks.
 
+
+### Four JAPAC companies (added 13 October 2026)
+
+Four fictional companies written for this test, each in its own language and its own way of writing money, each with an org chart and three policies, two planted problems, and other boundaries covered once that should not be flagged. The PDFs and what is planted are in [demo_assets/jp](../demo_assets/jp), [kr](../demo_assets/kr), [id](../demo_assets/id) and [au](../demo_assets/au). Read live with Gemini 3.8 Flash on the local app; each run uploads the documents, builds every workflow and runs cases at amounts that should complete, stop at the gap and stop at the missing approver.
+
+| Company | Documents | Workflows | Found | False alarms | Cases |
+|---|---|---|---|---|---|
+| Hamakaze Seiko (Japan, manufacturing) | Japanese, 万円, 未満 / を超え | 10 of 10, 141 s | 常務取締役 missing; exactly JPY 500,000 | none | 3 of 3 |
+| Nurisol Market (Korea, e-commerce) | Korean, 만원, 미만 / 초과 | 10 of 10 | 부사장 missing; exactly KRW 300,000 | none | 3 of 3 |
+| Kenari Dana Sejahtera (Indonesia, lending) | Indonesian, Rp 50.000.000, juta, di bawah / di atas | 8 of 8, 80 s | Direktur Risiko missing; exactly IDR 2,000,000 | none | 4 of 4 |
+| Wattle Creek Medical Group (Australia, clinics) | English, plain $ with GST | 7 of 7, 77 s | Chief Operating Officer missing; exactly 500 | none | 4 of 4 |
+
+What the runs turned up on the way, each fixed and logged in [ISSUES.md](ISSUES.md):
+- #26: before the fix, Korean 만 and 억, Indonesian and Vietnamese dot-grouped amounts and juta, and the boundary words of Japanese, Korean, simplified Chinese and Indonesian were not read (a free check of 33 phrases found 14 misses, now 1: the informal "AUD 5k").
+- #27: on the first evening run Gemini was busy (429) and slow: the Japanese company built 3 of 10, and the Indonesian and Australian analyses stopped once each. The final runs above came after longer retries and an automatic second pass of "Build all".
+- #28: the Japanese company's missing 常務取締役 was first reported as "confirm who that is", because the check of whether the org chart names an approver matched characters (取締役 in 代表取締役社長).
+- #29: the Australian "People & Culture" came back from Gemini as "People &amp; Culture".
+- Twice a case stopped "flagged for a person" because the test filled a field with nonsense (a loan term of "Modal kerja usaha kecil"): Gemini's review caught it, as it should. With realistic values the cases ran as expected.

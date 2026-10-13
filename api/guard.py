@@ -86,14 +86,28 @@ def _format_amount(value: float) -> str:
     return str(int(value)) if float(value).is_integer() else str(value)
 
 
+WORD_UNITS = {"ribu": 1_000, "juta": 1_000_000, "miliar": 1_000_000_000, "milyar": 1_000_000_000,
+              "nghìn": 1_000, "ngàn": 1_000, "triệu": 1_000_000, "tỷ": 1_000_000_000, "tỉ": 1_000_000_000}
+
+
 def normalize_amounts(text: str) -> str:
     """Write every amount as plain digits so English and Chinese policies compare the same way.
 
     '1,000' -> '1000', '30萬' -> '300000', '5 千萬' -> '50000000', '新臺幣五萬元' -> '新臺幣50000元'.
     Indian amounts too: '5,00,000' -> '500000', '2 lakh' -> '200000', '1 crore' -> '10000000'.
+    And the rest of JAPAC: '500만원' -> '5000000원', 'Rp 5.000.000' -> 'Rp 5000000', '10 juta' -> '10000000',
+    '2 triệu' -> '2000000'.
     Look-alike characters are normalized first: '５０萬' is '50萬'.
     """
     text = normalize_text(text)
+    # Dots group thousands in Indonesia and Vietnam. Two groups or more are always thousands (Rp 5.000.000);
+    # one group only next to the currency (Rp 50.000, 50.000 đ). A comma after them starts the cents: Rp5.000.000,00
+    text = re.sub(r"(?<![\d.,])\d{1,3}(?:\.\d{3}){2,}(?:,\d{1,2})?(?![\d.]|,\d)",
+                  lambda m: m.group().split(",")[0].replace(".", ""), text)
+    text = re.sub(r"\b(Rp\.?\s?|IDR\s?|VND\s?)(\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?(?![\d.]|,\d)",
+                  lambda m: m.group(1) + m.group(2).replace(".", ""), text, flags=re.I)
+    text = re.sub(r"(?<![\d.,])(\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?(?=\s?(?:đ|đồng|dong|VND)\b)",
+                  lambda m: m.group(1).replace(".", ""), text, flags=re.I)
     # Indian grouping: twos after the first three, as in 5,00,000 and 1,25,50,000
     text = re.sub(r"(?<![\d,])\d{1,2}(?:,\d{2})+,\d{3}(?![\d,])", lambda m: m.group().replace(",", ""), text)
     text = re.sub(r"(?<=\d),(?=\d{3})", "", text)
@@ -103,11 +117,20 @@ def normalize_amounts(text: str) -> str:
         text,
         flags=re.I,
     )
-    multipliers = {"千萬": 10_000_000, "百萬": 1_000_000, "十萬": 100_000, "萬": 10_000, "万": 10_000,
-                   "千": 1_000, "億": 100_000_000, "亿": 100_000_000}
+    # Indonesian and Vietnamese words for thousand, million and billion; their decimals use a comma: 1,5 juta
     text = re.sub(
-        r"(\d+(?:\.\d+)?)\s*(千萬|百萬|十萬|萬|万|千|億|亿)",
-        lambda m: _format_amount(float(m.group(1)) * multipliers[m.group(2)]),
+        r"(\d+(?:[.,]\d{1,2})?)\s*(ribu|juta|miliar|milyar|nghìn|ngàn|triệu|tỷ|tỉ)\b",
+        lambda m: _format_amount(round(float(m.group(1).replace(",", ".")) * WORD_UNITS[m.group(2).lower()])),
+        text,
+        flags=re.I,
+    )
+    multipliers = {"千萬": 10_000_000, "百萬": 1_000_000, "十萬": 100_000, "千万": 10_000_000, "百万": 1_000_000,
+                   "十万": 100_000, "萬": 10_000, "万": 10_000, "千": 1_000, "億": 100_000_000, "亿": 100_000_000,
+                   # Korean: 천만 10 million, 만 ten thousand, 억 a hundred million (in 3일만에, 만 follows 일, not a digit)
+                   "천만": 10_000_000, "백만": 1_000_000, "십만": 100_000, "만": 10_000, "억": 100_000_000, "천": 1_000}
+    text = re.sub(
+        r"(\d+(?:\.\d+)?)\s*(千萬|百萬|十萬|千万|百万|十万|萬|万|千|億|亿|천만|백만|십만|만|억|천)",
+        lambda m: _format_amount(round(float(m.group(1)) * multipliers[m.group(2)])),
         text,
     )
     # Chinese numerals are converted only when they are clearly money, so 「一級主管」 stays as it is.
@@ -139,6 +162,14 @@ def extract_tokens(text: str) -> list[str]:
 def _compact(text: str) -> str:
     """Lowercase, with whitespace and punctuation removed."""
     return re.sub(r"[\s\W_]+", "", text).lower()
+
+
+def names_in_text(name: str, doc_text: str) -> bool:
+    """Whether the text names this role word for word, spacing and punctuation aside. Not the quote check's
+    overlap of words or characters: 常務取締役 shares 取締役 with 代表取締役社長 and 務 with 職務, yet the org
+    chart never names it."""
+    wanted = _compact(normalize_text(name))
+    return bool(wanted) and wanted in _compact(normalize_text(doc_text))
 
 
 def verify_quote_in_text(quote: str, doc_text: str) -> bool:

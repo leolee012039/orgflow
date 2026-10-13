@@ -135,7 +135,8 @@ api/fixtures/   the NovaGear sample's saved answers
 web/            Next.js app: the console (map, workflows, cases, documents)
 tests/          pytest suite
 scripts/        evaluation and sample PDF generators
-demo_assets/    sample PDFs: NovaGear (English), Banyan Lantern (India), Larkspur Bay (Singapore), Xiangying Fitness (Traditional Chinese)
+demo_assets/    sample PDFs: NovaGear (English), Banyan Lantern (India), Larkspur Bay (Singapore), Xiangying Fitness (Traditional Chinese),
+                Hamakaze Seiko (Japan), Nurisol Market (Korea), Kenari Dana (Indonesia), Wattle Creek (Australia)
 docs/           EVAL.md, ISSUES.md, DEPLOY_CHECKLIST.md, RUNBOOK.md, MOVE_PROJECT.md, SPEC.md (the archived build brief)
 firestore.rules Firestore security rules
 ```

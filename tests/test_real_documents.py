@@ -144,6 +144,16 @@ def test_approver_named_in_the_org_chart_is_only_a_possible_match():
     assert gaps[0]["status"] == "possible_match"
 
 
+def test_an_approver_sharing_characters_with_a_role_is_still_missing():
+    # A Japanese company: 常務取締役 shares 取締役 with 代表取締役社長 and 務 with 職務分掌, but no role is 常務取締役
+    wf = Workflow.model_validate(load_fixture("workflow_fixture.json"))
+    org_chart_text = "組織図\n代表取締役社長\n製造部長\n経理部長\n職務分掌\n会社の経営全般を統括する。"
+    wf.unresolved_actors = ["常務取締役"]
+    wf.steps[3].actor = "常務取締役"
+    gaps = pipeline.find_gaps(wf, org_chart_text)
+    assert gaps[0]["status"] == "missing"
+
+
 def test_build_endpoint_returns_gaps(monkeypatch):
     async def fake(*args):
         return AgentResult(load_fixture(f"novagear/workflows/{OPERATIONS}.json"), None, 6000)

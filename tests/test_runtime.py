@@ -103,6 +103,15 @@ def test_a_reported_model_error_stops_the_call_at_once(monkeypatch):
     assert result.data is None and "RESOURCE_EXHAUSTED" in result.error
 
 
+def test_html_entities_in_an_answer_become_characters():
+    # An Australian company's "People & Culture" came back from Gemini as "People &amp; Culture"
+    data = runtime._parse_json('{"department": "People &amp; Culture", "roles": [{"title": "R&amp;D Lead"}], "n": 3}')
+    assert data == {"department": "People & Culture", "roles": [{"title": "R&D Lead"}], "n": 3}
+
+
 def test_every_agent_retries_a_busy_endpoint():
-    model = runtime.gemini()
-    assert model.retry_options is not None and model.retry_options.attempts == 3
+    # Four retries ride out a busy spell (ISSUES.md #27), and their waits leave most of the time budget for the calls
+    retry = runtime.gemini().retry_options
+    assert retry is not None and retry.attempts >= 5
+    waits = sum(min(retry.initial_delay * 2 ** i, retry.max_delay) for i in range(retry.attempts - 1))
+    assert waits <= runtime.CALL_TIMEOUT_S / 2

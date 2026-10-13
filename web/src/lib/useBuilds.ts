@@ -9,6 +9,8 @@ export type BuildState = { status: "building" } | { status: "error"; message: st
 
 /** "Build all" sends at most this many builds at once: more slow every Gemini answer, and one past 90 s fails. */
 const BUILD_AT_ONCE = 3;
+/** "Build all" tries the ones that failed once more, this long after the first pass. */
+const RETRY_AFTER_MS = 5000;
 
 /** Building one company's workflows, one at a time or every planned one at once.
  *
@@ -29,6 +31,7 @@ export function useBuilds({
   onBuilt: (built: Record<string, BuiltWorkflow>) => void;
 }) {
   const [states, setStates] = useState<Record<string, BuildState>>({});
+  const [retrying, setRetrying] = useState(false);
   const builtRef = useRef(initial);
   const gone = useRef(false);
   useEffect(() => {
@@ -65,19 +68,34 @@ export function useBuilds({
       const up = upstreamOf(c, candidates, builtRef.current);
       return !up || Boolean(builtRef.current[up.id]);
     };
-    let pending = buildOrder(candidates, builtRef.current);
-    while (pending.length && !gone.current) {
-      const ready = pending.filter(upstreamBuilt).slice(0, BUILD_AT_ONCE);
-      if (!ready.length) break;
-      await Promise.all(ready.map(build));
-      pending = pending.filter((c) => !ready.includes(c));
-      // A workflow whose upstream failed can't be built against it; the rest carry on
-      pending = pending.filter((c) => {
-        const up = upstreamOf(c, candidates, builtRef.current);
-        return !up || builtRef.current[up.id] || pending.includes(up);
-      });
+    async function pass() {
+      let pending = buildOrder(candidates, builtRef.current);
+      while (pending.length && !gone.current) {
+        const ready = pending.filter(upstreamBuilt).slice(0, BUILD_AT_ONCE);
+        if (!ready.length) break;
+        await Promise.all(ready.map(build));
+        pending = pending.filter((c) => !ready.includes(c));
+        // A workflow whose upstream failed can't be built against it; the rest carry on
+        pending = pending.filter((c) => {
+          const up = upstreamOf(c, candidates, builtRef.current);
+          return !up || builtRef.current[up.id] || pending.includes(up);
+        });
+      }
+    }
+    await pass();
+    // When Gemini is busy or slow, a few builds fail; a second pass a little later usually builds them
+    // (ISSUES.md #27), so nobody has to know to press the button again. The page stays busy while it waits.
+    if (!gone.current && buildOrder(candidates, builtRef.current).length) {
+      setRetrying(true);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_AFTER_MS));
+        await pass();
+      } finally {
+        if (!gone.current) setRetrying(false);
+      }
     }
   }
 
-  return { states, build, buildAll, busy: Object.values(states).some((s) => s.status === "building") };
+  const building = Object.values(states).some((s) => s.status === "building");
+  return { states, build, buildAll, busy: building || retrying };
 }
