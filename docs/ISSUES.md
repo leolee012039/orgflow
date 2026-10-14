@@ -252,3 +252,42 @@ An outside audit (OrgFlow_Submission_Readiness_and_Audit_Report) walked the live
 
 - Found testing the fictional Australian company: a department and its workflows read "People &amp; Culture". The PDF says "People & Culture"; Gemini wrote the ampersand as an HTML entity in its JSON, the guard accepted it (most of the words match), and the page showed it as written.
 - Status: **fixed.** `_parse_json` turns HTML entities in every answer back into characters. Checked: `test_html_entities_in_an_answer_become_characters` (192 tests).
+
+## 30. Review with ECC's reviewers, second round (2026-10-14)
+
+Four reviewers (security, Python, React, silent failures) read `git diff ff07866..db5d6de`: the Indian and JAPAC amounts, the busy-Gemini retries, the eight samples. Nothing critical or high. Each finding was reproduced by the reviewer against the real code.
+
+Medium:
+1. Slow regexes, reachable without an account: the lakh/crore, juta/triệu and 萬/만 patterns in `normalize_amounts` try every start inside a run of digits, so time grows with the square of its length (8,000 digits took 6 s, 20,000 took 40 s). `/api/run_chain` takes rule and tier `source` text of any length from an anonymous caller.
+2. `names_in_text` is a substring test with no word boundary: "HR" is found in "Chris", "CTO" in "Director", "CEO" in "Nice officer", so a missing short-named approver is shown as "confirm who that is".
+3. まで, 까지, 이상, 이하, ke atas and trở lên were added to `_INCLUDED_AFTER`, which searches 20 characters after the amount: "100万円を超える場合は社長決裁まで必要" turns a gap into "unclear".
+4. A dot-grouped amount at the end of a sentence ("Rp 5.000.000.") is not normalized, so its number can't be found in its passage.
+5. Korean units after a space are read before ordinary words: "고객 100 만족" becomes 1000000, "4 억울" 400000000; Vietnamese "3 tỷ lệ" (a ratio) becomes 3000000000.
+6. `html.unescape` also decodes entities with no semicolon: "Legal&regulatory" becomes "Legal®ulatory", so a quote copied from a document no longer matches it.
+
+Low:
+7. "Build all"'s second pass retries errors that can't succeed (a sign-in 401, a 422 the documents fail), costs another Gemini call and replaces the first error.
+8. Any anonymous workflow whose fields and checks match a sample's gets Gemini's review, whatever its rules and approvers; the fixtures are read from disk for every workflow.
+9. A sample whose documents can't be reloaded after a reload opens without saying why, and the page says "add the documents again".
+10. Web currency counting: "3 원칙" counts as won; "RP 5" and "rs 20" count as rupiah and rupees.
+11. The sample buttons' accessible names don't start with their visible text; two quick clicks open the sample twice.
+12. "tidak boleh lebih dari" and "ít hơn" read as "over" (a missed finding, not a false one).
+13. scripts/save_sample.py copies the PDFs before reading, sleeps after its last failed attempt, doesn't check the id, and writes fixtures in place.
+14. Tests: the date assertion in `test_japac_amounts` and the order check in `test_samples` pass for the wrong reason.
+15. Not changed: 429 waits aren't labelled as "busy" in the log; dotted section numbers like "1.100.200" are merged (the same way in quote and document, so no false failure).
+- Status: **fixed** (1 to 14; 15 left as it is).
+  1. The lakh, word-unit, 萬 and 만 patterns only start where a number starts, and a value past 10^15 is left as written; rule and tier `source` text is capped at 1,000 characters and a workflow at 40 rules, so `/api/run_chain` refuses a longer one with 422.
+  2. `names_in_text` matches a Latin-script name as whole words ("HR" isn't in "Chris"); CJK names as before, spacing aside.
+  3. まで, 까지, 이상, 이하, ke atas and trở lên are no longer read 20 characters after an amount.
+  4. A dot-grouped amount at the end of a sentence is normalized.
+  5. 만, 억 and 천 after a space count only before 원, a boundary word, a particle or a non-Hangul character; "tỷ lệ" isn't an amount.
+  6. Only named and numbered entities ending in a semicolon are decoded.
+  7. "Build all" waits and tries again only when a build failed in a way that may pass (no answer, 5xx); a 401, 403, 422 or 429 from our limits keeps its first error and nothing is sent again.
+  8. A workflow gets the samples' saved review only when its fields, steps (type, actor, check) and rules match a saved one; the saved ones are read once.
+  9. A sample whose documents don't reload says so and asks to reload the page.
+  10. 원 counts as won only after a number and not in 원칙, 원래 and similar words; "Rs" only before a number, rupiah and rupees as words.
+  11. Each sample button's name starts with its visible text; the buttons stay disabled while a sample opens.
+  12. "tidak boleh lebih dari" reads as "up to", "ít hơn" as "less than".
+  13. `save_sample.py` checks the id, writes to a staging folder and moves it in only when every file is ready, and doesn't sleep after its last attempt.
+  14. The date test asserts the date isn't read as a number; the samples test checks that a workflow sent back unchanged is still recognized.
+  - Checked: `tests/test_review_round2.py` and the updated tests (226 tests); in the browser on the local site, the eight samples (77 checks), a busy spell of 503s (the page waits 5 s, stays busy and builds 5 of 5), and 422s (no wait, nothing sent again, "Couldn't build" and the error stay on the page).

@@ -2,9 +2,10 @@
 
 Run: uv run python scripts/save_sample.py ID "Company" "Market" "Industry" "Language" ORG.pdf POLICY.pdf ...
 
-Copies the PDFs to web/public/demo/ID/, reads them with live Gemini through every stage the web app runs
+Reads the PDFs with live Gemini through every stage the web app runs
 (organization, department map, plan, every planned workflow, each after the one it starts from; a failed build
 is tried again), prints what was found, and writes:
+  web/public/demo/ID/                  the PDFs, which the web app sends for the sample
   api/fixtures/ID/organization.json, department_map.json, workflow_plan.json, workflows/<workflow id>.json
   api/fixtures/sample_documents.json   the documents' fingerprints, so the API knows them
   web/src/lib/samples.json             the sample list the web app shows
@@ -15,6 +16,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -79,7 +81,7 @@ async def read(docs: pipeline.Docs):
                 built[c.id] = result
             else:
                 print(f"  build {c.id}: {result.origin} {result.problems[:2]}", flush=True)
-        if len(built) == len(candidates):
+        if len(built) == len(candidates) or attempt == 2:
             break
         print(f"  {len(built)} of {len(candidates)} built; trying the rest again in 10 s", flush=True)
         time.sleep(10)
@@ -90,11 +92,9 @@ async def read(docs: pipeline.Docs):
 
 def main():
     sample_id, company, market, industry, language, org_path, *policy_paths = sys.argv[1:]
+    if not re.fullmatch(r"[a-z0-9_]+", sample_id):  # it names folders, and the API reads only ids like this
+        sys.exit(f"the id must be lower-case letters, digits or _, got {sample_id!r}")
     sources = [Path(org_path), *map(Path, policy_paths)]
-    target = DEMO / sample_id
-    target.mkdir(parents=True, exist_ok=True)
-    for src in sources:
-        shutil.copyfile(src, target / src.name)
     docs = pipeline.Docs(sources[0].read_bytes(), [p.read_bytes() for p in sources[1:]])
 
     t = time.perf_counter()
@@ -108,19 +108,27 @@ def main():
         unchecked = " AMOUNT LEVELS UNCHECKED" if r.extras.get("amount_levels_unchecked") else ""
         print(f"  {r.value.department} / {r.value.workflow_name} [{wid}]: missing {gaps or '-'}; amounts {amounts or '-'}{unchecked}")
 
-    folder = FIXTURES / sample_id
-    if folder.exists():
-        shutil.rmtree(folder)
-    (folder / "workflows").mkdir(parents=True)
-
+    # Everything is written beside its place first and swapped in at the end, so a failed run leaves the
+    # sample as it was
     def dump(model, path):
         path.write_text(json.dumps(model.model_dump(by_alias=True), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    dump(org, folder / "organization.json")
-    dump(dmap, folder / "department_map.json")
-    dump(plan, folder / "workflow_plan.json")
+    staged = FIXTURES / f".{sample_id}.new"
+    shutil.rmtree(staged, ignore_errors=True)
+    (staged / "workflows").mkdir(parents=True)
+    dump(org, staged / "organization.json")
+    dump(dmap, staged / "department_map.json")
+    dump(plan, staged / "workflow_plan.json")
     for wid, r in built.items():
-        dump(r.value, folder / "workflows" / f"{wid}.json")
+        dump(r.value, staged / "workflows" / f"{wid}.json")
+    staged_demo = DEMO / f".{sample_id}.new"
+    shutil.rmtree(staged_demo, ignore_errors=True)
+    staged_demo.mkdir(parents=True)
+    for src in sources:
+        shutil.copyfile(src, staged_demo / src.name)
+    for new, place in ((staged, FIXTURES / sample_id), (staged_demo, DEMO / sample_id)):
+        shutil.rmtree(place, ignore_errors=True)
+        new.rename(place)
 
     fingerprints = json.loads((FIXTURES / "sample_documents.json").read_text(encoding="utf-8"))
     fingerprints[sample_id] = {"org_chart": hashlib.sha256(docs.org_chart).hexdigest(),

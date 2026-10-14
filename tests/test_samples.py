@@ -59,7 +59,8 @@ def build_order(plan: list) -> list:
 
 def test_the_app_and_the_api_list_the_same_samples_and_documents():
     fingerprints = load_fixture("sample_documents.json")
-    assert [s["id"] for s in SAMPLES] == list(fingerprints) or {s["id"] for s in SAMPLES} == set(fingerprints)
+    ids = [s["id"] for s in SAMPLES]
+    assert len(ids) == len(set(ids)) and set(ids) == set(fingerprints)
     assert set(PLANTED) == {s["id"] for s in SAMPLES}
     for sample in SAMPLES:
         docs = docs_of(sample)
@@ -83,6 +84,10 @@ def test_each_sample_opens_from_saved_answers_and_finds_its_problems(sample, mon
         result = asyncio.run(pipeline.build_workflow(docs, org.value, c, built[up.id].value if up else None,
                                                      allow_live=False))
         assert result.origin == "saved", (c.id, result.problems[:2])
+        # What the page gets back, and sends again with a case, still counts as the sample's own workflow, so a
+        # visitor without an account gets Gemini's review of the case
+        sent_back = Workflow.model_validate(json.loads(result.value.model_dump_json(by_alias=True)))
+        assert pipeline.is_sample_workflow(sent_back), c.id
         built[c.id] = result
     assert len(built) == len(plan.value.workflows)
     missing = {g["actor"] for r in built.values() for g in r.extras["gaps"] if g["status"] == "missing"}

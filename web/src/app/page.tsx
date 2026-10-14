@@ -134,7 +134,14 @@ function Home() {
     if (!unsaved) return;
     let cancelled = false;
     // The sample's documents come back too, so its workflows can still be built
-    (unsaved.sample ? loadSampleDocuments(unsaved.sampleId).catch(() => null) : Promise.resolve(null)).then((d) => {
+    // If they fail to load, the console says so where the builds would be
+    const sampleDocs = unsaved.sample
+      ? loadSampleDocuments(unsaved.sampleId).catch((e) => {
+          console.warn("The sample's documents didn't load:", e);
+          return null;
+        })
+      : Promise.resolve(null);
+    sampleDocs.then((d) => {
       if (cancelled) return;
       if (d) setDocs(d);
       setView((v) => (v.status === "idle" ? { status: "ready", workspace: unsaved, saved: null } : v));

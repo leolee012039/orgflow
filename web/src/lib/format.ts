@@ -19,12 +19,13 @@ const CURRENCY_NAMES: [RegExp, string][] = [
   [/£|\bGBP\b/g, "GBP"],
   [/円|日圓|日元|\bJPY\b/g, "JPY"],
   [/人民[幣币]|\bRMB\b|\bCNY\b/g, "CNY"],
-  [/₩|\bKRW\b|\d\s*[천만억]*\s*원/g, "KRW"],
+  // 원 that starts another word is not won: 3 원칙 (principles), 2 원인 (causes)
+  [/₩|\bKRW\b|\d\s*[천만억]*\s*원(?!칙|래|인|리|자|형|장|본|료)/g, "KRW"],
   [/\bRM\s?\d|\bMYR\b/g, "MYR"],
-  [/₹|\bINR\b|\bRs\.?\s?\d|\brupees?\b/gi, "INR"],
+  [/₹|\bINR\b|\bRs\.?\s?\d|\b[Rr]upees?\b/g, "INR"],
   [/₱|\bPHP\b/g, "PHP"],
   [/฿|\bTHB\b|บาท/g, "THB"],
-  [/\bRp\.?\s?\d|\bIDR\b|\brupiah\b/gi, "IDR"],
+  [/\bRp\.?\s?\d|\bIDR\b|\b[Rr]upiah\b/g, "IDR"],
   [/₫|\bVND\b|\d\s*(?:(?:nghìn|ngàn|triệu|tỷ|tỉ)\s*)?(?:đồng|đ)(?![\p{L}])/gu, "VND"],
 ];
 

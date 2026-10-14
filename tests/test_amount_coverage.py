@@ -100,7 +100,7 @@ def test_japac_amounts():
     assert extract_numbers("Rp 1,5 juta") == ["1500000"]
     assert extract_numbers("2 triệu đồng") == ["2000000"]
     # Not amounts: a date, a version, a section number, a day count in Korean
-    assert extract_numbers("13.10.2026") == ["13.1", "2026"] or "13102026" not in extract_numbers("13.10.2026")
+    assert "13102026" not in extract_numbers("13.10.2026")  # a date, not one dotted amount
     assert extract_numbers("version 2.5") == ["2.5"]
     assert extract_numbers("3일만에") == ["3"]
 

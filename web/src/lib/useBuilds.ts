@@ -33,6 +33,10 @@ export function useBuilds({
   const [states, setStates] = useState<Record<string, BuildState>>({});
   const [retrying, setRetrying] = useState(false);
   const builtRef = useRef(initial);
+  // How each workflow's last build failed: "transient" (unreachable, busy, Gemini didn't answer) may pass a moment
+  // later; "lasting" (a sign-in, a limit, documents that fail the checks) won't, so the automatic second pass
+  // leaves it and keeps its first error
+  const failures = useRef(new Map<string, "transient" | "lasting">());
   const gone = useRef(false);
   useEffect(() => {
     gone.current = false;
@@ -49,11 +53,13 @@ export function useBuilds({
       const result = await api.build(docs, org, c, upstream ? builtRef.current[upstream.id] ?? null : null);
       if (gone.current) return false;
       builtRef.current = { ...builtRef.current, [c.id]: result };
+      failures.current.delete(c.id);
       onBuilt(builtRef.current);
       setStates((s) => Object.fromEntries(Object.entries(s).filter(([key]) => key !== c.id)));
       return true;
     } catch (e) {
       if (gone.current) return false;
+      failures.current.set(c.id, e instanceof ApiError && e.transient ? "transient" : "lasting");
       setStates((s) => ({
         ...s,
         [c.id]: { status: "error", message: (e as Error).message, problems: e instanceof ApiError ? e.problems : [] },
@@ -68,8 +74,10 @@ export function useBuilds({
       const up = upstreamOf(c, candidates, builtRef.current);
       return !up || Boolean(builtRef.current[up.id]);
     };
-    async function pass() {
-      let pending = buildOrder(candidates, builtRef.current);
+    async function pass(skipLasting: boolean) {
+      let pending = buildOrder(candidates, builtRef.current).filter(
+        (c) => !skipLasting || failures.current.get(c.id) !== "lasting",
+      );
       while (pending.length && !gone.current) {
         const ready = pending.filter(upstreamBuilt).slice(0, BUILD_AT_ONCE);
         if (!ready.length) break;
@@ -82,14 +90,17 @@ export function useBuilds({
         });
       }
     }
-    await pass();
+    await pass(false); // pressing the button tries everything not built, whatever failed before
     // When Gemini is busy or slow, a few builds fail; a second pass a little later usually builds them
     // (ISSUES.md #27), so nobody has to know to press the button again. The page stays busy while it waits.
-    if (!gone.current && buildOrder(candidates, builtRef.current).length) {
+    // Only when a build failed in a way that may pass now, and only those (with what waits on them) are tried
+    // again (ISSUES.md #30)
+    const unbuilt = buildOrder(candidates, builtRef.current);
+    if (!gone.current && unbuilt.some((c) => failures.current.get(c.id) === "transient")) {
       setRetrying(true);
       try {
         await new Promise((resolve) => setTimeout(resolve, RETRY_AFTER_MS));
-        await pass();
+        await pass(true);
       } finally {
         if (!gone.current) setRetrying(false);
       }

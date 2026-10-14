@@ -47,13 +47,15 @@ _WORDING = [
      r"|\b(?:up to|at most|no more than"
      r"|not (?:to )?(?:more than|over|above|exceed(?:ing)?)|(?:less|lower) than or equal to"
      r"|(?:at|equal to|equal|is) or (?:below|under|less than|lower than))"
-     r"|\b(?:sampai dengan|s\.d\.|hingga|maksimal|maksimum|paling banyak|tidak lebih dari|tidak melebihi)"
+     r"|\b(?:sampai dengan|s\.d\.|hingga|maksimal|maksimum|paling banyak|tidak (?:boleh )?lebih dari"
+     r"|tidak (?:boleh )?melebihi)"
      r"|\b(?:không quá|tối đa|không vượt quá|không hơn)",
      r"以下|以[內内]|まで|까지|이하|を?超えない|\b(?:or less|or below|or under|and below|and under|ke bawah|trở xuống)\b"),
     ("lower", "exclusive",
      rf"(?<![不未或得可應应能有])(?:逾|超[過过]|高[於于]|大[於于])|{_NOT}\b(?:above|over|more than(?! or equal)"
      r"|greater than(?! or equal)|(?<!not to )exceed(?:s|ing)?|in excess of)"
-     r"|\b(?:di atas|(?<!tidak )lebih dari|(?<!tidak )melebihi)|\b(?:trên|(?<!không )vượt quá|(?<!không )hơn)",
+     r"|\b(?:di atas|(?<!tidak )(?<!boleh )lebih dari|(?<!tidak )(?<!boleh )melebihi)"
+     r"|\b(?:trên|(?<!không )vượt quá|(?<!không )(?<!ít )hơn)",
      r"を?超え(?!ない)|超(?![過过え])|초과"),
     ("lower", "inclusive",
      r"不低[於于]|不少[於于]|等[於于]或(?:超[過过]|高[於于]|大[於于]|多[於于])|\b(?:at least|no less than|not (?:less than|below|under)"
@@ -69,9 +71,11 @@ _RANGE = re.compile(rf"(?:(?<![\d.])({_NUMBER}){_FROM_AMOUNT}(?:[-–—~～至�
                     rf"{_TO_AMOUNT}({_NUMBER})(?!\d|\.\d)", re.I)
 # Words next to the amount that say it is included, whatever the main word says
 _INCLUDED_BEFORE = re.compile(r"equal|\bat or\b|\bmeets? or\b|等[於于]", re.I)
-_INCLUDED_AFTER = re.compile(r"以上|以下|以[內内]|まで|까지|이상|이하"
-                             r"|\bor (?:more|less|above|below|over|under)\b|\band (?:above|below|over|under)\b"
-                             r"|\bke (?:atas|bawah)\b|\btrở (?:lên|xuống)\b", re.I)
+# Searched in the 20 characters after the amount, so only words that can't belong to the rest of the sentence:
+# まで, 까지, 이상 and 이하 also end ordinary phrases (社長決裁まで必要, 팀장 이상), so they count only right after
+# the amount, through the words after it in _WORDING (ISSUES.md #30)
+_INCLUDED_AFTER = re.compile(r"以上|以下|以[內内]"
+                             r"|\bor (?:more|less|above|below|over|under)\b|\band (?:above|below|over|under)\b", re.I)
 
 
 def _prepared(source: str, amount: float) -> tuple[str, str]:

@@ -86,6 +86,15 @@ def _format_amount(value: float) -> str:
     return str(int(value)) if float(value).is_integer() else str(value)
 
 
+MAX_AMOUNT = 1e15  # no real amount is larger; a longer run of digits is not one (and float would overflow)
+
+
+def _scaled(match: re.Match, number: str, unit: int) -> str:
+    """number x unit as plain digits, or the text unchanged when that is no real amount."""
+    value = float(number) * unit
+    return _format_amount(round(value)) if value <= MAX_AMOUNT else match.group()
+
+
 WORD_UNITS = {"ribu": 1_000, "juta": 1_000_000, "miliar": 1_000_000_000, "milyar": 1_000_000_000,
               "nghìn": 1_000, "ngàn": 1_000, "triệu": 1_000_000, "tỷ": 1_000_000_000, "tỉ": 1_000_000_000}
 
@@ -102,35 +111,46 @@ def normalize_amounts(text: str) -> str:
     text = normalize_text(text)
     # Dots group thousands in Indonesia and Vietnam. Two groups or more are always thousands (Rp 5.000.000);
     # one group only next to the currency (Rp 50.000, 50.000 đ). A comma after them starts the cents: Rp5.000.000,00
-    text = re.sub(r"(?<![\d.,])\d{1,3}(?:\.\d{3}){2,}(?:,\d{1,2})?(?![\d.]|,\d)",
+    # (?!\d|\.\d|,\d): a full stop may end the sentence after the amount, "... Rp 5.000.000."
+    text = re.sub(r"(?<![\d.,])\d{1,3}(?:\.\d{3}){2,}(?:,\d{1,2})?(?!\d|\.\d|,\d)",
                   lambda m: m.group().split(",")[0].replace(".", ""), text)
-    text = re.sub(r"\b(Rp\.?\s?|IDR\s?|VND\s?)(\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?(?![\d.]|,\d)",
+    text = re.sub(r"\b(Rp\.?\s?|IDR\s?|VND\s?)(\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?(?!\d|\.\d|,\d)",
                   lambda m: m.group(1) + m.group(2).replace(".", ""), text, flags=re.I)
     text = re.sub(r"(?<![\d.,])(\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?(?=\s?(?:đ|đồng|dong|VND)\b)",
                   lambda m: m.group(1).replace(".", ""), text, flags=re.I)
     # Indian grouping: twos after the first three, as in 5,00,000 and 1,25,50,000
     text = re.sub(r"(?<![\d,])\d{1,2}(?:,\d{2})+,\d{3}(?![\d,])", lambda m: m.group().replace(",", ""), text)
     text = re.sub(r"(?<=\d),(?=\d{3})", "", text)
+    # Each unit pattern starts only where a number starts, (?<![\d.]): from every digit of a long run of digits
+    # the search would read to its end again, which takes time growing with the square of the run (ISSUES.md #30)
     text = re.sub(
-        r"(\d+(?:\.\d+)?)\s*(lakhs?|lacs?|crores?)\b",
-        lambda m: _format_amount(round(float(m.group(1)) * (10_000_000 if m.group(2).lower().startswith("c") else 100_000))),
+        r"(?<![\d.])(\d+(?:\.\d+)?)\s*(lakhs?|lacs?|crores?)\b",
+        lambda m: _scaled(m, m.group(1), 10_000_000 if m.group(2).lower().startswith("c") else 100_000),
         text,
         flags=re.I,
     )
-    # Indonesian and Vietnamese words for thousand, million and billion; their decimals use a comma: 1,5 juta
+    # Indonesian and Vietnamese words for thousand, million and billion; their decimals use a comma: 1,5 juta.
+    # "tỷ lệ" is a ratio, not a billion
     text = re.sub(
-        r"(\d+(?:[.,]\d{1,2})?)\s*(ribu|juta|miliar|milyar|nghìn|ngàn|triệu|tỷ|tỉ)\b",
-        lambda m: _format_amount(round(float(m.group(1).replace(",", ".")) * WORD_UNITS[m.group(2).lower()])),
+        r"(?<![\d.,])(\d+(?:[.,]\d{1,2})?)\s*(ribu|juta|miliar|milyar|nghìn|ngàn|triệu|tỷ|tỉ)\b(?!\s*lệ)",
+        lambda m: _scaled(m, m.group(1).replace(",", "."), WORD_UNITS[m.group(2).lower()]),
         text,
         flags=re.I,
     )
     multipliers = {"千萬": 10_000_000, "百萬": 1_000_000, "十萬": 100_000, "千万": 10_000_000, "百万": 1_000_000,
                    "十万": 100_000, "萬": 10_000, "万": 10_000, "千": 1_000, "億": 100_000_000, "亿": 100_000_000,
-                   # Korean: 천만 10 million, 만 ten thousand, 억 a hundred million (in 3일만에, 만 follows 일, not a digit)
                    "천만": 10_000_000, "백만": 1_000_000, "십만": 100_000, "만": 10_000, "억": 100_000_000, "천": 1_000}
     text = re.sub(
-        r"(\d+(?:\.\d+)?)\s*(千萬|百萬|十萬|千万|百万|十万|萬|万|千|億|亿|천만|백만|십만|만|억|천)",
-        lambda m: _format_amount(round(float(m.group(1)) * multipliers[m.group(2)])),
+        r"(?<![\d.])(\d+(?:\.\d+)?)\s*(千萬|百萬|十萬|千万|百万|十万|萬|万|千|億|亿)",
+        lambda m: _scaled(m, m.group(1), multipliers[m.group(2)]),
+        text,
+    )
+    # Korean 천만, 만 and 억 are amounts only when no word goes on after them: 500만원, 300만 이상, 1억원이, but not
+    # 100 만족 (satisfied), 5만큼 (as much as), 4 억울 (unfair). In 3일만에, 만 follows 일, not a digit
+    text = re.sub(
+        r"(?<![\d.])(\d+(?:\.\d+)?)\s?(천만|백만|십만|만|억|천)"
+        r"(?=\s*원|이상|이하|미만|초과|까지|[을를이은는에의로으]|[^가-힣]|$)",
+        lambda m: _scaled(m, m.group(1), multipliers[m.group(2)]),
         text,
     )
     # Chinese numerals are converted only when they are clearly money, so 「一級主管」 stays as it is.
@@ -167,9 +187,19 @@ def _compact(text: str) -> str:
 def names_in_text(name: str, doc_text: str) -> bool:
     """Whether the text names this role word for word, spacing and punctuation aside. Not the quote check's
     overlap of words or characters: 常務取締役 shares 取締役 with 代表取締役社長 and 務 with 職務, yet the org
-    chart never names it."""
+    chart never names it.
+
+    A name in Latin letters must be whole words: "HR" is not in "Chris", nor "CTO" in "Director". A name in
+    Chinese, Japanese or Korean is matched with spacing removed, as an org chart extracted one character per
+    line needs; there 部長 is still found in 副部長, so a person confirms it."""
     wanted = _compact(normalize_text(name))
-    return bool(wanted) and wanted in _compact(normalize_text(doc_text))
+    if not wanted:
+        return False
+    if wanted.isascii():
+        words = re.findall(r"[a-z0-9]+", normalize_text(name).lower())
+        pattern = r"(?<![a-z0-9])" + r"[\W_]*".join(map(re.escape, words)) + r"(?![a-z0-9])"
+        return re.search(pattern, normalize_text(doc_text).lower()) is not None
+    return wanted in _compact(normalize_text(doc_text))
 
 
 def verify_quote_in_text(quote: str, doc_text: str) -> bool:

@@ -260,7 +260,14 @@ export function CompanyConsole({
                 <span className="font-medium whitespace-nowrap">Review them ↓</span>
               </button>
             )}
-            {editable && !docs && unbuilt > 0 && (
+            {editable && !docs && unbuilt > 0 && workspace.sample && (
+              // A sample's documents come from the site itself; they failed to load, so the page says that
+              <p className="text-sm text-muted print:hidden" role="status">
+                The sample&apos;s documents didn&apos;t load, so its workflows can&apos;t be built yet. Reload the page
+                to try again.
+              </p>
+            )}
+            {editable && !docs && unbuilt > 0 && !workspace.sample && (
               <p className="text-sm text-muted print:hidden">
                 To build more workflows, add the documents again under{" "}
                 <button type="button" onClick={() => setSection("documents")} className="font-medium text-ai hover:underline">

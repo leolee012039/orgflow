@@ -22,8 +22,16 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly problems: string[] = [],
+    /** The HTTP status; 0 when the service couldn't be reached */
+    readonly status = 0,
   ) {
     super(message);
+  }
+
+  /** Worth trying again a little later: the service was unreachable, busy, or Gemini didn't answer. A sign-in
+   * (401), a limit (429 from OrgFlow itself is a daily limit) or documents that fail the checks (422) are not. */
+  get transient(): boolean {
+    return this.status === 0 || this.status >= 500;
   }
 }
 
@@ -49,12 +57,12 @@ async function post<T>(path: string, body: FormData | object): Promise<T> {
     } catch {
       detail = undefined;
     }
-    if (typeof detail === "string") throw new ApiError(detail);
+    if (typeof detail === "string") throw new ApiError(detail, [], res.status);
     if (detail && typeof detail === "object" && "message" in detail) {
       const d = detail as { message: string; problems?: string[] };
-      throw new ApiError(d.message, d.problems ?? []);
+      throw new ApiError(d.message, d.problems ?? [], res.status);
     }
-    throw new ApiError(`The OrgFlow service returned an error (${res.status}). Try again.`);
+    throw new ApiError(`The OrgFlow service returned an error (${res.status}). Try again.`, [], res.status);
   }
   return res.json() as Promise<T>;
 }

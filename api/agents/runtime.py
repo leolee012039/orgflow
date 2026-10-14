@@ -10,6 +10,7 @@ import hashlib
 import html
 import json
 import os
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -157,11 +158,15 @@ async def _run_hedged(agent: Agent, parts: list[types.Part], timeout_s: float) -
             task.cancel()
 
 
+_ENTITY = re.compile(r"&(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);")
+
+
 def _unescape(value: Any) -> Any:
     """Gemini sometimes writes & as &amp; in its JSON ("People &amp; Culture"). A document never means the entity,
-    and the page would show it as written."""
+    and the page would show it as written. Only these entities, with their semicolon: html.unescape alone also
+    reads "Legal&regulatory" as "Legal®ulatory" (ISSUES.md #30)."""
     if isinstance(value, str):
-        return html.unescape(value) if "&" in value else value
+        return _ENTITY.sub(lambda m: html.unescape(m.group()), value) if "&" in value else value
     if isinstance(value, list):
         return [_unescape(v) for v in value]
     if isinstance(value, dict):

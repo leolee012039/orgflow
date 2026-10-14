@@ -142,16 +142,22 @@ export function UploadStep({
   needsSignIn: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
+  // While a sample's PDFs load, a second click would open it twice
+  const [opening, setOpening] = useState(false);
   const others = SAMPLES.filter((s) => s.id !== DEFAULT_SAMPLE.id);
 
   async function runSample(id: string) {
+    if (opening) return;
     setError(null);
+    setOpening(true);
     try {
       const sample = await loadSampleDocuments(id);
       onDocs(sample);
       onRun(sample, id);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setOpening(false);
     }
   }
 
@@ -171,7 +177,7 @@ export function UploadStep({
         {!docs.orgChart && <span className="text-sm text-muted sm:order-last">Choose an org chart PDF to analyze your own company.</span>}
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || opening}
           onClick={() => runSample(DEFAULT_SAMPLE.id)}
           className={docs.orgChart ? secondaryClass : primaryClass}
         >
@@ -187,10 +193,11 @@ export function UploadStep({
               <button
                 key={s.id}
                 type="button"
-                disabled={busy}
+                disabled={busy || opening}
                 onClick={() => runSample(s.id)}
                 title={`${s.company}: ${s.industry}, documents in ${s.language}`}
-                aria-label={`Open the ${s.market} sample, ${s.company}, ${s.industry}, documents in ${s.language}`}
+                // Starts with the visible text, so a voice command naming what's on the button finds it
+                aria-label={`${s.market} ${s.industry}: open the sample company ${s.company}, documents in ${s.language}`}
                 className="flex flex-col rounded-lg border border-line bg-sheet px-3 py-2 text-left text-sm shadow-[0_1px_2px_rgb(22_26_35/0.04)] hover:border-ai disabled:opacity-60"
               >
                 <span className="font-medium">{s.market}</span>

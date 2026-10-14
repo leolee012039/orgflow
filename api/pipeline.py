@@ -17,6 +17,7 @@ automate, then one department's workflow built so a program can run it.
 """
 
 import asyncio
+import functools
 import hashlib
 import io
 import os
@@ -276,19 +277,29 @@ def find_gaps(workflow: Workflow, org_chart_text: str) -> list[dict[str, Any]]:
     return gaps
 
 
-def is_sample_workflow(wf: Workflow) -> bool:
-    """Whether this is one of the bundled samples' saved workflows, with the checks Gemini reviews unchanged."""
-    if not re.fullmatch(r"[a-z0-9_]+", wf.opportunity_id):
-        return False
+@functools.lru_cache(maxsize=1)
+def _saved_sample_workflows() -> dict[str, list[Workflow]]:
+    """Every sample's saved workflows by id, read once: they ship with the API and never change while it runs."""
+    saved: dict[str, list[Workflow]] = {}
     for name in load_fixture("sample_documents.json"):
-        rel = f"{name}/workflows/{wf.opportunity_id}.json"
-        if not os.path.exists(os.path.join(FIXTURES_DIR, rel)):
-            continue
-        saved = Workflow.model_validate(load_fixture(rel))
-        if (wf.required_fields == saved.required_fields
-                and [(s.type, s.check) for s in wf.steps] == [(s.type, s.check) for s in saved.steps]):
-            return True
-    return False
+        folder = os.path.join(FIXTURES_DIR, name, "workflows")
+        for file in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+            wf = Workflow.model_validate(load_fixture(f"{name}/workflows/{file}"))
+            saved.setdefault(wf.opportunity_id, []).append(wf)
+    return saved
+
+
+def _same_workflow(wf: Workflow, saved: Workflow) -> bool:
+    """What a visitor without an account may not change and still get Gemini's review: the fields it requires,
+    each step (kind, approver, the check Gemini runs) and the rules. Decisions travel separately."""
+    return (wf.required_fields == saved.required_fields
+            and [(s.type, s.actor, s.check) for s in wf.steps] == [(s.type, s.actor, s.check) for s in saved.steps]
+            and [r.model_dump() for r in wf.rules] == [r.model_dump() for r in saved.rules])
+
+
+def is_sample_workflow(wf: Workflow) -> bool:
+    """Whether this is one of the bundled samples' saved workflows, unchanged where it matters."""
+    return any(_same_workflow(wf, saved) for saved in _saved_sample_workflows().get(wf.opportunity_id, []))
 
 
 async def build_workflow(docs: Docs, org: Organization, planned: WorkflowCandidate,

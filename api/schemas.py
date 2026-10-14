@@ -93,10 +93,28 @@ class RuleWhen(BaseModel):
     op: Literal["<", "<=", ">", ">=", "=="]
     value: Union[int, float, str]
 
+# Plain code reads the amounts in every quoted source, and /api/run_chain takes workflows from anyone: an unbounded
+# source or list would hold the API's CPU (ISSUES.md #30). The samples' longest source is about 110 characters
+MAX_SOURCE_TEXT = 1000
+MAX_RULES = 40
+
+
+def _source_length_checked(source: str) -> str:
+    if len(source) > MAX_SOURCE_TEXT:
+        raise ValueError(f"a quoted source is at most {MAX_SOURCE_TEXT} characters")
+    return source
+
+
 class Rule(BaseModel):
     id: str
     when: RuleWhen
     source: str
+
+    # A validator, not Field(max_length=...): Rule is part of the architect's answer format (see Workflow)
+    @field_validator("source")
+    @classmethod
+    def _source_fits(cls, source: str) -> str:
+        return _source_length_checked(source)
 
 class AmountTier(BaseModel):
     """One approval level of the policy, with the amounts it states at each end."""
@@ -104,6 +122,11 @@ class AmountTier(BaseModel):
     min: Optional[float] = None  # None: the tier has no lower end
     max: Optional[float] = None  # None: the tier has no upper end
     source: str
+
+    @field_validator("source")
+    @classmethod
+    def _source_fits(cls, source: str) -> str:
+        return _source_length_checked(source)
 
 class FormField(BaseModel):
     """A field of the form that starts a workflow."""
@@ -161,6 +184,13 @@ class Workflow(BaseModel):
         if len(steps) > MAX_STEPS:
             raise ValueError(f"a workflow has at most {MAX_STEPS} steps")
         return steps
+
+    @field_validator("rules", "amount_tiers")
+    @classmethod
+    def _rules_fit(cls, items: list) -> list:
+        if len(items) > MAX_RULES:
+            raise ValueError(f"a workflow has at most {MAX_RULES} rules and {MAX_RULES} approval levels")
+        return items
 
 # -----------------------------------------------------------------------------
 # 4. Request Form & Execution Trace Schemas
