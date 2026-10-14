@@ -45,14 +45,26 @@ function Field({ label, children }: { label: string; children: (id: string) => R
 /** Example answers: "workflow id.field" first, then the field name, then the NovaGear sample's */
 export type Examples = Record<string, string>;
 
+/** An example date for a date field, YYYY-MM-DD: two weeks ahead for one that looks forward (a delivery, a start, a
+ * deadline), today for the rest (an invoice, a payment, an inspection) */
+function exampleDate(field: FormField): string {
+  const ahead = /deliver|due|start|deadline|期限|納期|기한|마감|tenggat|jatuh/i.test(`${field.name} ${field.label}`);
+  const day = new Date(Date.now() + (ahead ? 14 : 0) * 86_400_000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
+}
+
 function initialCase(wf: Workflow, start: WorkflowCandidate, gaps: number[], examples?: Examples): CaseRequest {
-  const values: CaseRequest = { request_id: "CASE-0001", requester: "Emma Chen", department: start.department };
+  const requester = examples?.requester ?? "Emma Chen";
+  const values: CaseRequest = { request_id: "CASE-0001", requester, department: start.department };
   for (const f of fieldsOf(wf)) {
+    const example = examples?.[`${wf.opportunity_id}.${f.name}`] ?? examples?.[f.name] ?? EXAMPLES[f.name];
     if (f.type === "number") {
       const tries = tryValues(wf, f.name, gaps);
       values[f.name] = tries[Math.min(1, tries.length - 1)] ?? 1000;
     } else if (f.type === "choice") values[f.name] = f.options[0] ?? "";
-    else values[f.name] = examples?.[`${wf.opportunity_id}.${f.name}`] ?? examples?.[f.name] ?? EXAMPLES[f.name] ?? "";
+    else if (f.type === "date") values[f.name] = example ?? exampleDate(f);
+    else values[f.name] = example ?? "";
   }
   return values;
 }
@@ -335,19 +347,26 @@ export function ChainSlip({
   );
 }
 
-/** A finished case in one line, for the case list. */
-export function caseResult(trace: ChainTrace, built: BuiltWorkflow[]): { ok: boolean; text: string } {
+/** A finished case in one line, for the case list. needsDecision: it stopped where the documents leave something
+ * open, so it goes on once that is decided; a case returned for missing information or flagged by the check doesn't */
+export function caseResult(trace: ChainTrace, built: BuiltWorkflow[]): { ok: boolean; text: string; needsDecision: boolean } {
   if (trace.status === "COMPLETED") {
     const n = trace.legs.length;
-    return { ok: true, text: `Completed in ${n} ${n === 1 ? "department" : "departments"}${trace.waiting_for ? `, ready for ${trace.waiting_for}` : ""}` };
+    return {
+      ok: true,
+      text: `Completed in ${n} ${n === 1 ? "department" : "departments"}${trace.waiting_for ? `, ready for ${trace.waiting_for}` : ""}`,
+      needsDecision: false,
+    };
   }
   const last = trace.legs[trace.legs.length - 1];
   const step = last?.trace.steps[last.trace.steps.length - 1];
   const wf = built.find((w) => w.opportunity_id === last?.workflow_id);
-  if (trace.status === "RETURNED") return { ok: false, text: `Returned in ${last.department}: information missing` };
-  if (step?.step_id === "amount_check") return { ok: false, text: `Stopped in ${last.department}: the policy doesn't settle this exact amount` };
-  if (wf?.unresolved_actors.includes(step?.actor ?? "")) return { ok: false, text: `Stopped in ${last.department}: no ${step.actor} in the org chart` };
-  return { ok: false, text: `Stopped in ${last.department}: flagged for a person` };
+  if (trace.status === "RETURNED") return { ok: false, text: `Returned in ${last.department}: information missing`, needsDecision: false };
+  if (step?.step_id === "amount_check")
+    return { ok: false, text: `Stopped in ${last.department}: the policy doesn't settle this exact amount`, needsDecision: true };
+  if (wf?.unresolved_actors.includes(step?.actor ?? ""))
+    return { ok: false, text: `Stopped in ${last.department}: no ${step.actor} in the org chart`, needsDecision: true };
+  return { ok: false, text: `Stopped in ${last.department}: flagged for a person`, needsDecision: false };
 }
 
 function ChainOutcome({
@@ -536,7 +555,7 @@ export function CaseRun({
         <div className="flex flex-col gap-4">
           {error && <ErrorNote message={error} />}
           {busy && <Working label="Running the case" />}
-          {trace && lastRequest && !busy && !caseResult(trace, builtList).ok && (
+          {trace && lastRequest && !busy && caseResult(trace, builtList).needsDecision && (
             <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-sheet px-4 py-3">
               <span className="flex-1 text-sm text-muted">
                 {restored ? `${lastRequest.request_id} stopped here.` : "This case stopped."} Once you decide what the documents leave open, run it again

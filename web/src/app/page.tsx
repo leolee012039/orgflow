@@ -240,6 +240,8 @@ function Home() {
 
   function startOver() {
     writeUnsaved(null);
+    // A sample puts its own PDFs in the picker; a new analysis starts without them
+    setDraft({ policies: [] });
     setView({ status: "idle" });
     window.history.replaceState(null, "", "/");
   }

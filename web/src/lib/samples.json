@@ -26,6 +26,7 @@
       "banyan/Banyan_Lantern_Client_Project_Handover_Procedure.pdf"
     ],
     "examples": {
+      "requester": "Priya Sharma",
       "item": "Two developer laptops for the Atlas project",
       "client_project": "Atlas Retail Bank, mobile banking app",
       "business_reason": "Two engineers join the project next month and need laptops on their first day.",
@@ -64,6 +65,7 @@
       "larkspur/Larkspur_Bay_Shipment_Handover_Procedure.pdf"
     ],
     "examples": {
+      "requester": "Tan Wei Ling",
       "shipment_number": "LBL-2026-10482",
       "customer": "Harbourline Retail",
       "reason": "Two cartons arrived crushed; the customer sent photos.",
@@ -85,6 +87,7 @@
       "xiangying/Xiangying_Fitness_Purchasing_Policy.pdf"
     ],
     "examples": {
+      "requester": "林怡君",
       "item": "跑步機 2 台",
       "purchase_reason": "店內兩台跑步機故障，需要更換，會員才有足夠的器材使用。",
       "procurement_reason": "店內兩台跑步機故障，需要更換，會員才有足夠的器材使用。",
@@ -110,6 +113,7 @@
       "hamakaze/Hamakaze_Seiko_Order_to_Shipment_Procedure.pdf"
     ],
     "examples": {
+      "requester": "佐藤健一",
       "item_name": "精密加工用の工具一式",
       "purpose": "現在の工具が摩耗し、加工精度を保てないため。",
       "part_number": "HS-4120",
@@ -131,6 +135,7 @@
       "nurisol/Nurisol_Market_Promotion_Procedure.pdf"
     ],
     "examples": {
+      "requester": "김민지",
       "item": "주방용 수납용기 300개",
       "order_number": "NS-20261013-0042",
       "customer_name": "김민지",
@@ -155,6 +160,7 @@
       "kenari/Kenari_Dana_Prosedur_Serah_Terima_Nasabah.pdf"
     ],
     "examples": {
+      "requester": "Siti Rahmawati",
       "nama_nasabah": "Budi Santoso",
       "tenor": "24 bulan",
       "tujuan_pinjaman": "Modal kerja untuk menambah stok toko",
@@ -177,6 +183,7 @@
       "wattle/Wattle_Creek_Clinician_Onboarding.pdf"
     ],
     "examples": {
+      "requester": "Olivia Brown",
       "item": "Patient examination couch",
       "clinic": "Wattle Creek North",
       "purchase_request_and_approval.reason": "The examination couch in room 3 is broken and unsafe.",

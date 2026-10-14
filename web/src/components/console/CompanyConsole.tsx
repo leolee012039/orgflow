@@ -11,7 +11,7 @@ import { MAX_CASES, type Workspace } from "@/lib/workspaces";
 import { DocumentNames } from "../Quote";
 import { PrintButton } from "../ReportActions";
 import { primaryClass } from "../Section";
-import { AlertIcon, BuildingIcon, CheckIcon, FlowIcon, MapIcon } from "../Icons";
+import { AlertIcon, BuildingIcon, CheckIcon, FlowIcon, MapIcon, PlayIcon } from "../Icons";
 import { CasesView } from "./CasesView";
 import { DocumentsView } from "./DocumentsView";
 import { Overview } from "./Overview";
@@ -158,11 +158,20 @@ export function CompanyConsole({
               </div>
               <div className="flex flex-wrap gap-2.5 print:hidden">
                 <PrintButton />
-                {canBuild && unbuilt > 0 && (
+                {canBuild && unbuilt > 0 ? (
                   <button type="button" onClick={buildAll} disabled={busy} className={primaryClass}>
                     <FlowIcon />
                     {busy ? "Building…" : `Build ${unbuilt} linked ${unbuilt === 1 ? "workflow" : "workflows"}`}
                   </button>
+                ) : (
+                  // Once the workflows are built, the next thing to do is send a case through them
+                  builtCount > 0 &&
+                  section !== "cases" && (
+                    <button type="button" onClick={() => setSection("cases")} className={primaryClass}>
+                      <PlayIcon />
+                      Try a case
+                    </button>
+                  )
                 )}
               </div>
             </div>

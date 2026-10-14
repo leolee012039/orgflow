@@ -120,6 +120,7 @@ def test_each_example_answer_names_a_field_of_the_sample(sample):
         wf = load_fixture(f"{sample['id']}/workflows/{c['id']}.json")
         fields[c["id"]] = {f["name"] for f in wf.get("fields") or []}
     every = set().union(*fields.values())
-    for key in sample["examples"]:
+    # "requester" names who sends the case, on every form
+    for key in (k for k in sample["examples"] if k != "requester"):
         workflow, _, field = key.rpartition(".")
         assert (field in fields.get(workflow, set())) if workflow else (field in every), key
