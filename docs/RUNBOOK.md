@@ -6,7 +6,7 @@ For the judging period (Oct 19 - Nov 6, 2026, and to Dec 4 if shortlisted).
 - Owner: Leo (GCP admin). Backup: [name].
 - Every command below names the project. If you run others, first `gcloud config set project ai-builder-510613`:
   the old project (`aibul-510701`) is suspended, and a default left pointing at it fails or changes the wrong project.
-- Last known good revision: `orgflow-api-00008-tr4` (2026-10-14, commit 1093772, ECC second review and Build all's upstream order; the one before, `orgflow-api-00007-lc8`). Git tag: `last-good`.
+- Last known good revision: `orgflow-api-00008-tr4` (2026-10-14, commit eaedf75, ECC second review, Build all's upstream order and the walk-through fixes; the site alone changed in eaedf75; the one before, `orgflow-api-00007-lc8`). Git tag: `last-good`.
 - Adding a sample company: `uv run python scripts/save_sample.py ID "Company" "Market" "Industry" "Language" ORG.pdf POLICY.pdf ...` reads it live once and saves it; check what it prints against what the documents plant, add the planted problems to `tests/test_samples.py`, write example answers into `web/src/lib/samples.json`, open it in the browser on a local API started with `ORGFLOW_REQUIRE_AUTH=1` (with sign-in off, a saved answer that doesn't fit is quietly built live; ISSUES.md #31), then deploy the API and the site.
 
 ## 1. The API or the website is down (uptime alert)
