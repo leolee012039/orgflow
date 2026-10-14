@@ -8,11 +8,17 @@ export function orderedBuilt(plan: WorkflowCandidate[], built: Built): BuiltWork
   return plan.filter((c) => built[c.id]).map((c) => built[c.id]);
 }
 
-/** The planned workflow a candidate starts from: in its starts_from department, handing to its department.
- * A built one wins, so the candidate is built against something that exists. */
+/** The planned workflows a candidate may start from, in plan order: in its starts_from department, handing to
+ * its department. */
+export function upstreamOptions(candidate: WorkflowCandidate, plan: WorkflowCandidate[]): WorkflowCandidate[] {
+  if (!candidate.starts_from) return [];
+  return plan.filter((w) => w.department === candidate.starts_from && w.hands_to === candidate.department);
+}
+
+/** The planned workflow a candidate starts from. A built one wins, so the candidate is built against something
+ * that exists; the first in plan order when several are. */
 export function upstreamOf(candidate: WorkflowCandidate, plan: WorkflowCandidate[], built: Built): WorkflowCandidate | null {
-  if (!candidate.starts_from) return null;
-  const options = plan.filter((w) => w.department === candidate.starts_from && w.hands_to === candidate.department);
+  const options = upstreamOptions(candidate, plan);
   return options.find((w) => built[w.id]) ?? options[0] ?? null;
 }
 

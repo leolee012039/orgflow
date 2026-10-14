@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
-import { buildOrder, upstreamOf } from "./chain";
+import { buildOrder, upstreamOf, upstreamOptions } from "./chain";
 import type { BuiltWorkflow, Documents, Organization, WorkflowCandidate } from "./types";
 
 export type BuildState = { status: "building" } | { status: "error"; message: string; problems: string[] };
@@ -69,24 +69,26 @@ export function useBuilds({
   }
 
   async function buildAll() {
-    // Upstream first: a workflow is built once its upstream is built, side by side with a few others that are ready
-    const upstreamBuilt = (c: WorkflowCandidate) => {
-      const up = upstreamOf(c, candidates, builtRef.current);
-      return !up || Boolean(builtRef.current[up.id]);
-    };
+    // Upstream first: a workflow is built once every workflow it may start from has been tried and one is built,
+    // side by side with a few others that are ready. Waiting for all of them builds it against the first in plan
+    // order, whichever finished first, as the samples' saved workflows were built (ISSUES.md #31)
     async function pass(skipLasting: boolean) {
       let pending = buildOrder(candidates, builtRef.current).filter(
         (c) => !skipLasting || failures.current.get(c.id) !== "lasting",
       );
+      const ready = (c: WorkflowCandidate) => {
+        const options = upstreamOptions(c, candidates);
+        return !options.length || (options.some((w) => builtRef.current[w.id]) && !options.some((w) => pending.includes(w)));
+      };
       while (pending.length && !gone.current) {
-        const ready = pending.filter(upstreamBuilt).slice(0, BUILD_AT_ONCE);
-        if (!ready.length) break;
-        await Promise.all(ready.map(build));
-        pending = pending.filter((c) => !ready.includes(c));
-        // A workflow whose upstream failed can't be built against it; the rest carry on
+        const batch = pending.filter(ready).slice(0, BUILD_AT_ONCE);
+        if (!batch.length) break;
+        await Promise.all(batch.map(build));
+        pending = pending.filter((c) => !batch.includes(c));
+        // A workflow none of whose upstreams can be built any more can't be built; the rest carry on
         pending = pending.filter((c) => {
-          const up = upstreamOf(c, candidates, builtRef.current);
-          return !up || builtRef.current[up.id] || pending.includes(up);
+          const options = upstreamOptions(c, candidates);
+          return !options.length || options.some((w) => builtRef.current[w.id] || pending.includes(w));
         });
       }
     }
