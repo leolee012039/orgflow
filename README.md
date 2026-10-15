@@ -10,13 +10,15 @@ Built for the Google Cloud AI Builder Cup 2026 (theme: Future of Work and Enterp
 - **Demo video:** added with the submission
 - **Evaluation on real documents:** [docs/EVAL.md](docs/EVAL.md)
 
+**For judges, five minutes, no sign-in:** open https://orgflowai.web.app and press *Try the NovaGear sample*, then *Build 5 linked workflows*. *Review them* shows the two places a case stops: the policy needs a Director the org chart doesn't have, and no level covers a discount of exactly 10%. Decide who approves in place of the Director, press *Try a case* and run USD 7,500: it now goes through Operations, Procurement and Finance. The seven Asia-Pacific samples work the same way in their own languages and currencies. Your own PDFs need a Google sign-in and take one to five minutes to read live, depending on their length. Approvals are simulated on the routing slip today.
+
 ## The problem
 
 Every company runs on two documents that were written by different people at different times: the org chart and the policies. Nobody checks one against the other until a request gets stuck.
 
 - A purchasing policy requires **Director** approval above USD 5,000, but the org chart has no Director. Every large request waits in someone's inbox.
 - A discount policy gives "below 10%" to Sales Representatives and "above 10%" to Sales Managers. A quote for **exactly 10%** belongs to no one.
-- Work changes hands by email and spreadsheets between departments. Before anyone can automate it, a consultant spends weeks interviewing people to draw the process.
+- Work changes hands by email and spreadsheets between departments. Before anyone can automate it, someone has to interview people and draw the process by hand.
 
 ## What OrgFlow does
 
@@ -104,7 +106,7 @@ NEXT_PUBLIC_API_BASE=http://localhost:8080 npm run dev
 ## Tests and evaluation
 
 ```bash
-uv run --group dev pytest -q                                              # 183 tests, no Gemini calls
+uv run --group dev pytest -q                                              # 226 tests, no Gemini calls
 uv run --group dev --with pymupdf python scripts/eval_documents.py         # all six document sets, live Gemini
 ```
 

@@ -3,7 +3,7 @@
 For the judging period (Oct 19 - Nov 6, 2026, and to Dec 4 if shortlisted).
 
 - Project: `ai-builder-510613` (moved from `aibul-510701` on 2026-10-08). API: Cloud Run `orgflow-api` (asia-east1). Web: Firebase Hosting `orgflowai.web.app`.
-- Owner: Leo (GCP admin). Backup: [name].
+- Owner: Leo (GCP admin).
 - Every command below names the project. If you run others, first `gcloud config set project ai-builder-510613`:
   the old project (`aibul-510701`) is suspended, and a default left pointing at it fails or changes the wrong project.
 - Last known good revision: `orgflow-api-00008-tr4` (2026-10-14, commit afb0e0c, ECC second review, Build all's upstream order and the walk-through fixes; the site alone changed in afb0e0c; the one before, `orgflow-api-00007-lc8`). Git tag: `last-good`.
