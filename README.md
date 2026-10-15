@@ -7,7 +7,7 @@ OrgFlow reads a company's org chart and policies, maps how work moves from depar
 Built for the Google Cloud AI Builder Cup 2026 (theme: Future of Work and Enterprise Productivity).
 
 - **Live app:** https://orgflowai.web.app. Eight sample companies open at once without an account: NovaGear (United States), and fictional companies from India, Singapore, Taiwan, Japan, Korea, Indonesia and Australia, each in its own language and currency, with two problems written into its documents ([demo_assets](demo_assets)). Gemini's reading of each was checked and saved; your own documents are read live after a Google sign-in.
-- **Demo video:** added with the submission
+- **Demo video (2:43):** https://youtu.be/N9wSl52YVZg
 - **Evaluation on real documents:** [docs/EVAL.md](docs/EVAL.md)
 
 **For judges, five minutes, no sign-in:** open https://orgflowai.web.app and press *Try the NovaGear sample*, then *Build 5 linked workflows*. *Review them* shows the two places a case stops: the policy needs a Director the org chart doesn't have, and no level covers a discount of exactly 10%. Decide who approves in place of the Director, press *Try a case* and run USD 7,500: it now goes through Operations, Procurement and Finance. The seven Asia-Pacific samples work the same way in their own languages and currencies. Your own PDFs need a Google sign-in and take one to five minutes to read live, depending on their length. Approvals are simulated on the routing slip today.
