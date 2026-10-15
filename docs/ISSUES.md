@@ -309,3 +309,9 @@ Low:
 - After Build all nothing pointed to the next step; the header's button went away and Cases was only in the side menu.
 - Status: **fixed.** A date field starts at today, or two weeks ahead for one that looks forward (delivery, start, deadline, 納期). The banner shows only when the case stopped where the documents leave something open (an exact amount, an approver the org chart doesn't have). Each Asia-Pacific sample names a local requester in `samples.json` (`requester`). New analysis empties the picker. Once workflows are built, the header offers "Try a case". Checked: the samples check now also requires every field filled at every start point, runs each start point's example case and expects none returned, and empties a field to see the banner stay away; on the live site before the fix it failed 11 of 96, locally after it passed 96 of 96 with sign-in on; a new check of the other changes passed 9 of 9; the retry checks pass.
 - Not changed: on a phone, "Review and decide →" and "Open →" are 20 px tall links; the case history shows the result while the slip is still being stamped.
+
+## 33. "Event loop is closed" errors in the API log (2026-10-15)
+
+- Found by the final pre-submission check: two ERROR entries on 2026-10-14 (11:26 and 12:11 UTC), "Task exception was never retrieved ... BaseApiClient.aclose() ... RuntimeError: Event loop is closed", from the google-genai client closing its HTTP connections after the event loop it was made in had closed.
+- The requests just before and after were answered 200; no request failed (no 5xx in the 24 hours). It is noise from clean-up, not a failure anyone sees.
+- Status: **left as it is** before the submission (changing how Gemini clients are made and closed now risks more than the log line costs). If it matters later: close each client inside the loop that made it.
